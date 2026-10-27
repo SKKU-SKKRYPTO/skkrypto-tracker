@@ -41,3 +41,12 @@ export type TraceResult = {
     isLowerBound: boolean
   } | null
 }
+
+// 오류 응답은 구조가 다르다. 예: mocks/trace-error.draft.json
+export type ApiError = {
+  error: {
+    code: string
+    message: string
+    field: string | null
+  }
+}
