@@ -103,16 +103,64 @@
   }
 }
 
-/* 넓은 화면: 표 | 상세, 좁은 화면: 표 위, 상세 아래 */
+/* 넓은 화면: 표 | (그래프 위, 상세 아래), 좁은 화면: 표 → 그래프 → 상세 */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'table graph'
+    'table detail';
   gap: 24px;
   align-items: start;
 
+  .table-scroll {
+    grid-area: table;
+  }
+
+  .graph {
+    grid-area: graph;
+  }
+
+  .detail {
+    grid-area: detail;
+  }
+
   @media (max-width: 960px) {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'table'
+      'graph'
+      'detail';
   }
+}
+
+.graph {
+  margin: 0;
+  min-width: 0;
+}
+
+.graph-canvas {
+  height: 360px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.graph-caption {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* 설명 문구 안의 "시작" 점 견본: 그래프와 같은 이중 테두리 */
+.graph-start-sample {
+  display: inline-block;
+  padding: 0 6px;
+  border: 4px double var(--text-h);
+  border-radius: 4px;
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 12px;
 }
 
 /* 좁은 화면에서는 표만 가로로 스크롤 */
