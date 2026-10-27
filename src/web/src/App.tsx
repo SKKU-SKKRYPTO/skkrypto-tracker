@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import traceOk from '../mocks/trace-ok.draft.json'
-import { formatUnits, shortenHex } from './format'
+import TransferDetail from './components/TransferDetail'
+import TransferTable from './components/TransferTable'
 import type { TraceResult } from './types'
 import './App.css'
 
@@ -7,7 +9,11 @@ const trace: TraceResult = traceOk
 
 function App() {
   const { dataset, transfers } = trace
-  const { symbol, decimals } = dataset.token
+  // 선택은 송금 id 하나로 관리한다. 표·상세(나중에 그래프도)가 이 값을 같이 쓴다.
+  const [selectedTransferId, setSelectedTransferId] = useState<string | null>(null)
+
+  const selectedTransfer =
+    transfers.find((transfer) => transfer.id === selectedTransferId) ?? null
 
   return (
     <main className="app">
@@ -17,37 +23,14 @@ function App() {
 
       <h1>송금 목록</h1>
 
-      <div className="table-scroll">
-        <table className="transfers">
-          <thead>
-            <tr>
-              <th>보낸 주소</th>
-              <th>받은 주소</th>
-              <th className="num">금액</th>
-              <th className="num">블록 번호</th>
-              <th>거래 번호</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transfers.map((transfer) => (
-              <tr key={transfer.id}>
-                <td className="mono" title={transfer.from}>
-                  {shortenHex(transfer.from)}
-                </td>
-                <td className="mono" title={transfer.to}>
-                  {shortenHex(transfer.to)}
-                </td>
-                <td className="num">
-                  {formatUnits(transfer.amount, decimals)} {symbol}
-                </td>
-                <td className="num">{transfer.blockNumber}</td>
-                <td className="mono" title={transfer.transactionHash}>
-                  {shortenHex(transfer.transactionHash)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="layout">
+        <TransferTable
+          transfers={transfers}
+          token={dataset.token}
+          selectedTransferId={selectedTransferId}
+          onSelect={setSelectedTransferId}
+        />
+        <TransferDetail transfer={selectedTransfer} token={dataset.token} />
       </div>
     </main>
   )
