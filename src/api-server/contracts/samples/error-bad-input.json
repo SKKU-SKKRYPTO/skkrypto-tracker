@@ -1,0 +1,16 @@
+{
+  "data": null,
+  "meta": {
+    "contractVersion": "v0-draft",
+    "ruleVersion": "flow-v1",
+    "limitations": [
+      "후보 연결은 동일 자금 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다."
+    ]
+  },
+  "error": {
+    "code": "INVALID_INPUT",
+    "message": "입력 형식을 확인해 주세요.",
+    "retryable": false
+  }
+}

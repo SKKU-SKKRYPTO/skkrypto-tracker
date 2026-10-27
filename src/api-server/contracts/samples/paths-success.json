@@ -1,0 +1,253 @@
+{
+  "data": {
+    "transfers": [
+      {
+        "id": "fx:flow-demo-v1:e1",
+        "label": "e1",
+        "datasetId": "flow-demo",
+        "datasetVersion": "v1",
+        "sourceMode": "FIXTURE",
+        "sourceNamespace": "flow-demo-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "txHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+        "blockHash": "0x8d2cb1d706bb6b091f598c47a57f37b199bbb1890c0f105fcf5614670722e564",
+        "blockNumber": "18204511",
+        "transactionIndex": 3,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T12:00:04Z",
+        "from": "0x0000000000000000000000000000000000000001",
+        "to": "0x0000000000000000000000000000000000000002",
+        "amountRaw": "120000"
+      },
+      {
+        "id": "fx:flow-demo-v1:e2",
+        "label": "e2",
+        "datasetId": "flow-demo",
+        "datasetVersion": "v1",
+        "sourceMode": "FIXTURE",
+        "sourceNamespace": "flow-demo-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "txHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+        "blockHash": "0x36a114997f1425e5053e5019a8b704db293d70cca0130174c9cfe596ae98c478",
+        "blockNumber": "18204566",
+        "transactionIndex": 1,
+        "logIndex": 2,
+        "timestamp": "2026-10-26T12:01:54Z",
+        "from": "0x0000000000000000000000000000000000000001",
+        "to": "0x0000000000000000000000000000000000000003",
+        "amountRaw": "250000"
+      },
+      {
+        "id": "fx:flow-demo-v1:e4",
+        "label": "e4",
+        "datasetId": "flow-demo",
+        "datasetVersion": "v1",
+        "sourceMode": "FIXTURE",
+        "sourceNamespace": "flow-demo-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "txHash": "0x0000000000000000000000000000000000000000000000000000000000000004",
+        "blockHash": "0xd4ba29f9df05e47993f4792ea9857bf34a65cdf96d945667a780107cbe38e38e",
+        "blockNumber": "18205040",
+        "transactionIndex": 5,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T12:17:42Z",
+        "from": "0x0000000000000000000000000000000000000002",
+        "to": "0x0000000000000000000000000000000000000005",
+        "amountRaw": "115000"
+      },
+      {
+        "id": "fx:flow-demo-v1:e5",
+        "label": "e5",
+        "datasetId": "flow-demo",
+        "datasetVersion": "v1",
+        "sourceMode": "FIXTURE",
+        "sourceNamespace": "flow-demo-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "txHash": "0x0000000000000000000000000000000000000000000000000000000000000005",
+        "blockHash": "0x93a96501e646000b6380086f19811b9f4f7185738b9fb450a5c333df5ded5eb1",
+        "blockNumber": "18205103",
+        "transactionIndex": 2,
+        "logIndex": 1,
+        "timestamp": "2026-10-26T12:19:48Z",
+        "from": "0x0000000000000000000000000000000000000003",
+        "to": "0x0000000000000000000000000000000000000005",
+        "amountRaw": "248000"
+      },
+      {
+        "id": "fx:flow-demo-v1:e6",
+        "label": "e6",
+        "datasetId": "flow-demo",
+        "datasetVersion": "v1",
+        "sourceMode": "FIXTURE",
+        "sourceNamespace": "flow-demo-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "txHash": "0x0000000000000000000000000000000000000000000000000000000000000006",
+        "blockHash": "0x8c6e53728cc07bc4f412f8318f2f3bce557120f00e8f7dbf9222b265c2469b15",
+        "blockNumber": "18205900",
+        "transactionIndex": 4,
+        "logIndex": 3,
+        "timestamp": "2026-10-26T12:46:22Z",
+        "from": "0x0000000000000000000000000000000000000005",
+        "to": "0x0000000000000000000000000000000000000007",
+        "amountRaw": "360000"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "0x0000000000000000000000000000000000000001",
+        "label": "S"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000002",
+        "label": "A"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000003",
+        "label": "B"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000005",
+        "label": "D"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000007",
+        "label": "T"
+      }
+    ],
+    "paths": [
+      {
+        "id": "path-1",
+        "transferIds": [
+          "fx:flow-demo-v1:e1",
+          "fx:flow-demo-v1:e4",
+          "fx:flow-demo-v1:e6"
+        ],
+        "hops": 3
+      },
+      {
+        "id": "path-2",
+        "transferIds": [
+          "fx:flow-demo-v1:e2",
+          "fx:flow-demo-v1:e5",
+          "fx:flow-demo-v1:e6"
+        ],
+        "hops": 3
+      }
+    ],
+    "patterns": [],
+    "summary": {
+      "uniqueTransferCount": 5,
+      "uniqueAmountRaw": "1093000"
+    },
+    "limits": {
+      "truncated": false,
+      "reasons": [],
+      "found": 2,
+      "foundIsLowerBound": false,
+      "statesVisited": 8,
+      "candidatesConsidered": 8,
+      "durationMs": 0
+    }
+  },
+  "meta": {
+    "contractVersion": "v0-draft",
+    "ruleVersion": "flow-v1",
+    "datasetId": "flow-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "conditions": {
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "address": "0x0000000000000000000000000000000000000001",
+      "targetAddress": "0x0000000000000000000000000000000000000007",
+      "direction": "outgoing",
+      "maxDepth": 3,
+      "filter": {},
+      "limits": {}
+    },
+    "limits": {
+      "truncated": false,
+      "reasons": [],
+      "found": 2,
+      "foundIsLowerBound": false,
+      "statesVisited": 8,
+      "candidatesConsidered": 8,
+      "durationMs": 0
+    },
+    "limitations": [
+      "후보 연결은 동일 자금 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다."
+    ],
+    "dataset": {
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "sourceMode": "FIXTURE",
+      "sourceNamespace": "flow-demo-v1",
+      "status": "READY",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "startBlock": "18204511",
+      "endBlock": "18206300",
+      "startTime": "2026-10-26T12:00:04Z",
+      "endTime": "2026-10-26T13:00:00Z",
+      "collectedAt": "2026-10-26T13:00:00Z",
+      "finalizedBlock": "18206300",
+      "boundaryHashes": {
+        "18204511": "0x8d2cb1d706bb6b091f598c47a57f37b199bbb1890c0f105fcf5614670722e564",
+        "18206300": "0x4d55a2e4afeb0bd75f79986e765f02c56a7b25a41f86295b256d0b48eb2d4917"
+      },
+      "labels": {
+        "S": "0x0000000000000000000000000000000000000001",
+        "A": "0x0000000000000000000000000000000000000002",
+        "B": "0x0000000000000000000000000000000000000003",
+        "C": "0x0000000000000000000000000000000000000004",
+        "D": "0x0000000000000000000000000000000000000005",
+        "E": "0x0000000000000000000000000000000000000006",
+        "T": "0x0000000000000000000000000000000000000007"
+      },
+      "fixtureVersion": "flow-demo-v1",
+      "contractVersion": "v0-draft",
+      "ruleVersion": "flow-v1",
+      "notes": [
+        "합성 교육 데이터. 실제 체인 거래가 아닙니다.",
+        "날짜·주소·decimals·해시는 테스트용으로 정한 값입니다."
+      ]
+    }
+  },
+  "error": null
+}
