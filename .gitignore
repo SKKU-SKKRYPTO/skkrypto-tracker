@@ -1,0 +1,9 @@
+.env*
+.env.*
+!.env.example
+*.tmp
+.DS_Store
+.vscode/
+.agents/
+.antigravitycli/
+.claude/
