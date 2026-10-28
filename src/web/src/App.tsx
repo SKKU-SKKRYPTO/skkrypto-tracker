@@ -1,15 +1,20 @@
 import { useRef, useState } from 'react'
-import { searchTrace } from './api/trace'
-import type { TraceResponse } from './api/trace'
+import { buildTraceRequest, searchTrace } from './api/trace'
+import type { TraceRequest, TraceResponse } from './api/trace'
 import SearchBar from './components/SearchBar'
 import TransferDetail from './components/TransferDetail'
 import TransferGraph from './components/TransferGraph'
 import TransferTable from './components/TransferTable'
+import { DEFAULT_SEARCH_CONDITIONS, formatConditions } from './searchConditions'
+import type { SearchConditions } from './searchConditions'
 import type { TraceResult } from './types'
 import './App.css'
 
 function App() {
   const [response, setResponse] = useState<TraceResponse | null>(null)
+  // 화면에 보이는 결과를 만든 요청. 메뉴에서 조건을 바꿔도 다시 검색하기 전까지는 그대로다.
+  const [appliedRequest, setAppliedRequest] = useState<TraceRequest | null>(null)
+  const [conditions, setConditions] = useState<SearchConditions>(DEFAULT_SEARCH_CONDITIONS)
   const [isSearching, setIsSearching] = useState(false)
   // 선택은 송금 id 하나로 관리한다. 표·상세·그래프가 이 값을 같이 쓴다.
   const [selectedTransferId, setSelectedTransferId] = useState<string | null>(null)
@@ -21,10 +26,18 @@ function App() {
     // 새 검색을 시작하면 이전 결과에서 고른 송금은 선택 해제한다.
     setSelectedTransferId(null)
     setIsSearching(true)
-    const nextResponse = await searchTrace(address)
+    const request = buildTraceRequest(address, conditions)
+    const nextResponse = await searchTrace(request)
     if (searchId !== latestSearchId.current) return
     setResponse(nextResponse)
+    setAppliedRequest(request)
     setIsSearching(false)
+  }
+
+  function handleConditionsChange(nextConditions: SearchConditions) {
+    setConditions(nextConditions)
+    // 조건이 바뀌면 이전에 고른 송금은 선택 해제한다.
+    setSelectedTransferId(null)
   }
 
   return (
@@ -35,7 +48,16 @@ function App() {
 
       <h1>송금 목록</h1>
 
-      <SearchBar isSearching={isSearching} onSearch={handleSearch} />
+      <SearchBar
+        isSearching={isSearching}
+        conditions={conditions}
+        onConditionsChange={handleConditionsChange}
+        onSearch={handleSearch}
+      />
+
+      {response?.ok && appliedRequest !== null && (
+        <p className="applied-conditions">조건: {formatConditions(appliedRequest)}</p>
+      )}
 
       {response === null && (
         <p className="notice">주소를 입력하고 검색하면 송금 목록이 나옵니다.</p>
