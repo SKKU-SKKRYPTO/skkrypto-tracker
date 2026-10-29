@@ -1,0 +1,2323 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SKKRYPTO Tracker API",
+    "version": "v0-draft",
+    "description": "SKKRYPTO Tracker API 규격 초안(v0-draft). v1 확정 전까지 필드 이름·구조가 바뀔 수 있다.\n\n응답은 항상 data/meta/error 구조다. 금액·블록 번호는 십진 문자열, 시각은 UTC ISO-8601이다."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080"
+    }
+  ],
+  "paths": {
+    "/api/datasets": {
+      "get": {
+        "tags": [
+          "데이터셋"
+        ],
+        "operationId": "listDatasets",
+        "summary": "데이터셋 목록",
+        "responses": {
+          "200": {
+            "description": "데이터셋 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Dataset"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/{id}": {
+      "get": {
+        "tags": [
+          "데이터셋"
+        ],
+        "operationId": "getDataset",
+        "summary": "데이터셋 한 버전",
+        "responses": {
+          "200": {
+            "description": "데이터셋 한 버전",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Dataset"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "데이터셋·버전 또는 거래가 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 ID"
+          },
+          {
+            "name": "datasetVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 버전. 생략하면 가장 최근 버전"
+          }
+        ]
+      }
+    },
+    "/api/transfers": {
+      "get": {
+        "tags": [
+          "전송 조회"
+        ],
+        "operationId": "listTransfers",
+        "summary": "전송 목록",
+        "responses": {
+          "200": {
+            "description": "전송 목록(위치 순)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transfer"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "데이터셋·버전 또는 거래가 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "지원하지 않는 자산이거나 수집 범위 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "datasetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 ID"
+          },
+          {
+            "name": "datasetVersion",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 버전"
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "이 주소가 보내거나 받은 전송만"
+          },
+          {
+            "name": "txHash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "이 거래의 전송만"
+          },
+          {
+            "name": "startBlock",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "블록 하한(포함). 십진 문자열"
+          },
+          {
+            "name": "endBlock",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "블록 상한(포함). 십진 문자열"
+          },
+          {
+            "name": "minAmountRaw",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "최소 금액(포함). 십진 문자열"
+          },
+          {
+            "name": "startTime",
+            "in": "query",
+            "required": false,
+            "description": "블록 시각 하한(포함). RFC3339, UTC로 정규화하며 데이터셋 범위 안이어야 한다",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endTime",
+            "in": "query",
+            "required": false,
+            "description": "블록 시각 상한(포함). RFC3339, UTC로 정규화하며 데이터셋 범위 안이어야 한다",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ]
+      }
+    },
+    "/api/transactions/{txHash}": {
+      "get": {
+        "tags": [
+          "전송 조회"
+        ],
+        "operationId": "getTransaction",
+        "summary": "한 거래 안의 전송",
+        "responses": {
+          "200": {
+            "description": "거래 안의 전송 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transfer"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "데이터셋·버전 또는 거래가 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "datasetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 ID"
+          },
+          {
+            "name": "datasetVersion",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 버전"
+          },
+          {
+            "name": "txHash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Hash"
+            },
+            "description": "거래 해시(0x + 16진수 64자리)"
+          }
+        ]
+      }
+    },
+    "/api/trace": {
+      "post": {
+        "tags": [
+          "분석"
+        ],
+        "operationId": "trace",
+        "summary": "시작 주소에서 1~3 hop 추적",
+        "responses": {
+          "200": {
+            "description": "추적 결과. 0건·부분 결과도 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AnalysisResult"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "데이터셋·버전 또는 거래가 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "지원하지 않는 자산이거나 수집 범위 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paths": {
+      "post": {
+        "tags": [
+          "분석"
+        ],
+        "operationId": "paths",
+        "summary": "두 주소 사이 시간순 후보 경로",
+        "responses": {
+          "200": {
+            "description": "후보 경로. 0건·부분 결과도 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AnalysisResult"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "데이터셋·버전 또는 거래가 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "지원하지 않는 자산이거나 수집 범위 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AnalysisRequest"
+                  },
+                  {
+                    "required": [
+                      "targetAddress"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patterns": {
+      "post": {
+        "tags": [
+          "분석"
+        ],
+        "operationId": "patterns",
+        "summary": "분산(FAN_OUT)·합류(FAN_IN) 패턴",
+        "responses": {
+          "200": {
+            "description": "패턴 결과. 0건도 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AnalysisResult"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "데이터셋·버전 또는 거래가 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "지원하지 않는 자산이거나 수집 범위 밖",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "요청 제한 초과(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "일시 장애(재시도 가능)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Address": {
+        "type": "string",
+        "pattern": "^0x[0-9a-fA-F]{40}$"
+      },
+      "Hash": {
+        "type": "string",
+        "pattern": "^0x[0-9a-fA-F]{64}$"
+      },
+      "UInt": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "Amount": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "uint256 범위의 십진 문자열(최대 2^256-1). JSON 숫자로 보내지 않는다."
+      },
+      "Asset": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "tokenAddress",
+          "symbol",
+          "decimals"
+        ],
+        "properties": {
+          "chainId": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "tokenAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        }
+      },
+      "Filter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "startBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "endBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "minAmountRaw": {
+            "$ref": "#/components/schemas/Amount"
+          }
+        }
+      },
+      "Limits": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxNodes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200,
+            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
+          },
+          "maxEdges": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500,
+            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
+          },
+          "maxPaths": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
+          },
+          "maxStates": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
+          },
+          "maxCandidates": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
+          },
+          "timeBudgetMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000,
+            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
+          }
+        }
+      },
+      "AnalysisRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "datasetId",
+          "datasetVersion",
+          "address"
+        ],
+        "properties": {
+          "datasetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "datasetVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset": {
+            "$ref": "#/components/schemas/AssetSelector"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "targetAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "startTransferId": {
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "",
+              "outgoing",
+              "incoming"
+            ],
+            "default": "outgoing",
+            "description": "생략하면 outgoing."
+          },
+          "maxDepth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "default": 2,
+            "description": "1~3 hop. 생략하거나 0이면 2."
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Limits"
+          }
+        }
+      },
+      "LimitStatus": {
+        "type": "object",
+        "required": [
+          "truncated",
+          "reasons",
+          "found",
+          "foundIsLowerBound",
+          "statesVisited",
+          "candidatesConsidered",
+          "durationMs"
+        ],
+        "properties": {
+          "truncated": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "PATH_LIMIT",
+                "STATE_LIMIT",
+                "CANDIDATE_LIMIT",
+                "NODE_LIMIT",
+                "EDGE_LIMIT",
+                "TIME_BUDGET"
+              ]
+            }
+          },
+          "found": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "foundIsLowerBound": {
+            "type": "boolean"
+          },
+          "statesVisited": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "candidatesConsidered": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "durationMs": {
+            "$ref": "#/components/schemas/UInt"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Transfer": {
+        "type": "object",
+        "required": [
+          "id",
+          "datasetId",
+          "datasetVersion",
+          "sourceMode",
+          "sourceNamespace",
+          "asset",
+          "txHash",
+          "blockHash",
+          "blockNumber",
+          "transactionIndex",
+          "logIndex",
+          "timestamp",
+          "from",
+          "to",
+          "amountRaw"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "datasetId": {
+            "type": "string"
+          },
+          "datasetVersion": {
+            "type": "string"
+          },
+          "sourceMode": {
+            "type": "string"
+          },
+          "sourceNamespace": {
+            "type": "string"
+          },
+          "asset": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "txHash": {
+            "type": "string"
+          },
+          "blockHash": {
+            "type": "string"
+          },
+          "blockNumber": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "transactionIndex": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "logIndex": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "amountRaw": {
+            "$ref": "#/components/schemas/Amount"
+          }
+        }
+      },
+      "Dataset": {
+        "type": "object",
+        "required": [
+          "datasetId",
+          "datasetVersion",
+          "sourceMode",
+          "sourceNamespace",
+          "status",
+          "asset",
+          "startBlock",
+          "endBlock",
+          "startTime",
+          "endTime",
+          "collectedAt",
+          "finalizedBlock",
+          "boundaryHashes",
+          "labels",
+          "fixtureVersion",
+          "contractVersion",
+          "ruleVersion",
+          "notes"
+        ],
+        "properties": {
+          "datasetId": {
+            "type": "string"
+          },
+          "datasetVersion": {
+            "type": "string"
+          },
+          "sourceMode": {
+            "enum": [
+              "FIXTURE",
+              "RPC_SNAPSHOT"
+            ]
+          },
+          "sourceNamespace": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "READY",
+              "COLLECTING",
+              "FAILED",
+              "INVALIDATED"
+            ]
+          },
+          "asset": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "startBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "endBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "startTime": {
+            "type": "string"
+          },
+          "endTime": {
+            "type": "string"
+          },
+          "collectedAt": {
+            "type": "string"
+          },
+          "finalizedBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "boundaryHashes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Hash"
+            }
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Address"
+            }
+          },
+          "fixtureVersion": {
+            "type": "string"
+          },
+          "contractVersion": {
+            "type": "string"
+          },
+          "ruleVersion": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Path": {
+        "type": "object",
+        "required": [
+          "id",
+          "transferIds",
+          "hops"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "transferIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hops": {
+            "$ref": "#/components/schemas/UInt"
+          }
+        }
+      },
+      "Pattern": {
+        "type": "object",
+        "required": [
+          "patternId",
+          "type",
+          "address",
+          "ruleVersion",
+          "threshold",
+          "windowStart",
+          "windowEnd",
+          "evidenceIds",
+          "counterparties",
+          "groupId",
+          "incomplete"
+        ],
+        "properties": {
+          "patternId": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "FAN_IN",
+              "FAN_OUT"
+            ]
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "ruleVersion": {
+            "type": "string"
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "counterparties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Address"
+            }
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "incomplete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AnalysisResult": {
+        "type": "object",
+        "required": [
+          "transfers",
+          "nodes",
+          "paths",
+          "patterns",
+          "summary",
+          "limits"
+        ],
+        "properties": {
+          "transfers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transfer"
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Path"
+            }
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Pattern"
+            }
+          },
+          "summary": {
+            "type": "object",
+            "required": [
+              "uniqueTransferCount",
+              "uniqueAmountRaw"
+            ],
+            "properties": {
+              "uniqueTransferCount": {
+                "$ref": "#/components/schemas/UInt"
+              },
+              "uniqueAmountRaw": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$"
+              }
+            }
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LimitStatus"
+          }
+        }
+      },
+      "Meta": {
+        "type": "object",
+        "required": [
+          "contractVersion",
+          "ruleVersion",
+          "limitations"
+        ],
+        "properties": {
+          "contractVersion": {
+            "type": "string"
+          },
+          "ruleVersion": {
+            "type": "string"
+          },
+          "datasetId": {
+            "type": "string"
+          },
+          "datasetVersion": {
+            "type": "string"
+          },
+          "sourceMode": {
+            "type": "string"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/AnalysisRequest"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LimitStatus"
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/Dataset"
+          }
+        }
+      },
+      "AssetSelector": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "tokenAddress"
+        ],
+        "properties": {
+          "chainId": {
+            "$ref": "#/components/schemas/UInt"
+          },
+          "tokenAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        },
+        "description": "symbol·decimals는 선택이다. 실제 값은 데이터셋 정보를 따른다."
+      },
+      "BlockNumber": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "블록 번호. 금액처럼 십진 문자열로 주고받는다."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "데이터셋",
+      "description": "수집된 데이터셋 버전과 상태"
+    },
+    {
+      "name": "전송 조회",
+      "description": "원본 전송 목록과 거래 상세"
+    },
+    {
+      "name": "분석",
+      "description": "시간순 연결(trace·paths)과 분산·합류 패턴(patterns)"
+    }
+  ]
+}

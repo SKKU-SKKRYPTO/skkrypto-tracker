@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "sourceMode": "FIXTURE",
+      "sourceNamespace": "flow-demo-v1",
+      "status": "READY",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "startBlock": "18204511",
+      "endBlock": "18206300",
+      "startTime": "2026-10-26T12:00:04Z",
+      "endTime": "2026-10-26T13:00:00Z",
+      "collectedAt": "2026-10-26T13:00:00Z",
+      "finalizedBlock": "18206300",
+      "boundaryHashes": {
+        "18204511": "0x8d2cb1d706bb6b091f598c47a57f37b199bbb1890c0f105fcf5614670722e564",
+        "18206300": "0x4d55a2e4afeb0bd75f79986e765f02c56a7b25a41f86295b256d0b48eb2d4917"
+      },
+      "labels": {
+        "S": "0x0000000000000000000000000000000000000001",
+        "A": "0x0000000000000000000000000000000000000002",
+        "B": "0x0000000000000000000000000000000000000003",
+        "C": "0x0000000000000000000000000000000000000004",
+        "D": "0x0000000000000000000000000000000000000005",
+        "E": "0x0000000000000000000000000000000000000006",
+        "T": "0x0000000000000000000000000000000000000007"
+      },
+      "fixtureVersion": "flow-demo-v1",
+      "contractVersion": "v0-draft",
+      "ruleVersion": "flow-v1",
+      "notes": [
+        "합성 교육 데이터. 실제 체인 거래가 아닙니다.",
+        "날짜·주소·decimals·해시는 테스트용으로 정한 값입니다."
+      ]
+    }
+  ],
+  "meta": {
+    "contractVersion": "v0-draft",
+    "ruleVersion": "flow-v1",
+    "limitations": [
+      "후보 연결은 동일 자금 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다."
+    ]
+  },
+  "error": null
+}
