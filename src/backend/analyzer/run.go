@@ -101,8 +101,18 @@ func (r *run) nextState() (bool, error) {
 }
 
 // addEvidence는 경로·패턴 하나의 근거 전송을 한꺼번에 결과에 넣는다.
-// 노드·엣지 상한을 넘으면 하나도 넣지 않는다. 그래서 결과의 경로는 늘 근거 전송을 모두 갖는다.
+// 노드·엣지 상한을 넘으면 하나도 넣지 않고 탐색을 멈춘다. 그래서 결과의 경로는 늘 근거 전송을 모두 갖는다.
 func (r *run) addEvidence(ts ...domain.Transfer) bool {
+	if reason := r.evidenceOverflow(ts...); reason != "" {
+		r.truncate(reason)
+		return false
+	}
+	r.putEvidence(ts...)
+	return true
+}
+
+// evidenceOverflow는 근거 전송을 더했을 때 넘치는 상한의 사유를 돌려준다. 넘치지 않으면 빈 문자열이다.
+func (r *run) evidenceOverflow(ts ...domain.Transfer) string {
 	newEdges := 0
 	newNodes := map[string]bool{}
 	for _, t := range ts {
@@ -115,20 +125,22 @@ func (r *run) addEvidence(ts ...domain.Transfer) bool {
 			}
 		}
 	}
-	if len(r.edges)+newEdges > r.req.Limits.MaxEdges {
-		r.truncate(ReasonEdgeLimit)
-		return false
+	switch {
+	case len(r.edges)+newEdges > r.req.Limits.MaxEdges:
+		return ReasonEdgeLimit
+	case len(r.nodes)+len(newNodes) > r.req.Limits.MaxNodes:
+		return ReasonNodeLimit
 	}
-	if len(r.nodes)+len(newNodes) > r.req.Limits.MaxNodes {
-		r.truncate(ReasonNodeLimit)
-		return false
-	}
+	return ""
+}
+
+// putEvidence는 근거 전송과 그 주소를 결과에 넣는다.
+func (r *run) putEvidence(ts ...domain.Transfer) {
 	for _, t := range ts {
 		r.edges[t.ID] = t
 		r.nodes[t.From] = true
 		r.nodes[t.To] = true
 	}
-	return true
 }
 
 // result는 모은 전송·주소를 정렬해 결과로 만든다.

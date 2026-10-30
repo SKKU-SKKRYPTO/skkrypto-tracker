@@ -231,6 +231,27 @@ func evidenceOf(paths [][]domain.Transfer) []domain.Transfer {
 	return out
 }
 
+// 탐색을 끝까지 한 뒤 근거만 노드 상한에 걸려 결과가 줄면, found는 정확하므로 최소값 표시를 하지 않는다.
+// 규격 v1: foundIsLowerBound는 탐색을 멈췄거나 후보가 잘렸을 때만 true, reason은 멈춘 사유 또는 처음 생긴 사유다.
+func TestPathsEvidenceLimitKeepsExactFound(t *testing.T) {
+	out, err := New().Paths(context.Background(), Request{Address: S, TargetAddress: T, MaxDepth: 3, Limits: Limits{MaxNodes: 2}}, flowDemo())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Paths) != 0 || out.Limits.Found != 2 || out.Limits.FoundIsLowerBound || !onlyReason(out.Limits, ReasonNodeLimit) {
+		t.Fatalf("paths = %v, limits = %+v, truncated = %+v", pathIDs(out), out.Limits, out.Limits.Truncated)
+	}
+	// 경로 상한이 먼저 생겼으면 그것이 대표 사유로 남는다.
+	out, err = New().Paths(context.Background(), Request{Address: S, TargetAddress: T, MaxDepth: 3, Limits: Limits{MaxPaths: 1, MaxNodes: 2}}, flowDemo())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &Truncation{Reason: ReasonPathLimit, Reasons: []string{ReasonPathLimit, ReasonNodeLimit}}
+	if out.Limits.Found != 2 || out.Limits.FoundIsLowerBound || !reflect.DeepEqual(out.Limits.Truncated, want) {
+		t.Fatalf("limits = %+v, truncated = %+v", out.Limits, out.Limits.Truncated)
+	}
+}
+
 func TestTimeBudgetReturnsPartialResult(t *testing.T) {
 	now := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)
 	tick := func() time.Time { now = now.Add(100 * time.Millisecond); return now }
