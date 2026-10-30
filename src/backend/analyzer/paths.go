@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"slices"
-	"sort"
 	"strings"
 
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/domain"
@@ -21,16 +19,14 @@ func (a *Analyzer) Paths(ctx context.Context, req Request, in Input) (Result, er
 	if err := r.traverse(candidates, true); err != nil {
 		return Result{}, err
 	}
-	if r.req.Direction == DirectionIncoming {
-		// incoming은 시작 주소에서 거꾸로 찾았으므로, 돈이 흐른 순서로 뒤집는다.
-		for _, p := range r.found {
-			slices.Reverse(p)
+	// r.found는 recordPath가 이미 돈이 흐른 순서로 뒤집어 정렬해 두었다.
+	// 근거 전송은 남은 경로 것만 이 순서대로 넣고, 노드·간선 상한에 걸리면 그 뒤 경로는 뺀다.
+	paths := make([]Path, 0, len(r.found))
+	for _, p := range r.found {
+		if !r.addEvidence(p...) {
+			break
 		}
-	}
-	sort.Slice(r.found, func(i, j int) bool { return lessPath(r.found[i], r.found[j]) })
-	paths := make([]Path, len(r.found))
-	for i, p := range r.found {
-		paths[i] = newPath(p)
+		paths = append(paths, newPath(p))
 	}
 	return r.result(r.pathCount, paths), nil
 }
