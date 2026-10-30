@@ -52,9 +52,14 @@
 | 429 | `RATE_LIMITED` | 요청 제한(`Retry-After` 헤더) | 예 |
 | 503 | `UNAVAILABLE`, `REQUEST_TIMEOUT` / `INVALID_DATA` | 일시 장애·시간 초과 / 저장소 데이터 형식 오류 | 예 / 아니요 |
 
-## 샘플은 어떻게 만들었나
+## 샘플이 규격과 같은지 확인하는 방법
 
-샘플은 서버가 실제로 돌려줄 응답과 같아야 합니다. API 서버 PR부터는 서버 테스트(`TestResponsesMatchSamples`)가 `sample-requests.json`의 요청을 실제 서버에 보내고, 응답이 `samples/` 파일과 글자 그대로 같은지 확인합니다. 그 전까지는 이 샘플을 보고 화면·엔진·저장소를 먼저 만들 수 있습니다.
+1. 서버 테스트(`TestResponsesMatchSamples`)가 `sample-requests.json`의 요청을 실제 서버에 보내고, 응답이 `samples/` 파일과 글자 그대로 같은지 봅니다.
+2. 규격을 일부러 바꿨다면 샘플을 다시 만들고, 바뀐 샘플을 PR에서 함께 리뷰받습니다.
+
+```bash
+go -C src/backend test ./api-server/httpapi -run TestResponsesMatchSamples -update
+```
 
 ## v0-draft에서 바뀐 점
 
@@ -67,7 +72,7 @@
 - 잘림 표시를 `truncated: true` + `reasons`에서 `truncated: null | { reason, reasons }`로 바꿨습니다(기획안 `truncated.reason`).
 - 후보가 잘리면(`CANDIDATE_LIMIT`) 실제로 분석한 마지막 전송의 블록·시각을 `meta.limits.analyzedUntil`에 싣습니다. 잘리지 않았으면 `null`입니다(기획안 '후보 조회는 적용 범위·상한 초과 여부를 반환').
 - 경로 `transferIds`는 `direction`과 상관없이 돈이 흐른 시간순입니다. 같은 경로는 어느 방향으로 찾아도 같은 ID입니다.
-- `GET /api/datasets/{id}`는 `datasetVersion`이 필수입니다(기획안 '지정 버전의 상태'). 분석 요청에서 같은 항목을 두 번 쓰거나, 패턴에 경로 전용 항목(`targetAddress`·`startTransferId`·`maxDepth`)을 보내면 400입니다.
+- `GET /api/datasets/{id}`는 `datasetVersion`이 필수입니다(기획안 '지정 버전의 상태'). 분석 요청에서 같은 항목을 두 번 쓰거나, 패턴에 경로 전용 항목(`targetAddress`·`startTransferId`·`maxDepth`)을 보내거나 추적(trace)에 `targetAddress`를 보내면 400입니다.
 - 패턴의 `type`을 `ruleId`로 바꾸고, `asset`·`direction`·`windowSeconds`·`uniqueCounterparties`를 넣고, `patternId`를 `{ruleId}:{address}:{direction}:{첫 근거 전송 ID}`로 정했습니다. 요청에 `direction`을 주면 그 방향의 패턴만 봅니다.
 - `GET /api/transfers`에 `direction`·`limit`·`cursor`를 넣었습니다.
 - 나머지 샘플(부분 결과·409·422·429·503·다중 Transfer·큰 금액)을 추가했습니다.

@@ -406,7 +406,7 @@
         ],
         "operationId": "trace",
         "summary": "시작 주소에서 1~3 hop 추적",
-        "description": "시작 주소(또는 선택한 전송)에서 maxDepth hop 안에 시간순으로 닿는 전송을 모두 모은다. outgoing은 다음 전송이 엄격히 뒤, incoming은 엄격히 앞이어야 하고, 한 경로에서 같은 주소를 두 번 지나지 않는다.\n\n샘플: samples/trace-success.json, samples/trace-ready-empty.json, samples/trace-candidate-limit.json",
+        "description": "시작 주소(또는 선택한 전송)에서 maxDepth hop 안에 시간순으로 닿는 전송을 모두 모은다. outgoing은 다음 전송이 엄격히 뒤, incoming은 엄격히 앞이어야 하고, 한 경로에서 같은 주소를 두 번 지나지 않는다. targetAddress는 쓰지 않는다(보내면 400).\n\n샘플: samples/trace-success.json, samples/trace-ready-empty.json, samples/trace-candidate-limit.json",
         "requestBody": {
           "required": true,
           "content": {
@@ -988,7 +988,7 @@
           },
           "targetAddress": {
             "$ref": "#/components/schemas/Address",
-            "description": "paths에서만 쓰고 필수다. patterns에 보내면 400."
+            "description": "paths에서만 쓰고 필수다. trace·patterns에 보내면 400."
           },
           "startTransferId": {
             "type": "string",

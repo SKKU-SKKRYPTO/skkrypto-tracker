@@ -1,0 +1,31 @@
+{
+  "dataset": {
+    "datasetId": "invalidated-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "sourceNamespace": "invalidated-demo-v1",
+    "status": "INVALIDATED",
+    "asset": {
+      "chainId": 84532,
+      "tokenAddress": "0x0000000000000000000000000000000000001000",
+      "symbol": "SKK",
+      "decimals": 2
+    },
+    "startBlock": "18204211",
+    "endBlock": "18206309",
+    "startTime": "2026-10-26T11:50:04Z",
+    "endTime": "2026-10-26T13:00:00Z",
+    "finalizedBlock": "18206309",
+    "collectedAt": "2026-10-26T13:05:00Z",
+    "boundaryHashes": {
+      "18204211": "0x1781ce3c77ebee8c31366f5dc28e3507b4e9aeab519a23f19520b7995b58d764",
+      "18206309": "0x0a6e6da4912404a555bc9d4040cc871093212719a6db43acf1df934ebf9c5fc8"
+    },
+    "labels": {},
+    "notes": [
+      "무효화된 상태를 흉내 낸 데이터셋입니다."
+    ],
+    "invalidationReason": "경계 블록 해시가 바뀌어 다시 수집해야 합니다."
+  },
+  "transfers": []
+}

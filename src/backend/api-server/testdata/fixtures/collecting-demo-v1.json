@@ -1,0 +1,30 @@
+{
+  "dataset": {
+    "datasetId": "collecting-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "sourceNamespace": "collecting-demo-v1",
+    "status": "COLLECTING",
+    "asset": {
+      "chainId": 84532,
+      "tokenAddress": "0x0000000000000000000000000000000000001000",
+      "symbol": "SKK",
+      "decimals": 2
+    },
+    "startBlock": "18204211",
+    "endBlock": "18206309",
+    "startTime": "2026-10-26T11:50:04Z",
+    "endTime": "2026-10-26T13:00:00Z",
+    "finalizedBlock": "18206309",
+    "collectedAt": "2026-10-26T13:05:00Z",
+    "boundaryHashes": {
+      "18204211": "0xfdd7101ff957f79a9dcad8506ffd684c1846129bf2ced00853aff3813508ab73",
+      "18206309": "0x9d5e7c47448997aa8e8d08416c21d21d7009b5f613b5e5ff510422342eb0779b"
+    },
+    "labels": {},
+    "notes": [
+      "수집이 끝나지 않은 상태를 흉내 낸 데이터셋입니다."
+    ]
+  },
+  "transfers": []
+}
