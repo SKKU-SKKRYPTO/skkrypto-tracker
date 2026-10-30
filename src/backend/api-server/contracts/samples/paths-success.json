@@ -4,18 +4,15 @@
       {
         "id": "fx:flow-demo-v1:e1",
         "label": "e1",
-        "datasetId": "flow-demo",
-        "datasetVersion": "v1",
-        "sourceMode": "FIXTURE",
-        "sourceNamespace": "flow-demo-v1",
         "asset": {
           "chainId": 84532,
           "tokenAddress": "0x0000000000000000000000000000000000001000",
           "symbol": "SKK",
           "decimals": 2
         },
+        "transferType": "TRANSFER",
         "txHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "blockHash": "0x8d2cb1d706bb6b091f598c47a57f37b199bbb1890c0f105fcf5614670722e564",
+        "blockHash": "0x8fe8b1f5695d5b5b2755b6ce5a0289a2be1ef6f9598074c44334658e7b0c0d11",
         "blockNumber": "18204511",
         "transactionIndex": 3,
         "logIndex": 0,
@@ -27,18 +24,15 @@
       {
         "id": "fx:flow-demo-v1:e2",
         "label": "e2",
-        "datasetId": "flow-demo",
-        "datasetVersion": "v1",
-        "sourceMode": "FIXTURE",
-        "sourceNamespace": "flow-demo-v1",
         "asset": {
           "chainId": 84532,
           "tokenAddress": "0x0000000000000000000000000000000000001000",
           "symbol": "SKK",
           "decimals": 2
         },
+        "transferType": "TRANSFER",
         "txHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
-        "blockHash": "0x36a114997f1425e5053e5019a8b704db293d70cca0130174c9cfe596ae98c478",
+        "blockHash": "0x0907a9f62ae09c9739c67f3661cbf2b8e6772c11966a0abc57c13088e5d6c21b",
         "blockNumber": "18204566",
         "transactionIndex": 1,
         "logIndex": 2,
@@ -50,18 +44,15 @@
       {
         "id": "fx:flow-demo-v1:e4",
         "label": "e4",
-        "datasetId": "flow-demo",
-        "datasetVersion": "v1",
-        "sourceMode": "FIXTURE",
-        "sourceNamespace": "flow-demo-v1",
         "asset": {
           "chainId": 84532,
           "tokenAddress": "0x0000000000000000000000000000000000001000",
           "symbol": "SKK",
           "decimals": 2
         },
+        "transferType": "TRANSFER",
         "txHash": "0x0000000000000000000000000000000000000000000000000000000000000004",
-        "blockHash": "0xd4ba29f9df05e47993f4792ea9857bf34a65cdf96d945667a780107cbe38e38e",
+        "blockHash": "0x6d15b8cdf71b0d33e870997805b9ad194ff1e75ee1841f21cf13ab443884f8b3",
         "blockNumber": "18205040",
         "transactionIndex": 5,
         "logIndex": 0,
@@ -73,18 +64,15 @@
       {
         "id": "fx:flow-demo-v1:e5",
         "label": "e5",
-        "datasetId": "flow-demo",
-        "datasetVersion": "v1",
-        "sourceMode": "FIXTURE",
-        "sourceNamespace": "flow-demo-v1",
         "asset": {
           "chainId": 84532,
           "tokenAddress": "0x0000000000000000000000000000000000001000",
           "symbol": "SKK",
           "decimals": 2
         },
+        "transferType": "TRANSFER",
         "txHash": "0x0000000000000000000000000000000000000000000000000000000000000005",
-        "blockHash": "0x93a96501e646000b6380086f19811b9f4f7185738b9fb450a5c333df5ded5eb1",
+        "blockHash": "0x55bf924fa8b11757f5603e1452038843a4ee252363a8395c52e5961a30b97873",
         "blockNumber": "18205103",
         "transactionIndex": 2,
         "logIndex": 1,
@@ -96,18 +84,15 @@
       {
         "id": "fx:flow-demo-v1:e6",
         "label": "e6",
-        "datasetId": "flow-demo",
-        "datasetVersion": "v1",
-        "sourceMode": "FIXTURE",
-        "sourceNamespace": "flow-demo-v1",
         "asset": {
           "chainId": 84532,
           "tokenAddress": "0x0000000000000000000000000000000000001000",
           "symbol": "SKK",
           "decimals": 2
         },
+        "transferType": "TRANSFER",
         "txHash": "0x0000000000000000000000000000000000000000000000000000000000000006",
-        "blockHash": "0x8c6e53728cc07bc4f412f8318f2f3bce557120f00e8f7dbf9222b265c2469b15",
+        "blockHash": "0xbc4615c11261f7a80a117c17b9be8a7c91a51b8200611d8d1de644bf951eebc2",
         "blockNumber": "18205900",
         "transactionIndex": 4,
         "logIndex": 3,
@@ -141,7 +126,7 @@
     ],
     "paths": [
       {
-        "id": "path-1",
+        "id": "path-c4bb8644d9f8faf7",
         "transferIds": [
           "fx:flow-demo-v1:e1",
           "fx:flow-demo-v1:e4",
@@ -150,7 +135,7 @@
         "hops": 3
       },
       {
-        "id": "path-2",
+        "id": "path-ed6d6fe4a45a8a32",
         "transferIds": [
           "fx:flow-demo-v1:e2",
           "fx:flow-demo-v1:e5",
@@ -165,21 +150,27 @@
       "uniqueAmountRaw": "1093000"
     },
     "limits": {
-      "truncated": false,
-      "reasons": [],
+      "truncated": null,
       "found": 2,
       "foundIsLowerBound": false,
-      "statesVisited": 8,
+      "statesVisited": 7,
       "candidatesConsidered": 8,
+      "analyzedUntil": null,
       "durationMs": 0
     }
   },
   "meta": {
-    "contractVersion": "v0-draft",
+    "contractVersion": "v1",
     "ruleVersion": "flow-v1",
     "datasetId": "flow-demo",
     "datasetVersion": "v1",
     "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "18204211",
+      "endBlock": "18206309",
+      "startTime": "2026-10-26T11:50:04Z",
+      "endTime": "2026-10-26T13:00:00Z"
+    },
     "conditions": {
       "datasetId": "flow-demo",
       "datasetVersion": "v1",
@@ -193,61 +184,35 @@
       "targetAddress": "0x0000000000000000000000000000000000000007",
       "direction": "outgoing",
       "maxDepth": 3,
-      "filter": {},
-      "limits": {}
+      "filter": {
+        "startBlock": "18204211",
+        "endBlock": "18206309",
+        "startTime": "2026-10-26T11:50:04Z",
+        "endTime": "2026-10-26T13:00:00Z"
+      },
+      "limits": {
+        "maxNodes": 200,
+        "maxEdges": 500,
+        "maxPaths": 10,
+        "maxStates": 10000,
+        "maxCandidates": 10000,
+        "timeBudgetMs": 1500
+      }
     },
     "limits": {
-      "truncated": false,
-      "reasons": [],
+      "truncated": null,
       "found": 2,
       "foundIsLowerBound": false,
-      "statesVisited": 8,
+      "statesVisited": 7,
       "candidatesConsidered": 8,
+      "analyzedUntil": null,
       "durationMs": 0
     },
     "limitations": [
-      "후보 연결은 동일 자금 귀속을 확정하지 않습니다.",
-      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다."
-    ],
-    "dataset": {
-      "datasetId": "flow-demo",
-      "datasetVersion": "v1",
-      "sourceMode": "FIXTURE",
-      "sourceNamespace": "flow-demo-v1",
-      "status": "READY",
-      "asset": {
-        "chainId": 84532,
-        "tokenAddress": "0x0000000000000000000000000000000000001000",
-        "symbol": "SKK",
-        "decimals": 2
-      },
-      "startBlock": "18204511",
-      "endBlock": "18206300",
-      "startTime": "2026-10-26T12:00:04Z",
-      "endTime": "2026-10-26T13:00:00Z",
-      "collectedAt": "2026-10-26T13:00:00Z",
-      "finalizedBlock": "18206300",
-      "boundaryHashes": {
-        "18204511": "0x8d2cb1d706bb6b091f598c47a57f37b199bbb1890c0f105fcf5614670722e564",
-        "18206300": "0x4d55a2e4afeb0bd75f79986e765f02c56a7b25a41f86295b256d0b48eb2d4917"
-      },
-      "labels": {
-        "S": "0x0000000000000000000000000000000000000001",
-        "A": "0x0000000000000000000000000000000000000002",
-        "B": "0x0000000000000000000000000000000000000003",
-        "C": "0x0000000000000000000000000000000000000004",
-        "D": "0x0000000000000000000000000000000000000005",
-        "E": "0x0000000000000000000000000000000000000006",
-        "T": "0x0000000000000000000000000000000000000007"
-      },
-      "fixtureVersion": "flow-demo-v1",
-      "contractVersion": "v0-draft",
-      "ruleVersion": "flow-v1",
-      "notes": [
-        "합성 교육 데이터. 실제 체인 거래가 아닙니다.",
-        "날짜·주소·decimals·해시는 테스트용으로 정한 값입니다."
-      ]
-    }
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
   },
   "error": null
 }

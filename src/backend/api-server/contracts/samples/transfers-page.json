@@ -1,0 +1,78 @@
+{
+  "data": [
+    {
+      "id": "fx:flow-demo-v1:e1",
+      "label": "e1",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "blockHash": "0x8fe8b1f5695d5b5b2755b6ce5a0289a2be1ef6f9598074c44334658e7b0c0d11",
+      "blockNumber": "18204511",
+      "transactionIndex": 3,
+      "logIndex": 0,
+      "timestamp": "2026-10-26T12:00:04Z",
+      "from": "0x0000000000000000000000000000000000000001",
+      "to": "0x0000000000000000000000000000000000000002",
+      "amountRaw": "120000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e2",
+      "label": "e2",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "blockHash": "0x0907a9f62ae09c9739c67f3661cbf2b8e6772c11966a0abc57c13088e5d6c21b",
+      "blockNumber": "18204566",
+      "transactionIndex": 1,
+      "logIndex": 2,
+      "timestamp": "2026-10-26T12:01:54Z",
+      "from": "0x0000000000000000000000000000000000000001",
+      "to": "0x0000000000000000000000000000000000000003",
+      "amountRaw": "250000"
+    }
+  ],
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "datasetId": "flow-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "18204211",
+      "endBlock": "18206309",
+      "startTime": "2026-10-26T11:50:04Z",
+      "endTime": "2026-10-26T13:00:00Z"
+    },
+    "conditions": {
+      "address": "0x0000000000000000000000000000000000000001",
+      "direction": "outgoing",
+      "filter": {
+        "startBlock": "18204211",
+        "endBlock": "18206309",
+        "startTime": "2026-10-26T11:50:04Z",
+        "endTime": "2026-10-26T13:00:00Z"
+      },
+      "limit": 2
+    },
+    "page": {
+      "limit": 2,
+      "nextCursor": "eyJkIjoiZmxvdy1kZW1vIiwidiI6InYxIiwicSI6IjE4MDM0MWYyZjRhZjlkMmMiLCJiIjoiMTgyMDQ1NjYiLCJ0IjoxLCJsIjoyLCJpIjoiZng6Zmxvdy1kZW1vLXYxOmUyIn0"
+    },
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": null
+}
