@@ -1,0 +1,76 @@
+{
+  "data": {
+    "transfers": [],
+    "nodes": [],
+    "paths": [],
+    "patterns": [],
+    "summary": {
+      "uniqueTransferCount": 0,
+      "uniqueAmountRaw": "0"
+    },
+    "limits": {
+      "truncated": null,
+      "found": 0,
+      "foundIsLowerBound": false,
+      "statesVisited": 1,
+      "candidatesConsidered": 8,
+      "analyzedUntil": null,
+      "durationMs": 0
+    }
+  },
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "datasetId": "flow-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "18204211",
+      "endBlock": "18206309",
+      "startTime": "2026-10-26T11:50:04Z",
+      "endTime": "2026-10-26T13:00:00Z"
+    },
+    "conditions": {
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "address": "0x0000000000000000000000000000000000000007",
+      "direction": "outgoing",
+      "maxDepth": 2,
+      "filter": {
+        "startBlock": "18204211",
+        "endBlock": "18206309",
+        "startTime": "2026-10-26T11:50:04Z",
+        "endTime": "2026-10-26T13:00:00Z"
+      },
+      "limits": {
+        "maxNodes": 200,
+        "maxEdges": 500,
+        "maxPaths": 10,
+        "maxStates": 10000,
+        "maxCandidates": 10000,
+        "timeBudgetMs": 1500
+      }
+    },
+    "limits": {
+      "truncated": null,
+      "found": 0,
+      "foundIsLowerBound": false,
+      "statesVisited": 1,
+      "candidatesConsidered": 8,
+      "analyzedUntil": null,
+      "durationMs": 0
+    },
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": null
+}

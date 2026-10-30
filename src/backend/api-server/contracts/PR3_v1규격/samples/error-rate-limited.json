@@ -1,0 +1,17 @@
+{
+  "data": null,
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요.",
+    "retryable": true
+  }
+}
