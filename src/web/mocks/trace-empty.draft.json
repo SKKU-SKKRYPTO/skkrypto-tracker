@@ -1,0 +1,27 @@
+{
+  "dataset": {
+    "id": "fixture-demo",
+    "version": 1,
+    "mode": "FIXTURE",
+    "status": "READY",
+    "chainId": 84532,
+    "token": {
+      "address": "0x0000000000000000000000000000000000007000",
+      "symbol": "TST",
+      "decimals": 18
+    },
+    "blockRange": {
+      "from": 1000,
+      "to": 1100
+    }
+  },
+  "query": {
+    "address": "0x000000000000000000000000000000000000b001",
+    "direction": "OUT",
+    "depth": 2
+  },
+  "nodes": [],
+  "transfers": [],
+  "truncated": false,
+  "truncation": null
+}
