@@ -23,6 +23,86 @@
   font-family: var(--mono);
 }
 
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  label {
+    color: var(--text-h);
+    font-weight: 600;
+  }
+
+  input {
+    flex: 1 1 360px;
+    min-width: 0;
+    font-size: 15px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-h);
+  }
+
+  button {
+    font: inherit;
+    font-size: 15px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+
+  input:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 검색 결과 위에 붙는 안내 문구 (빈 결과·잘린 결과·오류) */
+.notice {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.notice-warning {
+  color: var(--text-h);
+  background: #fff7e0;
+  border-color: #e0b84a;
+}
+
+.notice-error {
+  color: #b42318;
+  background: #fef3f2;
+  border-color: #f4b4ae;
+}
+
+@media (prefers-color-scheme: dark) {
+  .notice-warning {
+    background: #3a2f10;
+    border-color: #8a6d1f;
+  }
+
+  .notice-error {
+    color: #fda29b;
+    background: #3b1614;
+    border-color: #7a2a24;
+  }
+}
+
 /* 넓은 화면: 표 | 상세, 좁은 화면: 표 위, 상세 아래 */
 .layout {
   display: grid;
