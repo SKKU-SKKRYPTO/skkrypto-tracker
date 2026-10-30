@@ -2,12 +2,27 @@
   "openapi": "3.1.0",
   "info": {
     "title": "SKKRYPTO Tracker API",
-    "version": "v0-draft",
-    "description": "SKKRYPTO Tracker API 규격 초안(v0-draft). v1 확정 전까지 필드 이름·구조가 바뀔 수 있다.\n\n응답은 항상 data/meta/error 구조다. 금액·블록 번호는 십진 문자열, 시각은 UTC ISO-8601이다."
+    "version": "v1",
+    "description": "정해진 데이터셋 범위 안에서 주소 사이의 토큰 이동(경로·패턴)과 그 근거를 돌려주는 읽기 전용 API.\n\n- 응답은 항상 { data, meta, error }. 정상이면 error가 null, 오류면 data가 null.\n- 금액(amountRaw)과 블록 번호는 십진 문자열, 시각은 UTC ISO-8601. 소수(float)는 쓰지 않는다.\n- 0건과 부분 결과도 200. 부분 결과는 meta.limits.truncated.reason으로 알린다.\n- 요청과 응답 예시는 samples/ 폴더와 sample-requests.json에 있다. 서버 테스트가 실제 응답과 샘플이 같은지 확인한다."
   },
   "servers": [
     {
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080",
+      "description": "로컬 개발 서버"
+    }
+  ],
+  "tags": [
+    {
+      "name": "데이터셋",
+      "description": "수집된 데이터셋 버전과 상태"
+    },
+    {
+      "name": "전송 조회",
+      "description": "원본 전송 목록과 거래 상세"
+    },
+    {
+      "name": "분석",
+      "description": "시간순 연결(trace·paths)과 분산·합류 패턴(patterns)"
     }
   ],
   "paths": {
@@ -18,6 +33,7 @@
         ],
         "operationId": "listDatasets",
         "summary": "데이터셋 목록",
+        "description": "게시된 모든 데이터셋 버전과 상태(READY·COLLECTING·FAILED·INVALIDATED).\n\n샘플: samples/datasets-list.json",
         "responses": {
           "200": {
             "description": "데이터셋 목록",
@@ -41,14 +57,7 @@
                       "$ref": "#/components/schemas/Meta"
                     },
                     "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
+                      "type": "null"
                     }
                   }
                 }
@@ -56,103 +65,13 @@
             }
           },
           "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -164,9 +83,30 @@
         ],
         "operationId": "getDataset",
         "summary": "데이터셋 한 버전",
+        "description": "지정한 버전의 상태·자산·범위를 상태와 관계없이 돌려준다(상태 확인용). datasetVersion이 없으면 400.\n\n샘플: samples/dataset-detail.json",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "datasetVersion",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "조회할 버전. 버전 목록은 GET /api/datasets에 있다."
+          }
+        ],
         "responses": {
           "200": {
-            "description": "데이터셋 한 버전",
+            "description": "데이터셋",
             "content": {
               "application/json": {
                 "schema": {
@@ -184,14 +124,7 @@
                       "$ref": "#/components/schemas/Meta"
                     },
                     "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
+                      "type": "null"
                     }
                   }
                 }
@@ -199,142 +132,32 @@
             }
           },
           "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "404": {
-            "description": "데이터셋·버전 또는 거래가 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
-        },
+        }
+      }
+    },
+    "/api/transfers": {
+      "get": {
+        "tags": [
+          "전송 조회"
+        ],
+        "operationId": "listTransfers",
+        "summary": "전송 목록(위치 순, 커서로 페이지 넘기기)",
+        "description": "다음 쪽은 meta.page.nextCursor를 cursor로 넘긴다. 커서는 데이터셋·버전·조건에 묶여 있어서, 조건을 바꾸면 400 INVALID_CURSOR다(limit만 바꾸는 것은 된다).\n\n샘플: samples/transfers-page.json, samples/error-invalidated.json",
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
+            "name": "datasetId",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string"
@@ -344,25 +167,105 @@
           {
             "name": "datasetVersion",
             "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "데이터셋 버전. 결과를 재현할 수 있도록 꼭 넣는다."
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Address"
+            },
+            "description": "이 주소가 보내거나 받은 전송"
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "any",
+                "incoming",
+                "outgoing"
+              ],
+              "default": "any"
+            },
+            "description": "address 기준 방향. incoming·outgoing은 address가 필요하다."
+          },
+          {
+            "name": "startBlock",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BlockNumber"
+            },
+            "description": "이 블록부터(포함)"
+          },
+          {
+            "name": "endBlock",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BlockNumber"
+            },
+            "description": "이 블록까지(포함)"
+          },
+          {
+            "name": "startTime",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DateTime"
+            },
+            "description": "이 시각부터(포함)"
+          },
+          {
+            "name": "endTime",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DateTime"
+            },
+            "description": "이 시각까지(포함)"
+          },
+          {
+            "name": "minAmountRaw",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Amount"
+            },
+            "description": "이 금액 이상"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            },
+            "description": "한 쪽의 개수"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
             "required": false,
             "schema": {
               "type": "string"
             },
-            "description": "데이터셋 버전. 생략하면 가장 최근 버전"
+            "description": "이전 응답의 meta.page.nextCursor"
           }
-        ]
-      }
-    },
-    "/api/transfers": {
-      "get": {
-        "tags": [
-          "전송 조회"
         ],
-        "operationId": "listTransfers",
-        "summary": "전송 목록",
         "responses": {
           "200": {
-            "description": "전송 목록(위치 순)",
+            "description": "전송 목록. meta.page에 다음 쪽 정보가 있다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -383,14 +286,7 @@
                       "$ref": "#/components/schemas/Meta"
                     },
                     "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
+                      "type": "null"
                     }
                   }
                 }
@@ -398,289 +294,24 @@
             }
           },
           "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "404": {
-            "description": "데이터셋·버전 또는 거래가 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           },
           "422": {
-            "description": "지원하지 않는 자산이거나 수집 범위 밖",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unprocessable"
           },
           "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
-        },
-        "parameters": [
-          {
-            "name": "datasetId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "데이터셋 ID"
-          },
-          {
-            "name": "datasetVersion",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "데이터셋 버전"
-          },
-          {
-            "name": "address",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "이 주소가 보내거나 받은 전송만"
-          },
-          {
-            "name": "txHash",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "이 거래의 전송만"
-          },
-          {
-            "name": "startBlock",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "블록 하한(포함). 십진 문자열"
-          },
-          {
-            "name": "endBlock",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "블록 상한(포함). 십진 문자열"
-          },
-          {
-            "name": "minAmountRaw",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "최소 금액(포함). 십진 문자열"
-          },
-          {
-            "name": "startTime",
-            "in": "query",
-            "required": false,
-            "description": "블록 시각 하한(포함). RFC3339, UTC로 정규화하며 데이터셋 범위 안이어야 한다",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "endTime",
-            "in": "query",
-            "required": false,
-            "description": "블록 시각 상한(포함). RFC3339, UTC로 정규화하며 데이터셋 범위 안이어야 한다",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          }
-        ]
+        }
       }
     },
     "/api/transactions/{txHash}": {
@@ -690,210 +321,16 @@
         ],
         "operationId": "getTransaction",
         "summary": "한 거래 안의 전송",
-        "responses": {
-          "200": {
-            "description": "거래 안의 전송 목록",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Transfer"
-                      }
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "데이터셋·버전 또는 거래가 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
+        "description": "한 거래에 Transfer 로그가 여러 개면 모두 돌려준다(logIndex로 구분).\n\n샘플: samples/transaction-multiple.json, samples/large-amount.json",
         "parameters": [
+          {
+            "name": "txHash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Hash"
+            }
+          },
           {
             "name": "datasetId",
             "in": "query",
@@ -910,18 +347,56 @@
             "schema": {
               "type": "string"
             },
-            "description": "데이터셋 버전"
-          },
-          {
-            "name": "txHash",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/Hash"
-            },
-            "description": "거래 해시(0x + 16진수 64자리)"
+            "description": "데이터셋 버전. 결과를 재현할 수 있도록 꼭 넣는다."
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "거래 안의 전송",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transfer"
+                      },
+                      "minItems": 1
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
       }
     },
     "/api/trace": {
@@ -931,9 +406,20 @@
         ],
         "operationId": "trace",
         "summary": "시작 주소에서 1~3 hop 추적",
+        "description": "시작 주소(또는 선택한 전송)에서 maxDepth hop 안에 시간순으로 닿는 전송을 모두 모은다. outgoing은 다음 전송이 엄격히 뒤, incoming은 엄격히 앞이어야 하고, 한 경로에서 같은 주소를 두 번 지나지 않는다.\n\n샘플: samples/trace-success.json, samples/trace-ready-empty.json, samples/trace-candidate-limit.json",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "추적 결과. 0건·부분 결과도 200",
+            "description": "분석 결과. 0건과 부분 결과(meta.limits.truncated)도 200이다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -951,227 +437,38 @@
                       "$ref": "#/components/schemas/Meta"
                     },
                     "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
+                      "type": "null"
                     }
                   }
                 }
+              }
+            },
+            "headers": {
+              "Server-Timing": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "저장소·엔진에 걸린 시간(ms). 예: repo;dur=1.2, engine;dur=3.4"
               }
             }
           },
           "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "404": {
-            "description": "데이터셋·버전 또는 거래가 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           },
           "422": {
-            "description": "지원하지 않는 자산이거나 수집 범위 밖",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unprocessable"
           },
           "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnalysisRequest"
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -1183,9 +480,20 @@
         ],
         "operationId": "paths",
         "summary": "두 주소 사이 시간순 후보 경로",
+        "description": "시작 주소에서 대상 주소까지 maxDepth hop 안의 경로. hop이 적은 순, 같으면 전송 위치가 이른 순이다. maxPaths를 넘으면 정렬 순서의 앞 maxPaths개만 돌려주고(PATH_LIMIT) found에는 전체 개수를 준다.\n\n샘플: samples/paths-success.json, samples/paths-path-limit.json, samples/paths-time-budget.json",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PathsRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "후보 경로. 0건·부분 결과도 200",
+            "description": "분석 결과. 0건과 부분 결과(meta.limits.truncated)도 200이다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1203,236 +511,38 @@
                       "$ref": "#/components/schemas/Meta"
                     },
                     "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
+                      "type": "null"
                     }
                   }
                 }
+              }
+            },
+            "headers": {
+              "Server-Timing": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "저장소·엔진에 걸린 시간(ms). 예: repo;dur=1.2, engine;dur=3.4"
               }
             }
           },
           "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "404": {
-            "description": "데이터셋·버전 또는 거래가 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           },
           "422": {
-            "description": "지원하지 않는 자산이거나 수집 범위 밖",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unprocessable"
           },
           "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/AnalysisRequest"
-                  },
-                  {
-                    "required": [
-                      "targetAddress"
-                    ]
-                  }
-                ]
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -1444,9 +554,20 @@
         ],
         "operationId": "patterns",
         "summary": "분산(FAN_OUT)·합류(FAN_IN) 패턴",
+        "description": "시작 주소를 가운데 둔 600초 창에서 서로 다른 상대가 3개 이상인 모양. direction을 주면 그 방향의 규칙만 본다. targetAddress·startTransferId·maxDepth는 쓰지 않는다.\n\n샘플: samples/patterns-success.json",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "패턴 결과. 0건도 200",
+            "description": "분석 결과. 0건과 부분 결과(meta.limits.truncated)도 200이다.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1464,227 +585,38 @@
                       "$ref": "#/components/schemas/Meta"
                     },
                     "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
+                      "type": "null"
                     }
                   }
                 }
+              }
+            },
+            "headers": {
+              "Server-Timing": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "저장소·엔진에 걸린 시간(ms). 예: repo;dur=1.2, engine;dur=3.4"
               }
             }
           },
           "400": {
-            "description": "입력 오류(주소·해시 형식, 필수 항목 누락 등)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/BadRequest"
           },
           "404": {
-            "description": "데이터셋·버전 또는 거래가 없음",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "description": "데이터셋이 준비 전(COLLECTING)이거나 무효화됨",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Conflict"
           },
           "422": {
-            "description": "지원하지 않는 자산이거나 수집 범위 밖",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unprocessable"
           },
           "429": {
-            "description": "요청 제한 초과(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "503": {
-            "description": "일시 장애(재시도 가능)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta",
-                    "error"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "null"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/Meta"
-                    },
-                    "error": {
-                      "oneOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "$ref": "#/components/schemas/Error"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnalysisRequest"
-              }
-            }
+            "$ref": "#/components/responses/Unavailable"
           }
         }
       }
@@ -1694,21 +626,40 @@
     "schemas": {
       "Address": {
         "type": "string",
-        "pattern": "^0x[0-9a-fA-F]{40}$"
+        "pattern": "^0x[0-9a-fA-F]{40}$",
+        "description": "0x + 16진수 40자리. 응답은 항상 소문자다.",
+        "examples": [
+          "0x0000000000000000000000000000000000000001"
+        ]
       },
       "Hash": {
         "type": "string",
-        "pattern": "^0x[0-9a-fA-F]{64}$"
-      },
-      "UInt": {
-        "type": "integer",
-        "minimum": 0,
-        "maximum": 9007199254740991
+        "pattern": "^0x[0-9a-fA-F]{64}$",
+        "description": "0x + 16진수 64자리."
       },
       "Amount": {
         "type": "string",
         "pattern": "^(0|[1-9][0-9]*)$",
-        "description": "uint256 범위의 십진 문자열(최대 2^256-1). JSON 숫자로 보내지 않는다."
+        "description": "uint256 십진 문자열(최대 2^256-1). decimals를 적용하지 않은 원래 값이다. JSON 숫자로 보내지 않는다.",
+        "examples": [
+          "120000"
+        ]
+      },
+      "BlockNumber": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "블록 번호. 금액과 같이 십진 문자열로 주고받는다(기획안 공통 개발 기준).",
+        "examples": [
+          "18204511"
+        ]
+      },
+      "DateTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "UTC ISO-8601(RFC3339). 응답은 항상 Z로 끝난다.",
+        "examples": [
+          "2026-10-26T12:00:04Z"
+        ]
       },
       "Asset": {
         "type": "object",
@@ -1720,7 +671,9 @@
         ],
         "properties": {
           "chainId": {
-            "$ref": "#/components/schemas/UInt"
+            "type": "integer",
+            "minimum": 1,
+            "description": "Base Sepolia는 84532."
           },
           "tokenAddress": {
             "$ref": "#/components/schemas/Address"
@@ -1735,9 +688,41 @@
           }
         }
       },
-      "Filter": {
+      "AssetSelector": {
         "type": "object",
         "additionalProperties": false,
+        "required": [
+          "chainId",
+          "tokenAddress"
+        ],
+        "description": "분석할 자산. 같은 자산인지는 chainId와 tokenAddress로만 본다. 생략하면 데이터셋 자산을 쓴다.",
+        "properties": {
+          "chainId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tokenAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        }
+      },
+      "Coverage": {
+        "type": "object",
+        "required": [
+          "startBlock",
+          "endBlock",
+          "startTime",
+          "endTime"
+        ],
+        "description": "데이터셋이 수집한 고정 범위. 이 범위 밖의 거래는 '없음'이 아니라 '모름'이다.",
         "properties": {
           "startBlock": {
             "$ref": "#/components/schemas/BlockNumber"
@@ -1746,244 +731,10 @@
             "$ref": "#/components/schemas/BlockNumber"
           },
           "startTime": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/DateTime"
           },
           "endTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "minAmountRaw": {
-            "$ref": "#/components/schemas/Amount"
-          }
-        }
-      },
-      "Limits": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "maxNodes": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 200,
-            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
-          },
-          "maxEdges": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 500,
-            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
-          },
-          "maxPaths": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 10,
-            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
-          },
-          "maxStates": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 10000,
-            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
-          },
-          "maxCandidates": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 10000,
-            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
-          },
-          "timeBudgetMs": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 2000,
-            "description": "생략하거나 0이면 기본값. 최댓값을 넘으면 400."
-          }
-        }
-      },
-      "AnalysisRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "datasetId",
-          "datasetVersion",
-          "address"
-        ],
-        "properties": {
-          "datasetId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "datasetVersion": {
-            "type": "string",
-            "minLength": 1
-          },
-          "asset": {
-            "$ref": "#/components/schemas/AssetSelector"
-          },
-          "address": {
-            "$ref": "#/components/schemas/Address"
-          },
-          "targetAddress": {
-            "$ref": "#/components/schemas/Address"
-          },
-          "startTransferId": {
-            "type": "string"
-          },
-          "direction": {
-            "enum": [
-              "",
-              "outgoing",
-              "incoming"
-            ],
-            "default": "outgoing",
-            "description": "생략하면 outgoing."
-          },
-          "maxDepth": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 3,
-            "default": 2,
-            "description": "1~3 hop. 생략하거나 0이면 2."
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "limits": {
-            "$ref": "#/components/schemas/Limits"
-          }
-        }
-      },
-      "LimitStatus": {
-        "type": "object",
-        "required": [
-          "truncated",
-          "reasons",
-          "found",
-          "foundIsLowerBound",
-          "statesVisited",
-          "candidatesConsidered",
-          "durationMs"
-        ],
-        "properties": {
-          "truncated": {
-            "type": "boolean"
-          },
-          "reasons": {
-            "type": "array",
-            "items": {
-              "enum": [
-                "PATH_LIMIT",
-                "STATE_LIMIT",
-                "CANDIDATE_LIMIT",
-                "NODE_LIMIT",
-                "EDGE_LIMIT",
-                "TIME_BUDGET"
-              ]
-            }
-          },
-          "found": {
-            "$ref": "#/components/schemas/UInt"
-          },
-          "foundIsLowerBound": {
-            "type": "boolean"
-          },
-          "statesVisited": {
-            "$ref": "#/components/schemas/UInt"
-          },
-          "candidatesConsidered": {
-            "$ref": "#/components/schemas/UInt"
-          },
-          "durationMs": {
-            "$ref": "#/components/schemas/UInt"
-          }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "required": [
-          "code",
-          "message",
-          "retryable"
-        ],
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "retryable": {
-            "type": "boolean"
-          }
-        }
-      },
-      "Transfer": {
-        "type": "object",
-        "required": [
-          "id",
-          "datasetId",
-          "datasetVersion",
-          "sourceMode",
-          "sourceNamespace",
-          "asset",
-          "txHash",
-          "blockHash",
-          "blockNumber",
-          "transactionIndex",
-          "logIndex",
-          "timestamp",
-          "from",
-          "to",
-          "amountRaw"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "datasetId": {
-            "type": "string"
-          },
-          "datasetVersion": {
-            "type": "string"
-          },
-          "sourceMode": {
-            "type": "string"
-          },
-          "sourceNamespace": {
-            "type": "string"
-          },
-          "asset": {
-            "$ref": "#/components/schemas/Asset"
-          },
-          "txHash": {
-            "type": "string"
-          },
-          "blockHash": {
-            "type": "string"
-          },
-          "blockNumber": {
-            "$ref": "#/components/schemas/BlockNumber"
-          },
-          "transactionIndex": {
-            "$ref": "#/components/schemas/UInt"
-          },
-          "logIndex": {
-            "$ref": "#/components/schemas/UInt"
-          },
-          "timestamp": {
-            "type": "string"
-          },
-          "from": {
-            "type": "string"
-          },
-          "to": {
-            "type": "string"
-          },
-          "amountRaw": {
-            "$ref": "#/components/schemas/Amount"
+            "$ref": "#/components/schemas/DateTime"
           }
         }
       },
@@ -2000,15 +751,13 @@
           "endBlock",
           "startTime",
           "endTime",
-          "collectedAt",
           "finalizedBlock",
+          "collectedAt",
           "boundaryHashes",
           "labels",
-          "fixtureVersion",
-          "contractVersion",
-          "ruleVersion",
           "notes"
         ],
+        "description": "datasetId + datasetVersion으로 구분되는 수집 결과 한 벌. READY가 된 버전은 내용이 바뀌지 않는다.",
         "properties": {
           "datasetId": {
             "type": "string"
@@ -2019,8 +768,9 @@
           "sourceMode": {
             "enum": [
               "FIXTURE",
-              "RPC_SNAPSHOT"
-            ]
+              "SNAPSHOT"
+            ],
+            "description": "FIXTURE: 합성 데이터, SNAPSHOT: 체인에서 수집한 데이터"
           },
           "sourceNamespace": {
             "type": "string"
@@ -2031,7 +781,8 @@
               "COLLECTING",
               "FAILED",
               "INVALIDATED"
-            ]
+            ],
+            "description": "분석·조회는 READY일 때만 된다."
           },
           "asset": {
             "$ref": "#/components/schemas/Asset"
@@ -2043,43 +794,252 @@
             "$ref": "#/components/schemas/BlockNumber"
           },
           "startTime": {
-            "type": "string"
+            "$ref": "#/components/schemas/DateTime"
           },
           "endTime": {
-            "type": "string"
-          },
-          "collectedAt": {
-            "type": "string"
+            "$ref": "#/components/schemas/DateTime"
           },
           "finalizedBlock": {
             "$ref": "#/components/schemas/BlockNumber"
+          },
+          "collectedAt": {
+            "$ref": "#/components/schemas/DateTime"
           },
           "boundaryHashes": {
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/Hash"
-            }
+            },
+            "description": "경계 블록 번호 → 블록 해시. 체인 재구성 여부를 확인할 때 쓴다."
           },
           "labels": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/Address"
-            }
-          },
-          "fixtureVersion": {
-            "type": "string"
-          },
-          "contractVersion": {
-            "type": "string"
-          },
-          "ruleVersion": {
-            "type": "string"
+              "type": "string"
+            },
+            "description": "주소(소문자) → 화면 표시용 이름"
           },
           "notes": {
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "invalidationReason": {
+            "type": "string",
+            "description": "INVALIDATED일 때만 있다."
+          }
+        }
+      },
+      "Transfer": {
+        "type": "object",
+        "required": [
+          "id",
+          "asset",
+          "transferType",
+          "txHash",
+          "blockHash",
+          "blockNumber",
+          "transactionIndex",
+          "logIndex",
+          "timestamp",
+          "from",
+          "to",
+          "amountRaw"
+        ],
+        "description": "ERC-20 Transfer 로그 하나. 순서는 (blockNumber, transactionIndex, logIndex, id).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "SNAPSHOT: {chainId}:{txHash}:{logIndex}, FIXTURE: fx:{namespace}:{recordId}. 그래프·표·상세·JSON에서 같은 값을 쓴다.",
+            "examples": [
+              "fx:flow-demo-v1:e1",
+              "84532:0x00000000000000000000000000000000000000000000000000000000000000ab:3"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "Fixture에서만 쓰는 짧은 이름"
+          },
+          "asset": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "transferType": {
+            "enum": [
+              "TRANSFER",
+              "MINT",
+              "BURN"
+            ],
+            "description": "MINT: from이 0 주소, BURN: to가 0 주소. 둘은 분석 후보에서 뺀다."
+          },
+          "txHash": {
+            "$ref": "#/components/schemas/Hash"
+          },
+          "blockHash": {
+            "$ref": "#/components/schemas/Hash"
+          },
+          "blockNumber": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "transactionIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "logIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "from": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "to": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "amountRaw": {
+            "$ref": "#/components/schemas/Amount"
+          }
+        }
+      },
+      "Filter": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "분석·조회할 전송의 범위. 비운 칸은 데이터셋 수집 범위로 채워서 meta.conditions에 돌려준다. 수집 범위 밖이면 422 OUT_OF_RANGE.",
+        "properties": {
+          "startBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "endBlock": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "endTime": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "minAmountRaw": {
+            "$ref": "#/components/schemas/Amount"
+          }
+        }
+      },
+      "Limits": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "한 번의 분석이 쓸 수 있는 상한. 0이거나 생략하면 기본값(= 최댓값, timeBudgetMs만 기본 1500). 최댓값을 넘으면 400. 실제로 쓴 값은 meta.conditions.limits에 있다.",
+        "properties": {
+          "maxNodes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          },
+          "maxEdges": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "maxPaths": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "maxStates": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "maxCandidates": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "timeBudgetMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2000
+          }
+        }
+      },
+      "AnalysisRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "datasetId",
+          "datasetVersion",
+          "address"
+        ],
+        "description": "분석 조건. 항목 이름은 대소문자까지 정확해야 하고, 같은 항목을 두 번 쓰거나 null을 넣으면 400이다(생략은 된다). 본문은 64KB 이하.",
+        "properties": {
+          "datasetId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "datasetVersion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset": {
+            "$ref": "#/components/schemas/AssetSelector"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "targetAddress": {
+            "$ref": "#/components/schemas/Address",
+            "description": "paths에서만 쓰고 필수다. patterns에 보내면 400."
+          },
+          "startTransferId": {
+            "type": "string",
+            "description": "한 거래에 전송이 여러 개일 때 사용자가 고른 시작 전송. 그 전송이 1 hop이다. 데이터셋 모드의 ID 형식이어야 한다. (trace·paths, patterns에 보내면 400)"
+          },
+          "direction": {
+            "enum": [
+              "outgoing",
+              "incoming"
+            ],
+            "description": "trace·paths: outgoing(기본)은 나간 돈을 시간 순서대로, incoming은 들어온 돈을 시간을 거슬러. patterns: outgoing은 FAN_OUT만, incoming은 FAN_IN만, 생략하면 둘 다."
+          },
+          "maxDepth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "default": 2,
+            "description": "1~3 hop. 0이나 생략은 2. (trace·paths, patterns에 보내면 400)"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Limits"
+          }
+        }
+      },
+      "PathsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AnalysisRequest"
+          },
+          {
+            "required": [
+              "targetAddress"
+            ]
+          }
+        ]
+      },
+      "Node": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "label": {
+            "type": "string",
+            "description": "데이터셋 labels에 있는 이름. 없으면 생략"
           }
         }
       },
@@ -2090,18 +1050,25 @@
           "transferIds",
           "hops"
         ],
+        "description": "시작 주소와 대상 주소를 잇는 후보 경로. transferIds는 direction과 상관없이 돈이 흐른 시간순이다(incoming이면 대상 주소 → 시작 주소). 같은 자금이라는 확정이 아니다.",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^path-[0-9a-f]{16}$",
+            "description": "전송 ID들로 만든 해시. 같은 경로는 항상 같은 ID다."
           },
           "transferIds": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "minItems": 1,
+            "maxItems": 3
           },
           "hops": {
-            "$ref": "#/components/schemas/UInt"
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
           }
         }
       },
@@ -2109,49 +1076,66 @@
         "type": "object",
         "required": [
           "patternId",
-          "type",
-          "address",
+          "ruleId",
           "ruleVersion",
-          "threshold",
+          "asset",
+          "address",
+          "direction",
           "windowStart",
           "windowEnd",
-          "evidenceIds",
+          "windowSeconds",
+          "threshold",
+          "uniqueCounterparties",
           "counterparties",
+          "evidenceIds",
           "groupId",
           "incomplete"
         ],
+        "description": "600초 반열린 창 [windowStart, windowEnd) 안에 서로 다른 상대가 3개 이상인 분산(FAN_OUT)·합류(FAN_IN). 규칙 일치일 뿐 소유자·위법성 판단이 아니다.",
         "properties": {
           "patternId": {
-            "type": "string"
+            "type": "string",
+            "description": "{ruleId}:{address}:{direction}:{첫 근거 전송 ID}"
           },
-          "type": {
+          "ruleId": {
             "enum": [
-              "FAN_IN",
-              "FAN_OUT"
+              "FAN_OUT",
+              "FAN_IN"
             ]
-          },
-          "address": {
-            "$ref": "#/components/schemas/Address"
           },
           "ruleVersion": {
             "type": "string"
           },
-          "threshold": {
-            "$ref": "#/components/schemas/UInt"
+          "asset": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "direction": {
+            "enum": [
+              "outgoing",
+              "incoming"
+            ],
+            "description": "FAN_OUT은 outgoing, FAN_IN은 incoming"
           },
           "windowStart": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/DateTime"
           },
           "windowEnd": {
-            "type": "string",
-            "format": "date-time"
+            "$ref": "#/components/schemas/DateTime"
           },
-          "evidenceIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "windowSeconds": {
+            "type": "integer"
+          },
+          "threshold": {
+            "type": "integer",
+            "description": "필요한 고유 상대 수(3)"
+          },
+          "uniqueCounterparties": {
+            "type": "integer",
+            "minimum": 3,
+            "description": "창 안의 고유 상대 수. 같은 상대와 여러 번 주고받아도 1로 센다."
           },
           "counterparties": {
             "type": "array",
@@ -2159,11 +1143,147 @@
               "$ref": "#/components/schemas/Address"
             }
           },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "근거 전송 ID(위치 순)"
+          },
           "groupId": {
-            "type": "string"
+            "type": "string",
+            "description": "겹치는 창은 합치지 않고 같은 groupId로 묶는다. 화면은 한 묶음으로 보여 준다."
           },
           "incomplete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "창이 관측 범위 시작 600초 안에서 시작하거나 관측 범위 끝을 넘으면 true(범위 밖을 모르기 때문)."
+          }
+        }
+      },
+      "Summary": {
+        "type": "object",
+        "required": [
+          "uniqueTransferCount",
+          "uniqueAmountRaw"
+        ],
+        "description": "근거 전송을 한 번씩만 센 합계. 두 경로가 같은 전송을 지나도 두 번 더하지 않는다.",
+        "properties": {
+          "uniqueTransferCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueAmountRaw": {
+            "$ref": "#/components/schemas/Amount"
+          }
+        }
+      },
+      "Truncation": {
+        "type": "object",
+        "required": [
+          "reason",
+          "reasons"
+        ],
+        "properties": {
+          "reason": {
+            "enum": [
+              "PATH_LIMIT",
+              "STATE_LIMIT",
+              "CANDIDATE_LIMIT",
+              "NODE_LIMIT",
+              "EDGE_LIMIT",
+              "TIME_BUDGET"
+            ],
+            "description": "대표 사유. 탐색을 멈춘 사유, 멈추지 않았으면 처음 생긴 사유."
+          },
+          "reasons": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "PATH_LIMIT",
+                "STATE_LIMIT",
+                "CANDIDATE_LIMIT",
+                "NODE_LIMIT",
+                "EDGE_LIMIT",
+                "TIME_BUDGET"
+              ]
+            },
+            "description": "함께 생긴 사유 전부(예: CANDIDATE_LIMIT와 PATH_LIMIT)"
+          }
+        }
+      },
+      "AnalyzedUntil": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "blockNumber",
+          "timestamp"
+        ],
+        "description": "분석한 마지막 전송의 블록과 시각. 화면은 '블록 N까지만 분석'으로 보여 주고, 더 보려면 범위를 좁혀 다시 요청한다.",
+        "properties": {
+          "blockNumber": {
+            "$ref": "#/components/schemas/BlockNumber"
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        }
+      },
+      "LimitStatus": {
+        "type": "object",
+        "required": [
+          "truncated",
+          "found",
+          "foundIsLowerBound",
+          "statesVisited",
+          "candidatesConsidered",
+          "analyzedUntil",
+          "durationMs"
+        ],
+        "description": "결과가 완전한지. 잘려도 HTTP는 200(부분 결과)이다. 요청 취소는 잘림이 아니라 오류다.",
+        "properties": {
+          "truncated": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Truncation"
+              }
+            ],
+            "description": "null이면 상한에 걸리지 않은 결과"
+          },
+          "found": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "찾은 개수. trace: 전송 수, paths: 경로 수(결과에는 maxPaths개까지), patterns: 패턴 수"
+          },
+          "foundIsLowerBound": {
+            "type": "boolean",
+            "description": "true면 탐색을 중간에 멈췄거나 후보가 잘려서 found가 '최소 이만큼'이다. PATH_LIMIT만 있으면 끝까지 세므로 false."
+          },
+          "statesVisited": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "candidatesConsidered": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "analyzedUntil": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AnalyzedUntil"
+              }
+            ],
+            "description": "후보 상한(CANDIDATE_LIMIT)으로 잘렸을 때 실제로 분석한 마지막 전송 위치. 그 뒤 전송은 보지 않았다. 잘리지 않았으면 null."
+          },
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },
@@ -2182,24 +1302,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Transfer"
-            }
+            },
+            "description": "결과의 근거 전송(중복 없이 위치 순)"
           },
           "nodes": {
             "type": "array",
             "items": {
-              "type": "object",
-              "required": [
-                "id",
-                "label"
-              ],
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "label": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/components/schemas/Node"
             }
           },
           "paths": {
@@ -2215,23 +1324,57 @@
             }
           },
           "summary": {
-            "type": "object",
-            "required": [
-              "uniqueTransferCount",
-              "uniqueAmountRaw"
-            ],
-            "properties": {
-              "uniqueTransferCount": {
-                "$ref": "#/components/schemas/UInt"
-              },
-              "uniqueAmountRaw": {
-                "type": "string",
-                "pattern": "^(0|[1-9][0-9]*)$"
-              }
-            }
+            "$ref": "#/components/schemas/Summary"
           },
           "limits": {
             "$ref": "#/components/schemas/LimitStatus"
+          }
+        }
+      },
+      "TransferConditions": {
+        "type": "object",
+        "required": [
+          "direction",
+          "filter",
+          "limit"
+        ],
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "direction": {
+            "enum": [
+              "any",
+              "incoming",
+              "outgoing"
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        }
+      },
+      "Page": {
+        "type": "object",
+        "required": [
+          "limit",
+          "nextCursor"
+        ],
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "다음 쪽을 받을 때 cursor로 그대로 넘긴다. null이면 마지막 쪽."
           }
         }
       },
@@ -2244,10 +1387,13 @@
         ],
         "properties": {
           "contractVersion": {
-            "type": "string"
+            "const": "v1"
           },
           "ruleVersion": {
-            "type": "string"
+            "type": "string",
+            "examples": [
+              "flow-v1"
+            ]
           },
           "datasetId": {
             "type": "string"
@@ -2256,68 +1402,177 @@
             "type": "string"
           },
           "sourceMode": {
-            "type": "string"
+            "enum": [
+              "FIXTURE",
+              "SNAPSHOT"
+            ]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
           },
           "conditions": {
-            "$ref": "#/components/schemas/AnalysisRequest"
+            "description": "실제로 쓴 조건(빈 칸을 기본값으로 채운 것). 분석은 AnalysisRequest, 전송 목록은 TransferConditions 모양.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              },
+              {
+                "$ref": "#/components/schemas/TransferConditions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "txHash"
+                ],
+                "properties": {
+                  "txHash": {
+                    "$ref": "#/components/schemas/Hash"
+                  }
+                }
+              }
+            ]
           },
           "limits": {
             "$ref": "#/components/schemas/LimitStatus"
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
           },
           "limitations": {
             "type": "array",
             "items": {
               "type": "string"
-            }
-          },
-          "dataset": {
-            "$ref": "#/components/schemas/Dataset"
+            },
+            "description": "해석 한계 문구. 화면에 함께 보여 준다."
           }
         }
       },
-      "AssetSelector": {
+      "Error": {
         "type": "object",
         "required": [
-          "chainId",
-          "tokenAddress"
+          "code",
+          "message",
+          "retryable"
         ],
         "properties": {
-          "chainId": {
-            "$ref": "#/components/schemas/UInt"
+          "code": {
+            "enum": [
+              "INVALID_INPUT",
+              "INVALID_CURSOR",
+              "NOT_FOUND",
+              "DATASET_NOT_FOUND",
+              "TRANSACTION_NOT_FOUND",
+              "METHOD_NOT_ALLOWED",
+              "DATASET_NOT_READY",
+              "DATASET_INVALIDATED",
+              "VERSION_MISMATCH",
+              "OUT_OF_RANGE",
+              "UNSUPPORTED_ASSET",
+              "RATE_LIMITED",
+              "UNAVAILABLE",
+              "INVALID_DATA",
+              "REQUEST_TIMEOUT"
+            ]
           },
-          "tokenAddress": {
-            "$ref": "#/components/schemas/Address"
+          "message": {
+            "type": "string",
+            "description": "화면에 그대로 보여 줘도 되는 한국어 문장"
           },
-          "symbol": {
-            "type": "string"
+          "retryable": {
+            "type": "boolean",
+            "description": "true면 잠시 뒤 같은 요청을 다시 보내도 된다"
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta",
+          "error"
+        ],
+        "properties": {
+          "data": {
+            "type": "null"
           },
-          "decimals": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 255
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "error": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "입력 오류: INVALID_INPUT, INVALID_CURSOR",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "없음: DATASET_NOT_FOUND, TRANSACTION_NOT_FOUND, NOT_FOUND",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "데이터셋 상태·버전: DATASET_NOT_READY(수집 중·실패), DATASET_INVALIDATED(무효화), VERSION_MISMATCH(다른 버전에서 받은 커서). 다른 버전을 고르거나 첫 쪽부터 다시 요청한다.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Unprocessable": {
+        "description": "지원 범위 밖: OUT_OF_RANGE(수집 범위 밖 블록·시간), UNSUPPORTED_ASSET(데이터셋과 다른 자산)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "요청 제한: RATE_LIMITED. Retry-After(초)만큼 기다렸다가 다시 보낸다.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
           }
         },
-        "description": "symbol·decimals는 선택이다. 실제 값은 데이터셋 정보를 따른다."
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "다시 보내도 되는 시점까지 남은 초"
+          }
+        }
       },
-      "BlockNumber": {
-        "type": "string",
-        "pattern": "^(0|[1-9][0-9]*)$",
-        "description": "블록 번호. 금액처럼 십진 문자열로 주고받는다."
+      "Unavailable": {
+        "description": "일시 장애: UNAVAILABLE·REQUEST_TIMEOUT(retryable true), INVALID_DATA(retryable false)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
       }
     }
-  },
-  "tags": [
-    {
-      "name": "데이터셋",
-      "description": "수집된 데이터셋 버전과 상태"
-    },
-    {
-      "name": "전송 조회",
-      "description": "원본 전송 목록과 거래 상세"
-    },
-    {
-      "name": "분석",
-      "description": "시간순 연결(trace·paths)과 분산·합류 패턴(patterns)"
-    }
-  ]
+  }
 }
