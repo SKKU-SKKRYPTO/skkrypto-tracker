@@ -1,19 +1,18 @@
 import cytoscape from 'cytoscape'
 import type { Core, StylesheetJson } from 'cytoscape'
 import { useEffect, useRef } from 'react'
-import type { Token, TraceResult } from '../types'
+import type { TraceResult } from '../types'
 import { buildElements } from './graphElements'
 
 type Props = {
   result: TraceResult
-  token: Token
   selectedTransferId: string | null
   onSelect: (transferId: string) => void
 }
 
 // 주소 = 점, 송금 = 화살표. 간선 id는 transfers[].id 그대로라서 표·상세와 같은 키를 쓴다.
 // 그래프는 보조 화면이다. 모든 정보는 표와 상세에도 있다.
-function TransferGraph({ result, token, selectedTransferId, onSelect }: Props) {
+function TransferGraph({ result, selectedTransferId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<Core | null>(null)
   // 그래프는 결과가 바뀔 때만 새로 그린다. 클릭 처리 함수는 ref로 최신 것을 쓴다.
@@ -29,13 +28,13 @@ function TransferGraph({ result, token, selectedTransferId, onSelect }: Props) {
 
     const cy = cytoscape({
       container,
-      elements: buildElements(result, token),
+      elements: buildElements(result),
       style: buildStyle(container),
       layout: {
         name: 'breadthfirst',
         directed: true,
         // 검색한 시작 주소(점 id)를 맨 위(뿌리)에 둔다.
-        roots: [result.query.address.toLowerCase()],
+        roots: [result.conditions.address.toLowerCase()],
         spacingFactor: 1.1,
         padding: 24,
       },
@@ -65,7 +64,7 @@ function TransferGraph({ result, token, selectedTransferId, onSelect }: Props) {
       cy.destroy()
       cyRef.current = null
     }
-  }, [result, token])
+  }, [result])
 
   useEffect(() => {
     const cy = cyRef.current
@@ -170,3 +169,4 @@ function buildStyle(container: HTMLElement): StylesheetJson {
 }
 
 export default TransferGraph
+

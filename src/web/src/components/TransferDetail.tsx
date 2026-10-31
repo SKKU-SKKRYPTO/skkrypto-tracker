@@ -1,14 +1,13 @@
-import { formatTimestamp, formatUnits } from '../format'
-import type { Token, Transfer } from '../types'
+import { formatTimestamp, formatAmount } from '../format'
+import type { Transfer } from '../types'
 import CopyButton from './CopyButton'
 
 type Props = {
   transfer: Transfer | null
-  token: Token
 }
 
 // FIXTURE 데이터의 주소·거래 번호는 가짜라서 Explorer 링크를 만들지 않는다.
-function TransferDetail({ transfer, token }: Props) {
+function TransferDetail({ transfer }: Props) {
   return (
     <aside className="detail" aria-labelledby="detail-title">
       <h2 id="detail-title">송금 상세</h2>
@@ -31,19 +30,19 @@ function TransferDetail({ transfer, token }: Props) {
 
           <dt>금액</dt>
           <dd>
-            {formatUnits(transfer.amount, token.decimals)} {token.symbol}
+            {formatAmount(transfer)}
           </dd>
 
           <dt>블록 번호</dt>
           <dd>{transfer.blockNumber}</dd>
 
           <dt>블록 시각</dt>
-          <dd>{formatTimestamp(transfer.blockTimestamp)}</dd>
+          <dd>{formatTimestamp(transfer.timestamp)}</dd>
 
           <dt>거래 번호</dt>
           <dd>
-            <span className="mono full-value">{transfer.transactionHash}</span>
-            <CopyButton value={transfer.transactionHash} label="거래 번호" />
+            <span className="mono full-value">{transfer.txHash}</span>
+            <CopyButton value={transfer.txHash} label="거래 번호" />
           </dd>
 
           <dt>거래 안 위치 (transactionIndex)</dt>
@@ -61,3 +60,4 @@ function TransferDetail({ transfer, token }: Props) {
 }
 
 export default TransferDetail
+
