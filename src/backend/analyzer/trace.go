@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"slices"
+	"sort"
 
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/domain"
 )
@@ -104,9 +105,7 @@ func (r *run) traverse(candidates []domain.Transfer, findPaths bool) error {
 			}
 			path := append(slices.Clone(s.path), t)
 			if findPaths && to == r.req.TargetAddress {
-				if !r.recordPath(path) {
-					break
-				}
+				r.recordPath(path)
 				continue
 			}
 			if !findPaths && !r.addEvidence(t) {
@@ -131,20 +130,26 @@ func (r *run) traverse(candidates []domain.Transfer, findPaths bool) error {
 	return nil
 }
 
-// recordPath는 대상에 닿은 경로를 결과에 넣는다.
-// BFS가 hop 순, 같은 hop 안에서는 위치 순으로 넓혀 가므로 기록되는 순서가 곧 정렬 순서다.
-// maxPaths개를 넘으면 앞의 maxPaths개만 남기고, 나머지는 개수만 세서 found를 정확하게 한다.
-func (r *run) recordPath(path []domain.Transfer) bool {
+// recordPath는 대상에 닿은 경로를 센다. 정렬 순서(lessPath)로 앞선 maxPaths개만 남기고,
+// 나머지는 개수만 세서 found를 정확하게 한다.
+// incoming은 대상 쪽부터 거꾸로 찾아서 찾는 순서가 정렬 순서와 다르다. 그래서 찾은 순서로 자르지 않고,
+// 돈이 흐른 순서로 뒤집은 경로를 정렬 위치에 넣은 뒤 넘치면 맨 뒤를 뺀다.
+// 근거 전송은 탐색이 끝난 뒤 Paths에서 남은 경로 것만 넣는다. 중간에 밀려난 경로의 전송이 섞이지 않게 하려는 것이다.
+func (r *run) recordPath(path []domain.Transfer) {
 	r.pathCount++
+	if r.req.Direction == DirectionIncoming {
+		path = slices.Clone(path)
+		slices.Reverse(path)
+	}
+	i := sort.Search(len(r.found), func(k int) bool { return lessPath(path, r.found[k]) })
 	if len(r.found) == r.req.Limits.MaxPaths {
 		r.flag(ReasonPathLimit)
-		return true
+		if i == len(r.found) {
+			return
+		}
+		r.found = r.found[:len(r.found)-1]
 	}
-	if !r.addEvidence(path...) {
-		return false
-	}
-	r.found = append(r.found, path)
-	return true
+	r.found = slices.Insert(r.found, i, path)
 }
 
 // ends는 탐색 방향 기준으로 전송의 출발·도착 주소를 돌려준다.
