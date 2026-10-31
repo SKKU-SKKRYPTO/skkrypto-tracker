@@ -1,6 +1,6 @@
 # 수집 대상 토큰
 
-수집기는 이 목록에 있는 토큰의 Transfer 로그만 수집합니다([정확성·보안 기준](correctness-security.md)). 수집기가 읽는 파일은 [`src/backend/indexer/tokens.json`](../src/backend/indexer/tokens.json)이고, 구조는 `assets` 테이블(`chainId`, `tokenAddress`, `symbol`, `decimals`)과 같습니다.
+수집기는 이 목록에 있는 토큰의 Transfer 로그만 수집합니다([정확성·보안 기준](correctness-security.md)). 수집기가 읽는 파일은 [`src/backend/indexer/tokens.json`](../src/backend/indexer/tokens.json)입니다. JSON 필드 `chainId`, `tokenAddress`, `symbol`, `decimals`는 `assets` 테이블의 `chain_id`, `token_address`, `symbol`, `decimals` 컬럼에 각각 대응합니다.
 
 체인은 Base Sepolia(`chainId` 84532)입니다.
 
