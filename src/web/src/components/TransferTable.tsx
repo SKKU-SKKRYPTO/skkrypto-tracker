@@ -1,14 +1,13 @@
-import { formatUnits, shortenHex } from '../format'
-import type { Token, Transfer } from '../types'
+import { formatAmount, shortenHex } from '../format'
+import type { Transfer } from '../types'
 
 type Props = {
   transfers: Transfer[]
-  token: Token
   selectedTransferId: string | null
   onSelect: (transferId: string) => void
 }
 
-function TransferTable({ transfers, token, selectedTransferId, onSelect }: Props) {
+function TransferTable({ transfers, selectedTransferId, onSelect }: Props) {
   return (
     <div className="table-scroll">
       <table className="transfers">
@@ -50,11 +49,11 @@ function TransferTable({ transfers, token, selectedTransferId, onSelect }: Props
                   {shortenHex(transfer.to)}
                 </td>
                 <td className="num">
-                  {formatUnits(transfer.amount, token.decimals)} {token.symbol}
+                  {formatAmount(transfer)}
                 </td>
                 <td className="num">{transfer.blockNumber}</td>
-                <td className="mono" title={transfer.transactionHash}>
-                  {shortenHex(transfer.transactionHash)}
+                <td className="mono" title={transfer.txHash}>
+                  {shortenHex(transfer.txHash)}
                 </td>
               </tr>
             )
@@ -66,3 +65,4 @@ function TransferTable({ transfers, token, selectedTransferId, onSelect }: Props
 }
 
 export default TransferTable
+

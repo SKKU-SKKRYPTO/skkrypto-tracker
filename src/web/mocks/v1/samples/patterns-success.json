@@ -1,0 +1,258 @@
+{
+  "data": {
+    "transfers": [
+      {
+        "id": "fx:patterns-demo-v1:p1",
+        "label": "p1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003e9",
+        "blockHash": "0xe2d606ec8fe8528a1ec8dbbc5dd9ed8c51ecfe8a8efa4d30a050fd5a995a6055",
+        "blockNumber": "20001",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:00:00Z",
+        "from": "0x0000000000000000000000000000000000000065",
+        "to": "0x0000000000000000000000000000000000000069",
+        "amountRaw": "100"
+      },
+      {
+        "id": "fx:patterns-demo-v1:p2",
+        "label": "p2",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ea",
+        "blockHash": "0x9e8c31ac63d32264a779f0dd3605d66147d690be19ddb101bd8c35824baf1ee6",
+        "blockNumber": "20002",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:03:20Z",
+        "from": "0x0000000000000000000000000000000000000066",
+        "to": "0x0000000000000000000000000000000000000069",
+        "amountRaw": "200"
+      },
+      {
+        "id": "fx:patterns-demo-v1:p3",
+        "label": "p3",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003eb",
+        "blockHash": "0xe94dc1f1140f89174d55e9df47ffaa4be74a7f0df3e48cd93242372dc20482e4",
+        "blockNumber": "20003",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:09:59Z",
+        "from": "0x0000000000000000000000000000000000000067",
+        "to": "0x0000000000000000000000000000000000000069",
+        "amountRaw": "300"
+      },
+      {
+        "id": "fx:patterns-demo-v1:p4",
+        "label": "p4",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ec",
+        "blockHash": "0xf5a340893d1999303604e7a499c0c070c9c08bcc06494f9cc208af57411cc41e",
+        "blockNumber": "20004",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:10:00Z",
+        "from": "0x0000000000000000000000000000000000000068",
+        "to": "0x0000000000000000000000000000000000000069",
+        "amountRaw": "400"
+      },
+      {
+        "id": "fx:patterns-demo-v1:p6",
+        "label": "p6",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ed",
+        "blockHash": "0xbca6af3548b79fccf5b225ccc07dfbba23a8ad51e0f18b559f18adee90157f96",
+        "blockNumber": "20005",
+        "transactionIndex": 0,
+        "logIndex": 1,
+        "timestamp": "2026-10-26T14:12:00Z",
+        "from": "0x0000000000000000000000000000000000000066",
+        "to": "0x0000000000000000000000000000000000000069",
+        "amountRaw": "50"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "0x0000000000000000000000000000000000000065",
+        "label": "X"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000066",
+        "label": "Y"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000067",
+        "label": "Z"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000068",
+        "label": "W"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000069",
+        "label": "H"
+      }
+    ],
+    "paths": [],
+    "patterns": [
+      {
+        "patternId": "FAN_IN:0x0000000000000000000000000000000000000069:incoming:fx:patterns-demo-v1:p1",
+        "ruleId": "FAN_IN",
+        "ruleVersion": "flow-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "address": "0x0000000000000000000000000000000000000069",
+        "direction": "incoming",
+        "windowStart": "2026-10-26T14:00:00Z",
+        "windowEnd": "2026-10-26T14:10:00Z",
+        "windowSeconds": 600,
+        "threshold": 3,
+        "uniqueCounterparties": 3,
+        "counterparties": [
+          "0x0000000000000000000000000000000000000065",
+          "0x0000000000000000000000000000000000000066",
+          "0x0000000000000000000000000000000000000067"
+        ],
+        "evidenceIds": [
+          "fx:patterns-demo-v1:p1",
+          "fx:patterns-demo-v1:p2",
+          "fx:patterns-demo-v1:p3"
+        ],
+        "groupId": "group:FAN_IN:0x0000000000000000000000000000000000000069:incoming:fx:patterns-demo-v1:p1",
+        "incomplete": false
+      },
+      {
+        "patternId": "FAN_IN:0x0000000000000000000000000000000000000069:incoming:fx:patterns-demo-v1:p2",
+        "ruleId": "FAN_IN",
+        "ruleVersion": "flow-v1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "address": "0x0000000000000000000000000000000000000069",
+        "direction": "incoming",
+        "windowStart": "2026-10-26T14:03:20Z",
+        "windowEnd": "2026-10-26T14:13:20Z",
+        "windowSeconds": 600,
+        "threshold": 3,
+        "uniqueCounterparties": 3,
+        "counterparties": [
+          "0x0000000000000000000000000000000000000066",
+          "0x0000000000000000000000000000000000000067",
+          "0x0000000000000000000000000000000000000068"
+        ],
+        "evidenceIds": [
+          "fx:patterns-demo-v1:p2",
+          "fx:patterns-demo-v1:p3",
+          "fx:patterns-demo-v1:p4",
+          "fx:patterns-demo-v1:p6"
+        ],
+        "groupId": "group:FAN_IN:0x0000000000000000000000000000000000000069:incoming:fx:patterns-demo-v1:p1",
+        "incomplete": false
+      }
+    ],
+    "summary": {
+      "uniqueTransferCount": 5,
+      "uniqueAmountRaw": "1050"
+    },
+    "limits": {
+      "truncated": null,
+      "found": 2,
+      "foundIsLowerBound": false,
+      "statesVisited": 5,
+      "candidatesConsidered": 5,
+      "analyzedUntil": null,
+      "durationMs": 0
+    }
+  },
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "datasetId": "patterns-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "20000",
+      "endBlock": "20100",
+      "startTime": "2026-10-26T13:50:00Z",
+      "endTime": "2026-10-26T14:30:00Z"
+    },
+    "conditions": {
+      "datasetId": "patterns-demo",
+      "datasetVersion": "v1",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "address": "0x0000000000000000000000000000000000000069",
+      "filter": {
+        "startBlock": "20000",
+        "endBlock": "20100",
+        "startTime": "2026-10-26T13:50:00Z",
+        "endTime": "2026-10-26T14:30:00Z"
+      },
+      "limits": {
+        "maxNodes": 200,
+        "maxEdges": 500,
+        "maxPaths": 10,
+        "maxStates": 10000,
+        "maxCandidates": 10000,
+        "timeBudgetMs": 1500
+      }
+    },
+    "limits": {
+      "truncated": null,
+      "found": 2,
+      "foundIsLowerBound": false,
+      "statesVisited": 5,
+      "candidatesConsidered": 5,
+      "analyzedUntil": null,
+      "durationMs": 0
+    },
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": null
+}

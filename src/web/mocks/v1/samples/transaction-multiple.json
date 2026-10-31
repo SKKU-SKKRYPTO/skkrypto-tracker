@@ -1,0 +1,66 @@
+{
+  "data": [
+    {
+      "id": "fx:patterns-demo-v1:p5",
+      "label": "p5",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ed",
+      "blockHash": "0xbca6af3548b79fccf5b225ccc07dfbba23a8ad51e0f18b559f18adee90157f96",
+      "blockNumber": "20005",
+      "transactionIndex": 0,
+      "logIndex": 0,
+      "timestamp": "2026-10-26T14:12:00Z",
+      "from": "0x0000000000000000000000000000000000000065",
+      "to": "0x0000000000000000000000000000000000000066",
+      "amountRaw": "50"
+    },
+    {
+      "id": "fx:patterns-demo-v1:p6",
+      "label": "p6",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ed",
+      "blockHash": "0xbca6af3548b79fccf5b225ccc07dfbba23a8ad51e0f18b559f18adee90157f96",
+      "blockNumber": "20005",
+      "transactionIndex": 0,
+      "logIndex": 1,
+      "timestamp": "2026-10-26T14:12:00Z",
+      "from": "0x0000000000000000000000000000000000000066",
+      "to": "0x0000000000000000000000000000000000000069",
+      "amountRaw": "50"
+    }
+  ],
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "datasetId": "patterns-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "20000",
+      "endBlock": "20100",
+      "startTime": "2026-10-26T13:50:00Z",
+      "endTime": "2026-10-26T14:30:00Z"
+    },
+    "conditions": {
+      "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ed"
+    },
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": null
+}

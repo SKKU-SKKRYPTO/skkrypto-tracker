@@ -1,20 +1,39 @@
-# 임시 Mock 데이터 (draft)
+# 공식 API v1 Mock
 
-찬수님의 공식 HTTP 샘플이 나오기 전까지 화면 개발용으로 쓰는 **임시 데이터**입니다.
-공식 샘플이 나오면 전부 교체합니다. 파일 이름의 `.draft`가 그 표시입니다.
+원본: `src/backend/api-server/contracts/`. `openapi.json`이 최우선 기준입니다.
+`v1/`에는 원본 OpenAPI, sample-requests.json, 응답 샘플 20개를 변경 없이 복사합니다.
+원본을 갱신한 뒤 `src/web`에서 `node scripts/sync-contract.mjs`를 실행하면
+복사본과 `src/api/v1Types.ts`를 함께 갱신합니다. 백엔드 파일은 읽기만 합니다.
+`npm test`는 복사본과 원본의 일치 및 20개 응답의 엔드포인트별 구조를 검사합니다.
 
-모든 주소·거래 번호는 가짜(Fixture)라서 Explorer 링크를 만들지 않습니다.
+## 화면에서 지원하는 요청
 
-## 파일
+데이터셋은 `flow-demo / v1`로 고정합니다. 전체 주소는 README의 확인 표를 참고하세요.
 
-- `trace-ok.draft.json`: 정상 결과. A가 B에게 5 TST를 보내고, B가 4분 안에 C·D·E로 나눠 보낸 상황(분산 패턴 예시)
-- `trace-empty.draft.json`: 빈 결과. "선택한 수집 범위에서 관측되지 않음"으로 표시해야 함
-- `trace-truncated.draft.json`: 부분 결과. 간선 상한(EDGE_LIMIT)에 걸려 일부만 옴
-- `trace-error.draft.json`: 오류. 잘못된 주소 입력
+| Mock 확인 모드 | 주소 끝자리 | 방향 | 깊이 | 샘플 |
+|---|---|---|---|---|
+| 기본 샘플 | 0001 | outgoing | 2 | trace-success.json |
+| 기본 샘플 | 0007 | outgoing | 2 | trace-ready-empty.json |
+| 후보 상한 4 | 0001 | outgoing | 3 | trace-candidate-limit.json |
 
-## 주요 필드
+사용자가 고른 깊이는 바꾸지 않습니다. 후보 상한 모드는 명시적으로
+`limits.maxCandidates: 4`를 요청에 추가합니다. 깊이를 3으로 고르는 것만으로
+부분 결과가 되지는 않습니다. 지원하지 않는 조합을 빈 결과로 바꾸지 않습니다.
+이 제한은 로컬 샘플 재생 범위이며 실제 백엔드 API의 지원 범위가 아닙니다.
 
-- `dataset`: 지금 보는 데이터의 종류·버전·상태·범위. `mode`가 `FIXTURE`면 합성 데이터
-- `transfers[].id`: 송금 한 건의 고유 번호. 표·상세·그래프가 같은 송금을 가리킬 때 이 값을 씀
-- `transfers[].amount`: 금액. **문자열**이며 `decimals`(18)만큼 소수점을 옮겨 표시. 숫자로 바꾸지 않음
-- `truncated` / `truncation`: 결과가 잘렸는지, 이유와 찾은 개수
+잘못된 주소 형식은 공식 공통 INVALID_INPUT 샘플(HTTP 400)을 사용합니다.
+이 오류 샘플의 원래 요청은 /api/paths이지만, 동일한 공통 오류 규격이
+/api/trace에도 정의되어 있습니다. 오류 표시에는 공식 샘플 재생임을 명시합니다.
+
+나머지 샘플은 원래 데이터셋·엔드포인트·상태 코드를 유지한 채 타입/회귀 테스트에 사용합니다.
+다른 데이터셋의 응답을 flow-demo trace 결과로 사용하지 않습니다.
+8개 오류 샘플은 Adapter 테스트에서 실제 API 오류 형식으로 처리하는지 검증합니다.
+
+## 경계
+
+- API 오류: v1 오류 envelope와 HTTP 상태를 검증하고 code/message/retryable 보존.
+- Mock 미지원: API 오류 코드를 만들지 않고 별도 kind로 안내.
+- 응답 형식 오류: 잘못된 JSON 문법, 필드 타입, 요청/데이터셋 불일치 등을 별도 kind로 안내.
+- validateV1.ts는 현재 체크인된 계약에서 사용하는 키워드를 지원하는 검사기입니다.
+  범용 JSON Schema 검증기가 아니므로 계약에 새 키워드가 생기면 함께 검토해야 합니다.
+- 실제 서버 연결, trace 분석 재현, 데이터셋 선택, paths/patterns 화면은 이번 범위 밖입니다.
