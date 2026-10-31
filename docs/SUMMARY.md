@@ -8,6 +8,7 @@
 * [사용자 흐름](user-flow.md)
 * [구조와 기술 스택](architecture.md)
 * [정확성·보안 기준](correctness-security.md)
+* [수집 대상 토큰](tokens.md)
 
 ## 팀
 
