@@ -1,0 +1,53 @@
+# PR 제목과 브랜치 이름 검사(docs/conventions.md). Squash merge라 PR 제목이 main의 커밋 제목이 된다.
+name: PR 규칙
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  title:
+    name: pr-title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            perf
+            test
+            docs
+            build
+            ci
+            style
+            chore
+            revert
+          scopes: |
+            data
+            engine
+            api
+            web
+            contract
+            infra
+          requireScope: false
+
+  branch:
+    name: branch-name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conventional Branch
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          pattern='^(feature|feat|fix|bugfix|chore|ai|claude|codex|copilot|cursor)/[a-z0-9]+([.-][a-z0-9]+)*$'
+          if [[ ! "$BRANCH" =~ $pattern ]]; then
+            echo "::error::브랜치 이름 '$BRANCH'이 규칙과 다릅니다. docs/conventions.md의 '브랜치 이름'을 보세요."
+            exit 1
+          fi
