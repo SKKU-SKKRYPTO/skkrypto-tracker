@@ -5,7 +5,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import App from './App'
 import SearchBar from './components/SearchBar'
 import { searchTrace } from './api/trace'
-import type { TraceResponse } from './api/trace'
+import type { MockScenario, TraceResponse } from './api/trace'
+import type { SearchConditions } from './searchConditions'
+import { DEFAULT_SEARCH_CONDITIONS } from './searchConditions'
 import { SearchRequestError } from './api/searchFailure'
 import { adaptTraceResponse } from './adapters/traceAdapter'
 import dataset from '../mocks/v1/samples/dataset-detail.json'
@@ -46,9 +48,12 @@ function render() {
   const search = tree.find(node => node.type === SearchBar)!
   const result = tree.find(node => typeof node.type === 'function' && node.type.name === 'TraceView')
   const alert = tree.find(node => node.type === 'p' && node.props.role === 'alert')
+  const scenario = tree.find(node => node.type === 'select' && node.props.id === 'mock-scenario')!
   return {
     search: search.props.onSearch as (address: string) => Promise<void>,
     isSearching: search.props.isSearching,
+    changeConditions: search.props.onConditionsChange as (conditions: SearchConditions) => void,
+    changeScenario: (value: MockScenario) => (scenario.props.onChange as (event: { target: { value: MockScenario } }) => void)({ target: { value } }),
     result: result?.props,
     alert: alert ? renderToStaticMarkup(alert) : '',
   }
@@ -132,5 +137,81 @@ describe('App asynchronous search failures', () => {
     await render().search(S)
     expect(render().result?.result).toEqual(response.ok ? response.result : null)
     expect(render().alert).toBe('')
+  })
+})
+
+const conditionChanges = [
+  ['direction', () => render().changeConditions({ ...DEFAULT_SEARCH_CONDITIONS, direction: 'incoming' })],
+  ['depth', () => render().changeConditions({ ...DEFAULT_SEARCH_CONDITIONS, maxDepth: 3 })],
+  ['Mock scenario', () => render().changeScenario('candidate-limit')],
+] as const
+
+describe('search invalidation when conditions change', () => {
+  it.each(conditionChanges)('immediately stops loading and ignores late success after changing %s', async (_label, change) => {
+    const old = deferred()
+    vi.mocked(searchTrace).mockReturnValueOnce(old.promise)
+    const pending = render().search(S)
+    expect(render().isSearching).toBe(true)
+    change()
+    expect(render().isSearching).toBe(false)
+    expect(render().result).toBeUndefined()
+    old.resolve(normal)
+    await pending // Includes the invalidated request's finally.
+    expect(render().isSearching).toBe(false)
+    expect(render().result).toBeUndefined()
+    expect(render().alert).toBe('')
+  })
+
+  it.each(conditionChanges)('ignores late failure and its finally after changing %s', async (_label, change) => {
+    const old = deferred()
+    vi.mocked(searchTrace).mockReturnValueOnce(old.promise)
+    const pending = render().search(S)
+    change()
+    expect(render().isSearching).toBe(false)
+    old.reject(new SearchRequestError('network'))
+    await expect(pending).resolves.toBeUndefined()
+    expect(render().alert).toBe('')
+    expect(render().result).toBeUndefined()
+    expect(render().isSearching).toBe(false)
+  })
+
+  it.each(conditionChanges.flatMap(([label, change]) => (['resolve', 'reject'] as const).map(outcome => ({ label, change, outcome }))))(
+    'keeps a newer search loading when the invalidated $label request finishes with $outcome',
+    async ({ change, outcome }) => {
+      const old = deferred()
+      const latest = deferred()
+      vi.mocked(searchTrace).mockReturnValueOnce(old.promise).mockReturnValueOnce(latest.promise)
+      const oldPending = render().search(S)
+      change()
+      expect(render().isSearching).toBe(false)
+      const latestPending = render().search(S)
+      expect(render().isSearching).toBe(true)
+      if (outcome === 'resolve') old.resolve(normal)
+      else old.reject(new SearchRequestError('response-read'))
+      await oldPending
+      expect(render().isSearching).toBe(true) // The old finally must not clear this flag.
+      expect(render().result).toBeUndefined()
+      expect(render().alert).toBe('')
+      const newest: TraceResponse = { ok: false, kind: 'mock-unsupported', error: { message: 'newer conditions result' } }
+      latest.resolve(newest)
+      await latestPending
+      expect(render().isSearching).toBe(false)
+      expect(render().result).toBeUndefined()
+      expect(render().alert).toContain('newer conditions result')
+    },
+  )
+
+  it.each(conditionChanges)('preserves an already displayed result but clears selection on %s change', async (_label, change) => {
+    vi.mocked(searchTrace).mockResolvedValueOnce(normal)
+    await render().search(S)
+    const displayed = render().result?.result
+    const select = render().result?.onSelect as (id: string) => void
+    select('fx:flow-demo-v1:e1')
+    expect(render().result?.selectedTransferId).toBe('fx:flow-demo-v1:e1')
+    change()
+    expect(render().result?.result).toBe(displayed)
+    expect(render().result?.selectedTransferId).toBeNull()
+    expect(render().isSearching).toBe(false)
+    expect(vi.mocked(searchTrace)).toHaveBeenCalledTimes(1)
   })
 })

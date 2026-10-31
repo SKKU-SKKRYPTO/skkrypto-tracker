@@ -37,9 +37,21 @@ function App() {
     }
   }
 
-  function handleConditionsChange(nextConditions: SearchConditions) {
-    setConditions(nextConditions)
+  function invalidatePendingSearch() {
+    // Invalidate synchronously so old success, catch and finally handlers cannot update the UI.
+    ++latestSearchId.current
+    setIsSearching(false)
     setSelectedTransferId(null)
+  }
+
+  function handleConditionsChange(nextConditions: SearchConditions) {
+    invalidatePendingSearch()
+    setConditions(nextConditions)
+  }
+
+  function handleScenarioChange(nextScenario: MockScenario) {
+    invalidatePendingSearch()
+    setScenario(nextScenario)
   }
 
   return (
@@ -48,10 +60,7 @@ function App() {
       <h1>송금 목록</h1>
       <p className="notice">flow-demo / v1 · 공식 샘플 Mock (실제 서버에 연결하지 않음)</p>
       <label htmlFor="mock-scenario">Mock 확인 모드 </label>
-      <select id="mock-scenario" value={scenario} onChange={event => {
-        setScenario(event.target.value as MockScenario)
-        setSelectedTransferId(null)
-      }}>
+      <select id="mock-scenario" value={scenario} onChange={event => handleScenarioChange(event.target.value as MockScenario)}>
         <option value="default">기본 샘플</option>
         <option value="candidate-limit">후보 상한 4 (부분 결과 샘플)</option>
       </select>
