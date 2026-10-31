@@ -3,6 +3,7 @@ package httpapi
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -12,8 +13,13 @@ import (
 )
 
 // onlyParams는 허용한 쿼리 이름만 한 번씩 왔는지 본다. 오타 난 조건을 조용히 무시하지 않기 위해서다.
+// r.URL.Query()는 형식이 틀린 쌍(세미콜론, 잘못된 %)을 말없이 버리므로 직접 파싱해 오류로 돌려준다.
 func onlyParams(r *http.Request, allowed ...string) error {
-	for name, values := range r.URL.Query() {
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return badInput("쿼리 문자열 형식이 잘못됐습니다. 세미콜론(;)이나 잘못된 % 표기가 들어 있습니다.")
+	}
+	for name, values := range query {
 		if !slices.Contains(allowed, name) {
 			return badInput("지원하지 않는 쿼리 조건입니다: " + name)
 		}

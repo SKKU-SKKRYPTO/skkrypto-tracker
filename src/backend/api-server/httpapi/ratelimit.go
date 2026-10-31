@@ -16,6 +16,7 @@ type rateLimiter struct {
 	perMinute int
 	now       func() time.Time
 	clients   map[string]*rateWindow
+	lastSweep time.Time
 }
 
 type rateWindow struct {
@@ -35,7 +36,10 @@ func (l *rateLimiter) allow(client string) (bool, int) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()
-	if len(l.clients) > 10000 { // 오래된 기록을 치워 메모리가 계속 늘지 않게 한다
+	// 오래된 기록을 치워 메모리가 계속 늘지 않게 한다.
+	// 다 1분 안쪽이라 지울 것이 없을 때 요청마다 전부 훑지 않도록 1초에 한 번만 한다.
+	if len(l.clients) > 10000 && now.Sub(l.lastSweep) >= time.Second {
+		l.lastSweep = now
 		for k, c := range l.clients {
 			if now.Sub(c.start) >= time.Minute {
 				delete(l.clients, k)

@@ -27,6 +27,13 @@ func TestUnknownOrRepeatedQueryIsRejected(t *testing.T) {
 	expectError(t, do(h, http.MethodGet, flowQuery+"&limit=1&limit=2", nil), http.StatusBadRequest, "INVALID_INPUT")
 }
 
+// 세미콜론이나 잘못된 %가 든 조건은 r.URL.Query()가 말없이 버린다. 조건이 빠진 채 더 넓은 결과를 주지 않게 막는다.
+func TestMalformedQueryIsRejected(t *testing.T) {
+	h := newServer(t, "")
+	expectError(t, do(h, http.MethodGet, flowQuery+"&address="+addrT+";limit=5", nil), http.StatusBadRequest, "INVALID_INPUT")
+	expectError(t, do(h, http.MethodGet, flowQuery+"&address=%zz", nil), http.StatusBadRequest, "INVALID_INPUT")
+}
+
 func TestTransfersNeedDatasetVersion(t *testing.T) {
 	h := newServer(t, "")
 	expectError(t, do(h, http.MethodGet, "/api/transfers?datasetId=flow-demo", nil), http.StatusBadRequest, "INVALID_INPUT")
@@ -113,6 +120,22 @@ func TestTransactionNotFound(t *testing.T) {
 	missing := "/api/transactions/0x" + strings.Repeat("ab", 32) + "?datasetId=flow-demo&datasetVersion=v1"
 	expectError(t, do(h, http.MethodGet, missing, nil), http.StatusNotFound, "TRANSACTION_NOT_FOUND")
 	expectError(t, do(h, http.MethodGet, "/api/transactions/0x12?datasetId=flow-demo&datasetVersion=v1", nil), http.StatusBadRequest, "INVALID_INPUT")
+}
+
+// 찾는 사이 데이터셋이 무효화되면 "거래 없음"(404)보다 데이터셋 상태(409)를 먼저 알린다.
+func TestTransactionLookupInvalidatedReturns409(t *testing.T) {
+	cfg := testConfig(t, "")
+	cfg.Repo = invalidateOnList{loadRepo(t)}
+	missing := "/api/transactions/0x" + strings.Repeat("ab", 32) + "?datasetId=flow-demo&datasetVersion=v1"
+	expectError(t, do(New(cfg), http.MethodGet, missing, nil), http.StatusConflict, "DATASET_INVALIDATED")
+}
+
+// invalidateOnList는 전송을 읽는 순간 데이터셋이 무효화되는 상황을 만든다.
+type invalidateOnList struct{ *repository.Memory }
+
+func (r invalidateOnList) ListTransfers(ctx context.Context, q repository.TransferQuery) (repository.TransferPage, error) {
+	_ = r.SetStatus(q.DatasetID, q.DatasetVersion, domain.StatusInvalidated)
+	return r.Memory.ListTransfers(ctx, q)
 }
 
 func TestUnknownRouteAndMethod(t *testing.T) {

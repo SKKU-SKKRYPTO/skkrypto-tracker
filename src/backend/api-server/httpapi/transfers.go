@@ -172,11 +172,12 @@ func (s *server) getTransaction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if len(rows) == 0 {
-		return fail(http.StatusNotFound, "TRANSACTION_NOT_FOUND", "이 데이터셋 범위에서 해당 거래를 찾지 못했습니다.")
-	}
+	// 찾지 못했다는 답도 데이터셋이 그대로일 때만 맞으므로 상태를 먼저 다시 본다.
 	if err := s.stillReady(r.Context(), ds); err != nil {
 		return err
+	}
+	if len(rows) == 0 {
+		return fail(http.StatusNotFound, "TRANSACTION_NOT_FOUND", "이 데이터셋 범위에서 해당 거래를 찾지 못했습니다.")
 	}
 	m := datasetMeta(ds)
 	m.Conditions = struct {
