@@ -61,7 +61,7 @@ func NewMemory(fixtures ...Fixture) (*Memory, error) {
 			rows[i] = t
 		}
 		sort.Slice(rows, func(i, j int) bool { return domain.Less(rows[i], rows[j]) })
-		m.datasets = append(m.datasets, ds)
+		m.datasets = append(m.datasets, clone(ds))
 		m.transfers[k] = rows
 	}
 	sort.Slice(m.datasets, func(i, j int) bool {
@@ -218,10 +218,18 @@ func matches(q TransferQuery, t domain.Transfer, minimum *big.Int) bool {
 	return true
 }
 
-// clone은 map·slice까지 복사한다. 호출한 쪽이 고쳐도 저장소 안의 값은 그대로다.
+// clone은 map·slice·포인터까지 복사한다. 호출한 쪽이 고쳐도 저장소 안의 값은 그대로다.
 func clone(ds domain.Dataset) domain.Dataset {
 	ds.BoundaryHashes = maps.Clone(ds.BoundaryHashes)
 	ds.Labels = maps.Clone(ds.Labels)
 	ds.Notes = slices.Clone(ds.Notes)
+	if ds.FinalizedBlock != nil {
+		finalizedBlock := *ds.FinalizedBlock
+		ds.FinalizedBlock = &finalizedBlock
+	}
+	if ds.CollectedAt != nil {
+		collectedAt := *ds.CollectedAt
+		ds.CollectedAt = &collectedAt
+	}
 	return ds
 }

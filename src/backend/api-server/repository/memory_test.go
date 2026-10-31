@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/domain"
 )
@@ -133,8 +134,13 @@ func TestReturnedDatasetIsACopy(t *testing.T) {
 	m := load(t)
 	ds, _ := m.GetDataset(context.Background(), "flow-demo", "v1")
 	ds.Labels["0x0000000000000000000000000000000000000001"] = "changed"
+	collectedAt := *ds.CollectedAt
+	*ds.CollectedAt = collectedAt.Add(time.Hour)
 	again, _ := m.GetDataset(context.Background(), "flow-demo", "v1")
 	if again.Labels["0x0000000000000000000000000000000000000001"] != "S" {
 		t.Fatal("저장소 안의 값이 바뀌면 안 된다")
+	}
+	if !again.CollectedAt.Equal(collectedAt) {
+		t.Fatal("저장소 안의 collectedAt이 바뀌면 안 된다")
 	}
 }
