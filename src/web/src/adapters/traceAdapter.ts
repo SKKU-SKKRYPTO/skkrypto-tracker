@@ -9,40 +9,72 @@ export type TraceResponse =
   | { ok: false; kind: 'mock-unsupported' | 'invalid-response'; error: { message: string } }
   | SearchFailure
 
-function invalid(): TraceResponse {
-  return { ok: false, kind: 'invalid-response', error: { message: '응답 JSON이 공식 v1 규격 또는 현재 데이터셋·요청 조건과 맞지 않습니다.' } }
+export type InvalidDiagnostic = {
+  code: 'JSON_PARSE' | 'RESPONSE_SCHEMA' | 'DATASET_SCHEMA' | 'DATASET_MISMATCH'
+    | 'COVERAGE_SCHEMA' | 'CONDITIONS_SCHEMA' | 'CONDITIONS_MISMATCH' | 'ASSET_SCHEMA'
+    | 'LIMITS_SCHEMA' | 'LIMITS_MISMATCH' | 'ASSET_MISMATCH' | 'TRANSFER_ASSET_MISMATCH'
+    | 'COVERAGE_MISMATCH' | 'REQUEST_MISMATCH' | 'DUPLICATE_TRANSFER_ID' | 'DUPLICATE_NODE_ID' | 'UNEXPECTED'
+  path: string
 }
+type AdapterOptions = { onInvalid?: (diagnostic: InvalidDiagnostic) => void }
 
-export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 200, request?: AnalysisRequest): TraceResponse {
+export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 200, request?: AnalysisRequest, options?: AdapterOptions): TraceResponse {
+  function invalid(code: InvalidDiagnostic['code'], path: string): TraceResponse {
+    try { options?.onInvalid?.({ code, path }) } catch { /* Diagnostic observers cannot change the result. */ }
+    return { ok: false, kind: 'invalid-response', error: { message: '응답 JSON이 공식 v1 규격 또는 현재 데이터셋·요청 조건과 맞지 않습니다.' } }
+  }
+  let exceptionCode: InvalidDiagnostic['code'] = 'JSON_PARSE'
   try {
     const envelope: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw
-    if (!matchesResponse(envelope, 'POST', '/api/trace', status) || !isRecord(envelope)) return invalid()
+    exceptionCode = 'UNEXPECTED'
+    // Preserve the original short-circuit order: schema/API error, dataset, effective conditions,
+    // limits, asset, coverage, request, duplicate IDs. Return only the first failure, without schema re-diagnosis.
+    if (!matchesResponse(envelope, 'POST', '/api/trace', status) || !isRecord(envelope)) return invalid('RESPONSE_SCHEMA', 'response')
     if (status !== 200) {
-      if (envelope.data !== null || !matchesV1(envelope.error, 'Error')) return invalid()
+      if (envelope.data !== null || !matchesV1(envelope.error, 'Error')) return invalid('RESPONSE_SCHEMA', 'response')
       return { ok: false, kind: 'api', status, error: envelope.error as V1Error }
     }
-    if (!matchesResponse(datasetRaw, 'GET', '/api/datasets/{id}', 200)) return invalid()
+    if (!matchesResponse(datasetRaw, 'GET', '/api/datasets/{id}', 200)) return invalid('DATASET_SCHEMA', 'dataset')
     const dataset = (datasetRaw as SuccessEnvelope<Dataset>).data
     const meta = envelope.meta as Record<string, unknown>
     const data = envelope.data as AnalysisResult
     const conditions = meta.conditions as AnalysisRequest | undefined
-    if (dataset.datasetId !== 'flow-demo' || dataset.datasetVersion !== 'v1' || dataset.status !== 'READY' ||
-      meta.datasetId !== dataset.datasetId || meta.datasetVersion !== dataset.datasetVersion ||
-      meta.sourceMode !== dataset.sourceMode || !matchesV1(meta.coverage, 'Coverage') ||
-      !matchesV1(conditions, 'AnalysisRequest') || !conditions ||
-      conditions.datasetId !== dataset.datasetId || conditions.datasetVersion !== dataset.datasetVersion ||
-      conditions.targetAddress !== undefined ||
-      (conditions.direction !== 'incoming' && conditions.direction !== 'outgoing') ||
-      ![1, 2, 3].includes(conditions.maxDepth ?? -1) || !matchesV1(conditions.asset, 'Asset') ||
-      !matchesV1(meta.limits, 'LimitStatus') || !sameLimits(data.limits, meta.limits as LimitStatus)) return invalid()
+
+    if (dataset.datasetId !== 'flow-demo') return invalid('DATASET_MISMATCH', 'dataset.data.datasetId')
+    if (dataset.datasetVersion !== 'v1') return invalid('DATASET_MISMATCH', 'dataset.data.datasetVersion')
+    if (dataset.status !== 'READY') return invalid('DATASET_MISMATCH', 'dataset.data.status')
+    if (meta.datasetId !== dataset.datasetId) return invalid('DATASET_MISMATCH', 'meta.datasetId')
+    if (meta.datasetVersion !== dataset.datasetVersion) return invalid('DATASET_MISMATCH', 'meta.datasetVersion')
+    if (meta.sourceMode !== dataset.sourceMode) return invalid('DATASET_MISMATCH', 'meta.sourceMode')
+
+    if (!matchesV1(meta.coverage, 'Coverage')) return invalid('COVERAGE_SCHEMA', 'meta.coverage')
+    if (!matchesV1(conditions, 'AnalysisRequest') || !conditions) return invalid('CONDITIONS_SCHEMA', 'meta.conditions')
+    if (conditions.datasetId !== dataset.datasetId) return invalid('CONDITIONS_MISMATCH', 'meta.conditions.datasetId')
+    if (conditions.datasetVersion !== dataset.datasetVersion) return invalid('CONDITIONS_MISMATCH', 'meta.conditions.datasetVersion')
+    if (conditions.targetAddress !== undefined) return invalid('CONDITIONS_MISMATCH', 'meta.conditions.targetAddress')
+    if (conditions.direction !== 'incoming' && conditions.direction !== 'outgoing') return invalid('CONDITIONS_MISMATCH', 'meta.conditions.direction')
+    if (![1, 2, 3].includes(conditions.maxDepth ?? -1)) return invalid('CONDITIONS_MISMATCH', 'meta.conditions.maxDepth')
+    if (!matchesV1(conditions.asset, 'Asset')) return invalid('ASSET_SCHEMA', 'meta.conditions.asset')
+    if (!matchesV1(meta.limits, 'LimitStatus')) return invalid('LIMITS_SCHEMA', 'meta.limits')
+    if (!sameLimits(data.limits, meta.limits as LimitStatus)) return invalid('LIMITS_MISMATCH', 'meta.limits')
+
     const asset = conditions.asset as Dataset['asset']
-    if (!sameAsset(asset, dataset.asset) || data.transfers.some(transfer => !sameAsset(transfer.asset, dataset.asset))) return invalid()
+    if (!sameAsset(asset, dataset.asset)) return invalid('ASSET_MISMATCH', 'meta.conditions.asset')
+    const badAssetIndex = data.transfers.findIndex(transfer => !sameAsset(transfer.asset, dataset.asset))
+    if (badAssetIndex !== -1) return invalid('TRANSFER_ASSET_MISMATCH', `data.transfers[${badAssetIndex}].asset`)
     // coverage is the immutable collected range, not the narrower conditions.filter or analyzedUntil.
-    if (!sameCoverage(meta.coverage as Coverage, dataset)) return invalid()
-    if (request && (conditions.address.toLowerCase() !== request.address.toLowerCase() ||
-      conditions.direction !== request.direction || conditions.maxDepth !== request.maxDepth ||
-      (request.limits?.maxCandidates !== undefined && conditions.limits?.maxCandidates !== request.limits.maxCandidates))) return invalid()
-    if (new Set(data.transfers.map(t => t.id)).size !== data.transfers.length || new Set(data.nodes.map(n => n.id)).size !== data.nodes.length) return invalid()
+    if (!sameCoverage(meta.coverage as Coverage, dataset)) return invalid('COVERAGE_MISMATCH', 'meta.coverage')
+
+    if (request) {
+      if (conditions.address.toLowerCase() !== request.address.toLowerCase()) return invalid('REQUEST_MISMATCH', 'meta.conditions.address')
+      if (conditions.direction !== request.direction) return invalid('REQUEST_MISMATCH', 'meta.conditions.direction')
+      if (conditions.maxDepth !== request.maxDepth) return invalid('REQUEST_MISMATCH', 'meta.conditions.maxDepth')
+      if (request.limits?.maxCandidates !== undefined && conditions.limits?.maxCandidates !== request.limits.maxCandidates) return invalid('REQUEST_MISMATCH', 'meta.conditions.limits.maxCandidates')
+    }
+    const duplicateTransfer = duplicateIdIndex(data.transfers)
+    if (duplicateTransfer !== -1) return invalid('DUPLICATE_TRANSFER_ID', `data.transfers[${duplicateTransfer}].id`)
+    const duplicateNode = duplicateIdIndex(data.nodes)
+    if (duplicateNode !== -1) return invalid('DUPLICATE_NODE_ID', `data.nodes[${duplicateNode}].id`)
     return { ok: true, result: {
       sourceMode: dataset.sourceMode,
       asset: { ...asset },
@@ -54,8 +86,17 @@ export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 2
       limitations: [...(meta.limitations as string[])],
     } }
   } catch {
-    return invalid()
+    return invalid(exceptionCode, 'response')
   }
+}
+
+function duplicateIdIndex(rows: readonly { id: string }[]): number {
+  const seen = new Set<string>()
+  return rows.findIndex(row => {
+    if (seen.has(row.id)) return true
+    seen.add(row.id)
+    return false
+  })
 }
 
 function sameLimits(left: LimitStatus, right: LimitStatus): boolean {
