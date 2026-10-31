@@ -3,6 +3,7 @@ import { searchTrace } from './api/trace'
 import type { TraceResponse } from './api/trace'
 import SearchBar from './components/SearchBar'
 import TransferDetail from './components/TransferDetail'
+import TransferGraph from './components/TransferGraph'
 import TransferTable from './components/TransferTable'
 import type { TraceResult } from './types'
 import './App.css'
@@ -10,7 +11,7 @@ import './App.css'
 function App() {
   const [response, setResponse] = useState<TraceResponse | null>(null)
   const [isSearching, setIsSearching] = useState(false)
-  // 선택은 송금 id 하나로 관리한다. 표·상세(나중에 그래프도)가 이 값을 같이 쓴다.
+  // 선택은 송금 id 하나로 관리한다. 표·상세·그래프가 이 값을 같이 쓴다.
   const [selectedTransferId, setSelectedTransferId] = useState<string | null>(null)
   // 검색을 빠르게 여러 번 하면 늦게 온 옛 응답이 새 응답을 덮을 수 있어서, 마지막 검색 번호만 반영한다.
   const latestSearchId = useRef(0)
@@ -67,6 +68,7 @@ function TraceView({ result, selectedTransferId, onSelect }: TraceViewProps) {
   const { dataset, transfers, truncation } = result
 
   // 빈 결과는 "송금이 없다"가 아니라 "이 수집 범위에서 못 봤다"는 뜻이다.
+  // 이때와 오류일 때는 표·그래프 없이 안내 문구만 보여 준다.
   if (transfers.length === 0) {
     return (
       <p className="notice" role="status">
@@ -92,6 +94,12 @@ function TraceView({ result, selectedTransferId, onSelect }: TraceViewProps) {
       <div className="layout">
         <TransferTable
           transfers={transfers}
+          token={dataset.token}
+          selectedTransferId={selectedTransferId}
+          onSelect={onSelect}
+        />
+        <TransferGraph
+          result={result}
           token={dataset.token}
           selectedTransferId={selectedTransferId}
           onSelect={onSelect}

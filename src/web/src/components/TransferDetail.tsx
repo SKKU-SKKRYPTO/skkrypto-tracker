@@ -14,7 +14,7 @@ function TransferDetail({ transfer, token }: Props) {
       <h2 id="detail-title">송금 상세</h2>
 
       {transfer === null ? (
-        <p className="detail-empty">표에서 송금을 선택하면 상세 정보가 여기에 나옵니다.</p>
+        <p className="detail-empty">표나 그래프에서 송금을 선택하면 상세 정보가 여기에 나옵니다.</p>
       ) : (
         <dl>
           <dt>보낸 주소</dt>
