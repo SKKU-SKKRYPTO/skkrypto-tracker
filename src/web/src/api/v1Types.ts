@@ -16,7 +16,7 @@ export type AssetSelector = { chainId: number; tokenAddress: Address; symbol?: s
 
 export type Coverage = { startBlock: BlockNumber; endBlock: BlockNumber; startTime: DateTime; endTime: DateTime }
 
-export type Dataset = { datasetId: string; datasetVersion: string; sourceMode: "FIXTURE" | "SNAPSHOT"; sourceNamespace: string; status: "READY" | "COLLECTING" | "FAILED" | "INVALIDATED"; asset: Asset; startBlock: BlockNumber; endBlock: BlockNumber; startTime: DateTime; endTime: DateTime; finalizedBlock: BlockNumber; collectedAt: DateTime; boundaryHashes: { [key: string]: Hash }; labels: { [key: string]: string }; notes: Array<string>; invalidationReason?: string }
+export type Dataset = { datasetId: string; datasetVersion: string; sourceMode: "FIXTURE" | "SNAPSHOT"; sourceNamespace: string; status: "READY" | "COLLECTING" | "FAILED" | "INVALIDATED"; asset: Asset; startBlock: BlockNumber; endBlock: BlockNumber; startTime: DateTime; endTime: DateTime; finalizedBlock: (null) | (BlockNumber); collectedAt: (null) | (DateTime); boundaryHashes: { [key: string]: Hash }; labels: { [key: string]: string }; notes: Array<string>; invalidationReason?: string }
 
 export type Transfer = { id: string; label?: string; asset: Asset; transferType: "TRANSFER" | "MINT" | "BURN"; txHash: Hash; blockHash: Hash; blockNumber: BlockNumber; transactionIndex: number; logIndex: number; timestamp: DateTime; from: Address; to: Address; amountRaw: Amount }
 

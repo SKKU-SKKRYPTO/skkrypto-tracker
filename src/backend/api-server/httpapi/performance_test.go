@@ -49,10 +49,11 @@ func performanceRepo(t testing.TB) repository.Repository {
 	asset := domain.Asset{ChainID: domain.ChainID, TokenAddress: fmt.Sprintf("0x%040x", 0x1000), Symbol: "SKK", Decimals: 2}
 	base := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
 	const n = 10000
+	collectedAt := base.Add(3 * n * time.Second)
 	ds := domain.Dataset{
 		ID: "perf", Version: "seed-42", SourceMode: domain.SourceFixture, SourceNamespace: "perf-seed-42",
 		Status: domain.StatusReady, Asset: asset, StartBlock: 1, EndBlock: n,
-		StartTime: base, EndTime: base.Add(2 * n * time.Second), FinalizedBlock: n, CollectedAt: base.Add(3 * n * time.Second),
+		StartTime: base, EndTime: base.Add(2 * n * time.Second), CollectedAt: &collectedAt,
 	}
 	seed := uint64(42)
 	next := func() int {

@@ -800,10 +800,26 @@
             "$ref": "#/components/schemas/DateTime"
           },
           "finalizedBlock": {
-            "$ref": "#/components/schemas/BlockNumber"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BlockNumber"
+              }
+            ],
+            "description": "수집 시작 때 확인한 finalized 블록. SNAPSHOT이면 항상 있고(endBlock 이상), FIXTURE는 체인에서 확인한 값이 아니라 null이다."
           },
           "collectedAt": {
-            "$ref": "#/components/schemas/DateTime"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "description": "수집을 마친 시각. READY면 항상 있고, COLLECTING·FAILED·INVALIDATED는 null일 수 있다."
           },
           "boundaryHashes": {
             "type": "object",

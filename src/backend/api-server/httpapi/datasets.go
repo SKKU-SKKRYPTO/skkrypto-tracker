@@ -97,6 +97,9 @@ func tidy(ds domain.Dataset) domain.Dataset {
 	}
 	ds.StartTime = ds.StartTime.UTC()
 	ds.EndTime = ds.EndTime.UTC()
-	ds.CollectedAt = ds.CollectedAt.UTC()
+	if ds.CollectedAt != nil {
+		collectedAt := ds.CollectedAt.UTC()
+		ds.CollectedAt = &collectedAt
+	}
 	return ds
 }
