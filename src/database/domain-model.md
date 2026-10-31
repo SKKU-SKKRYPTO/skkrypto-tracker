@@ -151,7 +151,7 @@ Dataset은 다음 조건을 모두 만족할 때만 `READY`가 될 수 있습니
 
 ## 근거 문서
 
-- [구조와 기술 스택](../../../docs/architecture.md)
-- [정확성·보안 기준](../../../docs/correctness-security.md)
-- [역할 분담](../../../docs/roles.md)
-- [공통 도메인 타입](../domain/)
+- [구조와 기술 스택](../../docs/architecture.md)
+- [정확성·보안 기준](../../docs/correctness-security.md)
+- [역할 분담](../../docs/roles.md)
+- [공통 도메인 타입](../backend/domain/)

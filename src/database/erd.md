@@ -59,6 +59,8 @@ erDiagram
         bigint block_number PK
         text block_hash
         timestamptz block_time
+        text label "NULL"
+        text note "NULL"
     }
 
     TRANSACTIONS {
@@ -67,6 +69,8 @@ erDiagram
         text tx_hash PK
         bigint block_number FK
         integer transaction_index
+        text label "NULL"
+        text note "NULL"
     }
 
     TRANSFERS {
@@ -81,6 +85,8 @@ erDiagram
         text from_address
         text to_address
         numeric amount_raw
+        text label "NULL"
+        text note "NULL"
     }
 
     DATASET_TRANSFERS {
@@ -166,6 +172,8 @@ Dataset 버전이 관측한 블록 번호, hash와 시각을 저장합니다.
 | `dataset_id`, `dataset_version`, `block_number` | `TEXT`, `TEXT`, `BIGINT` | 복합 PK, `datasets` FK |
 | `block_hash` | `TEXT` | 소문자 블록 hash |
 | `block_time` | `TIMESTAMPTZ` | `block.timestamp` |
+| `label` | `TEXT NULL` | Fixture·화면에서 사용할 짧은 표시 이름 |
+| `note` | `TEXT NULL` | 블록에 대한 보조 설명 |
 
 블록을 Dataset 버전에 종속시킨 이유는 같은 블록 번호의 hash가 변경되더라도 이전 Dataset 버전의 관측 내용을 덮어쓰지 않기 위해서입니다. 적어도 Dataset 경계 블록, 각 청크의 종료 블록과 Transfer가 발생한 블록은 저장합니다.
 
@@ -180,6 +188,8 @@ Dataset 버전에서 Transfer가 발생한 거래를 저장합니다. Receipt �
 | `dataset_id`, `dataset_version`, `tx_hash` | `TEXT`, `TEXT`, `TEXT` | 복합 PK, `datasets` FK |
 | `block_number` | `BIGINT` | `NOT NULL`, 같은 Dataset 버전의 `blocks` 복합 FK |
 | `transaction_index` | `INTEGER` | 블록 안의 거래 위치, 0 이상 |
+| `label` | `TEXT NULL` | Fixture·화면에서 사용할 짧은 표시 이름 |
+| `note` | `TEXT NULL` | 거래에 대한 보조 설명 |
 
 `(dataset_id, dataset_version, block_number, transaction_index)`에는 UNIQUE 제약을 둡니다.
 
@@ -197,6 +207,8 @@ Dataset과 독립적인 Transfer ID와 전송 내용을 저장합니다.
 | `log_index` | `INTEGER` | 로그 위치, 0 이상 |
 | `from_address`, `to_address` | `TEXT` | 소문자 EVM 주소 |
 | `amount_raw` | `NUMERIC(78,0)` | decimals 적용 전 원시 uint256 |
+| `label` | `TEXT NULL` | Fixture·화면에서 사용할 짧은 표시 이름 |
+| `note` | `TEXT NULL` | 전송에 대한 보조 설명 |
 
 중복 방지 제약은 원천별로 나눕니다.
 
@@ -210,7 +222,9 @@ Dataset과 독립적인 Transfer ID와 전송 내용을 저장합니다.
 
 `transfer_id`로 충돌한 재수집 데이터의 자산·주소·금액이 기존 값과 다르면 기존 행을 덮어쓰지 않고 원천 불일치 오류로 처리합니다.
 
-전송 유형은 `from_address`와 `to_address`로 계산하며 DB에 중복 저장하지 않습니다. Fixture 표시 이름이 필요하면 `fixture_record_id`를 사용합니다.
+전송 유형은 `from_address`와 `to_address`로 계산하며 DB에 중복 저장하지 않습니다.
+
+Block·Transaction·Transfer의 `label`과 `note`는 선택적인 표시 정보입니다. 식별자나 수집 정합성 판단에는 사용하지 않으며, 값이 있으면 빈 문자열일 수 없습니다.
 
 ### `dataset_transfers`
 
