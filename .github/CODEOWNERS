@@ -4,7 +4,7 @@
 # 아래 줄이 위 줄보다 우선하므로 넓은 경로를 위에, 좁은 경로를 아래에 둔다.
 
 # 기본·문서
-*                             @Jeon1691 @AVG-High
+*                             @Jeon1691 @cryscham123
 
 # 담당 3 · 실행 환경 (Compose·Makefile·CI)
 /Makefile                     @AVG-High @lauren1331
