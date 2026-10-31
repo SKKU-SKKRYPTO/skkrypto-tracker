@@ -7,7 +7,7 @@
 - `main`에 직접 push하지 않는다. 병합한 브랜치는 삭제한다.
 - `develop`·`release/`·`hotfix/` 브랜치는 두지 않는다. 긴급 수정도 `fix/`로 처리한다.
 - 데모·제출 시점은 `main`의 태그로 표시한다.
-- `main` 보호: PR 필수, 작성자 외 승인 1명, CI 통과 필수, Squash merge만 허용.
+- `main` 보호: PR 필수, 작성자 외 승인 1명, 리뷰 대화 모두 resolve, Squash merge만 허용. CI는 PR마다 돌지만 아직 병합 필수 조건은 아니다.
 
 ### 브랜치 이름 — [Conventional Branch](https://conventionalbranch.org/)
 
@@ -87,12 +87,14 @@ BREAKING CHANGE: truncated.reason의 값이 PATH_LIMIT 등 6개로 고정된다.
 ### 자동 검사
 
 - PR 제목: action-semantic-pull-request로 종류·범위 검사
-- 커밋: commitlint + `@commitlint/config-conventional` (CI에서 실행, 로컬 hook은 선택)
+- 커밋: 따로 검사하지 않는다. Squash merge라 `main`에는 PR 제목만 남는다.
 - 브랜치 이름: 위 정규식
+- 코드: `backend`(gofmt·vet·`go test -race`), `web`(lint·build), `database`(migration up → rollback → up). 설정은 `.github/workflows/`에 있다.
 
 ## 변경·리뷰
 
 - **작업 기록**: 이슈 체크리스트·PR·테스트 결과로 남긴다.
+- **리뷰 대화**: 사람·CodeRabbit의 지적마다 "고침(커밋)" 또는 "안 고침 + 이유 한 줄"로 답하고 resolve한다. 미해결 대화가 있으면 병합되지 않는다.
 - **규격 변경**: 새 버전과 소비자 확인이 필요하다. 선택 필드 추가도 스키마·샘플·소비자 테스트로 검증한다.
 - **장애 공유**: 보안·정밀도·원천 의미 오류, 통합 실패, 범위·마감 영향은 소유자에게 이슈로 전달한다. 재현 입력·로그·기대/실제 결과·수정안을 포함한다.
 - **리허설**: 담당 4가 고정 시나리오를 2회 실행·기록하고, 실패 영역은 해당 소유자가 고친다.
@@ -108,7 +110,7 @@ BREAKING CHANGE: truncated.reason의 값이 PATH_LIMIT 등 6개로 고정된다.
 | `make demo-fixture` | 3 | Seed·실제 엔진·API·웹 실행 |
 | `make test-integration` | 3 | 실제 구현·규격·핵심 흐름 검증 |
 
-- 공통 실행 명령·Compose·CI는 담당 3이 관리한다. 각 담당자는 자기 모듈의 실행·테스트 진입점을 제공한다.
+- 공통 실행 명령·Compose는 담당 3이, CI는 리드가 관리한다. 각 담당자는 자기 모듈의 실행·테스트 진입점을 제공한다.
 - 웹은 Mock 모드와 `VITE_API_BASE_URL` 기반 실제 API 모드를 구분한다.
 - DB·RPC 비밀값은 서버 환경에만 둔다.
 
