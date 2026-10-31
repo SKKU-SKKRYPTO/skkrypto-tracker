@@ -1,0 +1,89 @@
+# PR 검사. public 저장소라 GitHub 호스팅 runner에서만 돈다.
+# self-hosted runner(skkrypto-deploy)는 main 병합 후 배포 전용이므로 여기서 쓰지 않는다.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: src/backend/go.mod
+          # 외부 의존성이 없어 go.sum이 없다. 캐시할 것이 없다.
+          cache: false
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt가 필요한 파일: $unformatted"
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: go test -race ./...
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Vite 8은 Node 20.19 또는 22.12 이상이 필요하다. 현재 LTS를 쓴다.
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run build
+
+  database:
+    name: database
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # #19에서 migration을 확인한 버전과 같게 둔다.
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: migration up → rollback → up
+        run: bash .github/scripts/migrate-check.sh
