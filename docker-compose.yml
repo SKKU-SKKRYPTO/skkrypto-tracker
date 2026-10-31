@@ -4,6 +4,7 @@
 #   docker compose --profile debug up -d   위에 더해 pgweb(8082): 브라우저에서 DB 내용 보기
 #   docker compose down                    끄기(DB 데이터는 볼륨에 남는다)
 #   docker compose down -v                 DB 데이터까지 지우기
+# 브라우저에서는 http://localhost:8081(Swagger UI)처럼 localhost로 연다. API의 CORS 기본값이 localhost 주소를 허용한다.
 #
 # DB 계정은 src/database/.env에서 읽는다. 처음 한 번: cp src/database/.env.example src/database/.env
 # init.d의 SQL은 데이터 볼륨이 비어 있을 때(처음 올릴 때)만 실행된다. 스키마를 바꿨으면 down -v 뒤 다시 올린다.
@@ -17,6 +18,10 @@ services:
       dockerfile: api-server/Dockerfile
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
+    environment:
+      # 컨테이너 안 주소·Fixture 경로는 고정한다(.env가 덮어쓰지 않게). 바깥 포트는 API_PORT로 바꾼다.
+      API_ADDR: ":8080"
+      FIXTURE_DIR: /app/fixtures
     env_file:
       - path: src/backend/api-server/.env
         required: false
