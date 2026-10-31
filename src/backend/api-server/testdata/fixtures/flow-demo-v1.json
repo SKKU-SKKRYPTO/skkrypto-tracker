@@ -1,0 +1,200 @@
+{
+  "dataset": {
+    "datasetId": "flow-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "sourceNamespace": "flow-demo-v1",
+    "status": "READY",
+    "asset": {
+      "chainId": 84532,
+      "tokenAddress": "0x0000000000000000000000000000000000001000",
+      "symbol": "SKK",
+      "decimals": 2
+    },
+    "startBlock": "18204211",
+    "endBlock": "18206309",
+    "startTime": "2026-10-26T11:50:04Z",
+    "endTime": "2026-10-26T13:00:00Z",
+    "finalizedBlock": "18206309",
+    "collectedAt": "2026-10-26T13:05:00Z",
+    "boundaryHashes": {
+      "18204211": "0x00c72a31b632d1a0fa1d326bad617f0b26df2ec7cd9d69b6e214ae6ec48360fd",
+      "18206309": "0x2b196e94e2de23b37305ede63e785e5fe8f229efc157e11022d8d5cb0b6c7903"
+    },
+    "labels": {
+      "0x0000000000000000000000000000000000000001": "S",
+      "0x0000000000000000000000000000000000000002": "A",
+      "0x0000000000000000000000000000000000000003": "B",
+      "0x0000000000000000000000000000000000000004": "C",
+      "0x0000000000000000000000000000000000000005": "D",
+      "0x0000000000000000000000000000000000000006": "E",
+      "0x0000000000000000000000000000000000000007": "T"
+    },
+    "notes": [
+      "합성 테스트 데이터입니다. 실제 체인 거래가 아닙니다.",
+      "주소·해시·날짜는 테스트용으로 정한 값입니다."
+    ]
+  },
+  "transfers": [
+    {
+      "id": "fx:flow-demo-v1:e1",
+      "label": "e1",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "blockHash": "0x8fe8b1f5695d5b5b2755b6ce5a0289a2be1ef6f9598074c44334658e7b0c0d11",
+      "blockNumber": "18204511",
+      "transactionIndex": 3,
+      "logIndex": 0,
+      "timestamp": "2026-10-26T12:00:04Z",
+      "from": "0x0000000000000000000000000000000000000001",
+      "to": "0x0000000000000000000000000000000000000002",
+      "amountRaw": "120000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e2",
+      "label": "e2",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "blockHash": "0x0907a9f62ae09c9739c67f3661cbf2b8e6772c11966a0abc57c13088e5d6c21b",
+      "blockNumber": "18204566",
+      "transactionIndex": 1,
+      "logIndex": 2,
+      "timestamp": "2026-10-26T12:01:54Z",
+      "from": "0x0000000000000000000000000000000000000001",
+      "to": "0x0000000000000000000000000000000000000003",
+      "amountRaw": "250000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e3",
+      "label": "e3",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "blockHash": "0x9a8152206a9399e4d8aa534975c9c13d495e8e8e1524354b41a5ea537794c70f",
+      "blockNumber": "18204782",
+      "transactionIndex": 0,
+      "logIndex": 1,
+      "timestamp": "2026-10-26T12:09:06Z",
+      "from": "0x0000000000000000000000000000000000000001",
+      "to": "0x0000000000000000000000000000000000000004",
+      "amountRaw": "90000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e4",
+      "label": "e4",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000004",
+      "blockHash": "0x6d15b8cdf71b0d33e870997805b9ad194ff1e75ee1841f21cf13ab443884f8b3",
+      "blockNumber": "18205040",
+      "transactionIndex": 5,
+      "logIndex": 0,
+      "timestamp": "2026-10-26T12:17:42Z",
+      "from": "0x0000000000000000000000000000000000000002",
+      "to": "0x0000000000000000000000000000000000000005",
+      "amountRaw": "115000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e5",
+      "label": "e5",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000005",
+      "blockHash": "0x55bf924fa8b11757f5603e1452038843a4ee252363a8395c52e5961a30b97873",
+      "blockNumber": "18205103",
+      "transactionIndex": 2,
+      "logIndex": 1,
+      "timestamp": "2026-10-26T12:19:48Z",
+      "from": "0x0000000000000000000000000000000000000003",
+      "to": "0x0000000000000000000000000000000000000005",
+      "amountRaw": "248000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e6",
+      "label": "e6",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000006",
+      "blockHash": "0xbc4615c11261f7a80a117c17b9be8a7c91a51b8200611d8d1de644bf951eebc2",
+      "blockNumber": "18205900",
+      "transactionIndex": 4,
+      "logIndex": 3,
+      "timestamp": "2026-10-26T12:46:22Z",
+      "from": "0x0000000000000000000000000000000000000005",
+      "to": "0x0000000000000000000000000000000000000007",
+      "amountRaw": "360000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e7",
+      "label": "e7",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000007",
+      "blockHash": "0x206158beab8793b8111c9a83e757bb55aff54006e60bc75c8cc383520c88267c",
+      "blockNumber": "18206300",
+      "transactionIndex": 1,
+      "logIndex": 0,
+      "timestamp": "2026-10-26T12:59:42Z",
+      "from": "0x0000000000000000000000000000000000000004",
+      "to": "0x0000000000000000000000000000000000000006",
+      "amountRaw": "88000"
+    },
+    {
+      "id": "fx:flow-demo-v1:e8",
+      "label": "e8",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "transferType": "TRANSFER",
+      "txHash": "0x0000000000000000000000000000000000000000000000000000000000000008",
+      "blockHash": "0xfc14980ba80eb655ff464c81a7290d048e5684905c6987fd00fdbe26a54b9610",
+      "blockNumber": "18205410",
+      "transactionIndex": 7,
+      "logIndex": 2,
+      "timestamp": "2026-10-26T12:30:02Z",
+      "from": "0x0000000000000000000000000000000000000006",
+      "to": "0x0000000000000000000000000000000000000007",
+      "amountRaw": "87000"
+    }
+  ]
+}
