@@ -1,36 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import traceOk from '../../mocks/trace-ok.draft.json'
+import trace from '../../mocks/v1/samples/trace-success.json'
+import dataset from '../../mocks/v1/samples/dataset-detail.json'
+import multiple from '../../mocks/v1/samples/transaction-multiple.json'
+import { adaptTraceResponse } from '../adapters/traceAdapter'
 import type { TraceResult } from '../types'
 import { buildElements } from './graphElements'
-
-const result: TraceResult = traceOk
-const token = result.dataset.token
-
-describe('buildElements', () => {
-  const elements = buildElements(result, token)
-  const nodes = elements.filter((element) => element.group === 'nodes')
-  const edges = elements.filter((element) => element.group === 'edges')
-
-  it('주소마다 점 하나, 송금마다 화살표 하나를 만든다', () => {
-    expect(nodes).toHaveLength(5)
-    expect(edges).toHaveLength(4)
+const response = adaptTraceResponse(trace, dataset)
+if (!response.ok) throw new Error('Official trace must adapt')
+const result: TraceResult = response.result
+describe('v1 graph elements', () => {
+  const elements = buildElements(result)
+  const nodes = elements.filter(e => e.group === 'nodes')
+  const edges = elements.filter(e => e.group === 'edges')
+  it('uses the same transfer IDs as table/detail and official node IDs', () => {
+    expect(nodes).toHaveLength(6)
+    expect(edges).toHaveLength(6)
+    expect(edges.map(e => e.data.id)).toEqual(result.transfers.map(t => t.id))
+    expect(edges[0].data.source).toBe(result.transfers[0].from)
+    expect(edges[0].data.target).toBe(result.transfers[0].to)
   })
-
-  it('화살표 id는 transfers[].id와 같다', () => {
-    expect(edges.map((edge) => edge.data.id)).toEqual(
-      result.transfers.map((transfer) => transfer.id),
-    )
+  it('marks one effective starting address and preserves labels', () => {
+    const starts = nodes.filter(n => n.classes === 'start')
+    expect(starts).toHaveLength(1)
+    expect(starts[0].data.id).toBe(result.conditions.address)
+    expect(starts[0].data.label).toBe('시작\nS\n0x0000…0001')
   })
-
-  it('검색한 시작 주소 하나에만 "시작" 표시를 붙인다', () => {
-    const startNodes = nodes.filter((node) => node.classes === 'start')
-    expect(startNodes).toHaveLength(1)
-    expect(startNodes[0].data.id).toBe(result.query.address)
-    expect(startNodes[0].data.label).toBe('시작\n0x0000…a001')
+  it('uses each transfer asset for amount labels', () => {
+    expect(edges[0].data.label).toBe('1200 SKK')
+    expect(edges[1].data.label).toBe('2500 SKK')
+    const other = structuredClone(result)
+    other.transfers[0].asset = { ...other.transfers[0].asset, decimals: 6, symbol: 'OTHER' }
+    expect(buildElements(other).find(e => e.data.id === other.transfers[0].id)?.data.label).toBe('0.12 OTHER')
   })
-
-  it('화살표 글자는 소수점을 옮긴 금액과 토큰 이름이다', () => {
-    expect(edges[0].data.label).toBe('5 TST')
-    expect(edges[1].data.label).toBe('1.5 TST')
+  it('supplements missing endpoints without merging transaction logs', () => {
+    const other = { ...result, nodes: [], transfers: multiple.data } as TraceResult
+    const built = buildElements(other)
+    expect(built.filter(e => e.group === 'edges')).toHaveLength(2)
+    expect(new Set(built.filter(e => e.group === 'edges').map(e => e.data.id)).size).toBe(2)
+    expect(built.filter(e => e.group === 'nodes')).toHaveLength(3)
   })
 })

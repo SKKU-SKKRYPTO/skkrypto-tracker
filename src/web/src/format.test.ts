@@ -47,3 +47,19 @@ describe('shortenHex', () => {
     expect(shortenHex('0x12345678')).toBe('0x12345678')
   })
 })
+
+import large from '../mocks/v1/samples/large-amount.json'
+import { formatAmount, formatTimestamp } from './format'
+describe('v1 asset formatting', () => {
+  it.each([[0, '123', '123'], [2, '120000', '1200'], [2, '1', '0.01'], [6, '1', '0.000001'], [255, '1', `0.${'0'.repeat(254)}1`]] as const)('supports decimals %s without floating point', (decimals, raw, expected) => {
+    expect(formatUnits(raw, decimals)).toBe(expected)
+  })
+  it('formats the official uint256 maximum without losing digits', () => {
+    expect(formatAmount(large.data[0])).toBe('1157920892373161954235709850086879078532699846656405640394575840079131296399.35 SKK')
+  })
+  it('formats ISO timestamps in local time including the timezone', () => {
+    const iso = '2026-10-26T12:00:04Z'
+    expect(formatTimestamp(iso)).toBe(new Date(iso).toLocaleString('ko-KR', { timeZoneName: 'short' }))
+    expect(formatTimestamp(iso)).not.toContain('Invalid Date')
+  })
+})

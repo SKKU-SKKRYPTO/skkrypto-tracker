@@ -1,70 +1,45 @@
-import { describe, expect, it } from 'vitest'
-import traceOk from '../../mocks/trace-ok.draft.json'
-import { DEFAULT_SEARCH_CONDITIONS } from '../searchConditions'
+import { describe, expect, it, vi } from 'vitest'
 import { buildTraceRequest, searchTrace } from './trace'
-
-// 기본 조건으로 요청 값을 만들어 검색한다.
-function search(address: string) {
-  return searchTrace(buildTraceRequest(address, DEFAULT_SEARCH_CONDITIONS))
-}
-
-describe('buildTraceRequest', () => {
-  it('기본 조건이면 outgoing, maxDepth 2가 담긴다', () => {
-    const request = buildTraceRequest(
-      '0x000000000000000000000000000000000000a001',
-      DEFAULT_SEARCH_CONDITIONS,
-    )
-    expect(request).toEqual({
-      address: '0x000000000000000000000000000000000000a001',
-      direction: 'outgoing',
-      maxDepth: 2,
-    })
+import { DEFAULT_SEARCH_CONDITIONS } from '../searchConditions'
+const S = '0x0000000000000000000000000000000000000001'
+const T = '0x0000000000000000000000000000000000000007'
+describe('v1 request and Mock', () => {
+  it('fixes the dataset, preserving every selected depth and direction', () => {
+    for (const maxDepth of [1, 2, 3] as const) {
+      expect(buildTraceRequest(` ${S} \n`, { direction: 'incoming', maxDepth })).toEqual({ datasetId: 'flow-demo', datasetVersion: 'v1', address: S, direction: 'incoming', maxDepth })
+    }
   })
-
-  it('고른 방향과 깊이가 그대로 담긴다', () => {
-    const request = buildTraceRequest('0xabc', { direction: 'incoming', maxDepth: 3 })
-    expect(request.direction).toBe('incoming')
-    expect(request.maxDepth).toBe(3)
+  it('normalizes case without mutating conditions', () => {
+    const conditions = { ...DEFAULT_SEARCH_CONDITIONS }
+    expect(buildTraceRequest(' 0x000000000000000000000000000000000000ABCD ', conditions).address).toBe('0x000000000000000000000000000000000000abcd')
+    expect(conditions).toEqual(DEFAULT_SEARCH_CONDITIONS)
   })
-
-  it('주소 앞뒤 공백은 지운다', () => {
-    const request = buildTraceRequest('  0xabc \n', DEFAULT_SEARCH_CONDITIONS)
-    expect(request.address).toBe('0xabc')
+  it('never silently adjusts depth for the partial-result mode', () => {
+    expect(buildTraceRequest(S, { direction: 'outgoing', maxDepth: 1 }, 'candidate-limit')).toMatchObject({ maxDepth: 1, limits: { maxCandidates: 4 } })
   })
-
-  it('넘겨받은 조건 객체는 바꾸지 않는다', () => {
-    const conditions = { direction: 'incoming', maxDepth: 1 } as const
-    const request = buildTraceRequest('0xabc', conditions)
-    expect(request).not.toBe(conditions)
-    expect(conditions).toEqual({ direction: 'incoming', maxDepth: 1 })
+  it('returns official success and empty data without network calls', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No network'))
+    try {
+      const success = await searchTrace(buildTraceRequest(S, DEFAULT_SEARCH_CONDITIONS))
+      const empty = await searchTrace(buildTraceRequest(T, DEFAULT_SEARCH_CONDITIONS))
+      expect(success.ok && success.result.transfers).toHaveLength(6)
+      expect(empty.ok && empty.result.transfers).toHaveLength(0)
+      expect(spy).not.toHaveBeenCalled()
+    } finally { spy.mockRestore() }
   })
-})
-
-// 주소 형식 검사(ADDRESS_PATTERN)는 내보내지 않으므로 searchTrace의 결과로 확인한다.
-// 형식이 틀리면 ok: false(오류 응답), 맞으면 ok: true가 나온다.
-describe('searchTrace 주소 형식 검사', () => {
-  it('0x + 16진수 40자리 주소는 통과한다', async () => {
-    const response = await search('0x000000000000000000000000000000000000a001')
-    expect(response.ok).toBe(true)
+  it('requires explicit maxCandidates 4 and depth 3 for partial results', async () => {
+    const result = await searchTrace(buildTraceRequest(S, { direction: 'outgoing', maxDepth: 3 }, 'candidate-limit'))
+    expect(result.ok && result.result.transfers).toHaveLength(4)
+    expect(result.ok && result.result.limits).toMatchObject({ found: 4, foundIsLowerBound: true, truncated: { reason: 'CANDIDATE_LIMIT' }, analyzedUntil: { blockNumber: '18205040' } })
   })
-
-  it('0x가 없으면 거절한다', async () => {
-    const response = await search('000000000000000000000000000000000000a001')
-    expect(response.ok).toBe(false)
+  it.each([
+    [S, 'incoming', 2, 'default'], [S, 'outgoing', 1, 'default'], [S, 'outgoing', 3, 'default'],
+    [T, 'outgoing', 3, 'default'], [T, 'outgoing', 2, 'candidate-limit'], [S, 'outgoing', 2, 'candidate-limit'],
+    ['0x000000000000000000000000000000000000a001', 'outgoing', 2, 'default'],
+  ] as const)('does not fabricate results for %s %s %s %s', async (address, direction, maxDepth, mode) => {
+    expect(await searchTrace(buildTraceRequest(address, { direction, maxDepth }, mode))).toMatchObject({ kind: 'mock-unsupported', error: { message: expect.stringContaining('실제 백엔드 API의 기능 제한은 아닙니다') } })
   })
-
-  it('길이가 짧거나 길면 거절한다', async () => {
-    expect((await search('0x000000000000000000000000000000000000a00')).ok).toBe(false)
-    expect((await search('0x000000000000000000000000000000000000a0011')).ok).toBe(false)
-  })
-
-  it('16진수가 아닌 글자가 있으면 거절한다', async () => {
-    const response = await search('0x000000000000000000000000000000000000g001')
-    expect(response.ok).toBe(false)
-  })
-
-  it('대문자가 섞여도 통과하고, 소문자 주소와 같은 결과를 돌려준다', async () => {
-    const response = await search('0x000000000000000000000000000000000000A001')
-    expect(response).toEqual({ ok: true, result: traceOk })
+  it.each(['0x123', S.slice(2), S + '0', '0x000000000000000000000000000000000000000g'])('returns official INVALID_INPUT for %s', async address => {
+    expect(await searchTrace(buildTraceRequest(address, DEFAULT_SEARCH_CONDITIONS))).toMatchObject({ ok: false, kind: 'api', status: 400, error: { code: 'INVALID_INPUT', retryable: false } })
   })
 })

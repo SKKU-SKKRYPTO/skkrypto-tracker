@@ -4,10 +4,10 @@ export function shortenHex(value: string): string {
   return `${value.slice(0, 6)}…${value.slice(-4)}`
 }
 
-// 블록 시각(초 단위 Unix 시간)을 사용자 컴퓨터의 시간대로 표시한다.
-// 예(한국 시간대): 1767225600 → "2026. 1. 1. 오전 9시 0분 0초 GMT+9"
-export function formatTimestamp(seconds: number): string {
-  return new Date(seconds * 1000).toLocaleString('ko-KR', {
+// 공식 v1 ISO-8601 블록 시각을 사용자 컴퓨터의 시간대로 표시한다.
+
+export function formatTimestamp(timestamp: string): string {
+  return new Date(timestamp).toLocaleString('ko-KR', {
     timeZoneName: 'short',
   })
 }
@@ -21,3 +21,8 @@ export function formatUnits(amount: string, decimals: number): string {
   const fraction = digits.slice(digits.length - decimals).replace(/0+$/, '')
   return fraction ? `${whole}.${fraction}` : whole
 }
+
+export function formatAmount(transfer: { amountRaw: string; asset: { decimals: number; symbol: string } }): string {
+  return `${formatUnits(transfer.amountRaw, transfer.asset.decimals)} ${transfer.asset.symbol}`
+}
+
