@@ -176,3 +176,25 @@ func TestCORSAllowsOnlyConfiguredOrigin(t *testing.T) {
 		t.Fatal("등록하지 않은 웹 주소에는 허용 헤더를 주면 안 된다")
 	}
 }
+
+// 웹이 다른 주소(배포된 API)를 부를 때도 429의 Retry-After를 읽을 수 있어야 한다.
+func TestCORSExposesRetryAfter(t *testing.T) {
+	cfg := testConfig(t, "")
+	cfg.AllowedOrigins = []string{"http://localhost:5173"}
+	cfg.RateLimitPerMinute = 1
+	h := New(cfg)
+
+	req := func() *http.Request {
+		r, _ := http.NewRequest(http.MethodGet, "/api/datasets", nil)
+		r.Header.Set("Origin", "http://localhost:5173")
+		return r
+	}
+	serve(h, req())
+	rec := serve(h, req())
+	if rec.Code != http.StatusTooManyRequests || rec.Header().Get("Retry-After") == "" {
+		t.Fatalf("두 번째 요청 = %d %v, 429와 Retry-After를 기대함", rec.Code, rec.Header())
+	}
+	if rec.Header().Get("Access-Control-Expose-Headers") != "Retry-After" {
+		t.Fatalf("Access-Control-Expose-Headers = %q", rec.Header().Get("Access-Control-Expose-Headers"))
+	}
+}

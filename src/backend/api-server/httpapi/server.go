@@ -88,6 +88,8 @@ func (s *server) common(next http.Handler) http.Handler {
 		if origin := r.Header.Get("Origin"); origin != "" && slices.Contains(s.origins, origin) {
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Vary", "Origin")
+			// 다른 주소의 웹에서도 429의 Retry-After(초)를 읽을 수 있게 한다.
+			h.Set("Access-Control-Expose-Headers", "Retry-After")
 			if r.Method == http.MethodOptions {
 				h.Set("Access-Control-Allow-Methods", "GET, POST")
 				h.Set("Access-Control-Allow-Headers", "Content-Type")
