@@ -84,11 +84,16 @@ func openRepository(dsn, fixtureDir string) (repository.Repository, string, func
 		}
 		return repo, "Fixture " + fixtureDir, func() {}, nil
 	}
+	config, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		// 파싱 오류에는 접속 주소가 비밀번호까지 그대로 들어갈 수 있어서 이유를 싣지 않는다.
+		return nil, "", nil, errors.New("DATABASE_URL 형식이 잘못됐습니다(값은 출력하지 않습니다)")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	pool, err := pgxpool.New(ctx, dsn)
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("DATABASE_URL을 읽지 못했습니다: %w", err)
+		return nil, "", nil, fmt.Errorf("PostgreSQL 연결 풀을 만들지 못했습니다: %w", err)
 	}
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
