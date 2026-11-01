@@ -8,7 +8,7 @@
 
 ## 요청
 
-본문(JSON). 항목 이름은 대소문자까지 정확해야 하고 `null`은 보내지 않습니다(생략은 됩니다).
+본문(JSON). 항목 이름은 대소문자까지 정확해야 하고 `null`은 보내지 않습니다(생략은 됩니다). 대상 주소 `targetAddress`는 꼭 넣습니다(없으면 400).
 
 ```bash
 curl -s -X POST localhost:8080/api/paths \

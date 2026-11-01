@@ -1,6 +1,6 @@
 # 분석 엔진 (담당 2)
 
-API 서버가 넘겨준 전송 목록만 보고 **시간순 연결(Trace·Paths)** 과 **분산·합류 패턴(Patterns)** 을 계산합니다. 엔진은 DB·RPC·HTTP를 모릅니다. 그래서 같은 입력이면 언제 돌려도 같은 결과가 나오고, 작은 가짜 데이터만으로 테스트할 수 있습니다.
+API 서버가 넘겨준 입력(`Input`)만 보고 **시간순 연결(Trace·Paths)** 과 **분산·합류 패턴(Patterns)** 을 계산합니다. 입력은 전송 목록, 데이터셋의 수집 범위(`Coverage`, 패턴의 `incomplete` 판단), 저장소에서 후보가 잘렸는지(`CandidatesTruncated`, `CANDIDATE_LIMIT`·`foundIsLowerBound`)입니다. 엔진은 DB·RPC·HTTP를 모릅니다. 그래서 작은 가짜 데이터만으로 테스트할 수 있고, 시간 예산(`TIME_BUDGET`)에 걸리지 않으면 같은 입력에 늘 같은 결과가 나옵니다. 시간 예산은 실제 걸린 시간으로 재므로, 예산에 걸릴 만큼 큰 요청은 서버 부하에 따라 부분 결과가 달라질 수 있습니다.
 
 ```go
 type Engine interface {
@@ -67,7 +67,7 @@ type Engine interface {
 - 큐가 `maxStates`로 차면 새 상태만 더 넣지 않고, 이미 큐에 있는 상태는 끝까지 처리한 뒤 `STATE_LIMIT`으로 멈춥니다. 그래서 상한에 걸려도 같은 hop의 짧은 경로를 잃지 않고, `maxDepth` 3이 2보다 결과가 적게 나오는 일이 없습니다.
 - 요청 취소는 잘림이 아니라 오류입니다.
 - 경로·패턴 하나의 근거 전송은 **한꺼번에** 넣습니다. 노드·엣지 상한을 넘으면 하나도 넣지 않아서, 결과의 경로는 늘 근거 전송을 모두 갖고 있습니다.
-- 성능 기준: 전송 1만 건·주소 200개·3 hop에서 Paths·Trace·Patterns가 모두 수십 ms 안에 끝납니다(`TestTenThousandTransfersStayWithinLimits`).
+- 성능 기준: 전송 1만 건·주소 200개·3 hop에서 2초 안에 끝나야 합니다. 엔진만 재는 `TestTenThousandTransfersStayWithinLimits`는 Paths를, API까지 재는 `TestTenThousandTransfersAnswerWithinTwoSeconds`는 Trace·Paths·Patterns를 확인합니다. 맥북 M2에서 잰 엔진 시간은 Trace 약 20ms, Paths 약 32ms, Patterns 약 0.3ms입니다([API 서버 성능 결과](../api-server/README.md#성능-결과)).
 
 ## 4. 패턴 규칙(flow-v1)
 

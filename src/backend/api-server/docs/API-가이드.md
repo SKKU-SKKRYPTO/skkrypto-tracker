@@ -57,7 +57,8 @@ curl -s -X POST localhost:8080/api/trace \
 | 상태 | 코드 | 화면에서 |
 |---|---|---|
 | 400 | `INVALID_INPUT`, `INVALID_CURSOR` | 입력칸 옆에 `message` 표시. 커서 오류는 첫 쪽부터 다시 |
-| 404 | `DATASET_NOT_FOUND`, `TRANSACTION_NOT_FOUND` | 목록으로 돌아가기 |
+| 404 | `DATASET_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `NOT_FOUND` | 목록으로 돌아가기. `NOT_FOUND`는 없는 API 주소라 웹의 요청 경로를 확인 |
+| 405 | `METHOD_NOT_ALLOWED` | 웹의 요청 방식(GET·POST)을 확인 |
 | 409 | `DATASET_NOT_READY`, `DATASET_INVALIDATED`, `VERSION_MISMATCH` | 다른 버전 선택 안내, 커서는 첫 쪽부터 다시 |
 | 422 | `OUT_OF_RANGE`, `UNSUPPORTED_ASSET` | 수집 범위(`message`에 있음)를 보여 주고 다시 입력 |
 | 429 | `RATE_LIMITED` | `Retry-After` 초만큼 기다렸다가 다시 |
