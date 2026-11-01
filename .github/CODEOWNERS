@@ -1,0 +1,35 @@
+# 경로별 코드 오너. PR을 열면 여기 적힌 사람에게 리뷰가 자동 요청된다.
+# 담당 번호는 docs/roles.md를 따르고, 경로마다 담당자와 리뷰 짝(1↔2, 3↔4)을 함께 둔다.
+# 작성자가 아닌 오너가 늘 한 명 이상 남도록 한 경로에 한 명만 두지 않는다.
+# 아래 줄이 위 줄보다 우선하므로 넓은 경로를 위에, 좁은 경로를 아래에 둔다.
+
+# 기본·문서
+*                             @Jeon1691 @cryscham123
+
+# 담당 3 · 실행 환경 (Compose·Makefile·CI)
+/Makefile                     @AVG-High @lauren1331
+/docker-compose.yml           @AVG-High @lauren1331
+/.env.example                 @AVG-High @lauren1331
+/.github/                     @Jeon1691 @AVG-High
+/.coderabbit.yaml             @Jeon1691 @AVG-High
+
+# 담당 1 · 수집·DB
+/src/backend/indexer/         @cryscham123 @AVG-High
+/src/backend/domain/          @cryscham123 @AVG-High
+/src/database/                @cryscham123 @AVG-High
+
+# 담당 2 · 분석 엔진
+/src/backend/analyzer/        @AVG-High @cryscham123
+
+# 담당 3 · API·규격
+/src/backend/api-server/      @AVG-High @lauren1331
+/src/backend/go.mod           @AVG-High @lauren1331
+/src/backend/go.sum           @AVG-High @lauren1331
+
+# 담당 4 · 화면
+/src/web/                     @lauren1331 @AVG-High
+
+# 오너 목록과 라이선스는 관리자가 확인한다.
+/.github/CODEOWNERS           @Jeon1691 @AVG-High
+/LICENSE                      @Jeon1691 @AVG-High
+/NOTICE                       @Jeon1691 @AVG-High
