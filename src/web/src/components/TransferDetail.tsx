@@ -33,8 +33,23 @@ function TransferDetail({ transfer }: Props) {
             {formatAmount(transfer)}
           </dd>
 
+          <dt>토큰 주소</dt>
+          <dd>
+            <span className="mono full-value">{transfer.asset.tokenAddress}</span>
+            <CopyButton value={transfer.asset.tokenAddress} label="토큰 주소" />
+          </dd>
+
+          <dt>체인 ID (chainId)</dt>
+          <dd>{transfer.asset.chainId}</dd>
+
           <dt>블록 번호</dt>
           <dd>{transfer.blockNumber}</dd>
+
+          <dt>블록 해시 (blockHash)</dt>
+          <dd>
+            <span className="mono full-value">{transfer.blockHash}</span>
+            <CopyButton value={transfer.blockHash} label="블록 해시" />
+          </dd>
 
           <dt>블록 시각</dt>
           <dd>{formatTimestamp(transfer.timestamp)}</dd>

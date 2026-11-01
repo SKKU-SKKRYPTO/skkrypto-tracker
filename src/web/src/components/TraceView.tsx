@@ -3,6 +3,7 @@ import TransferGraph from './TransferGraph'
 import TransferDetail from './TransferDetail'
 import type { TraceResult } from '../types'
 import { formatTimestamp } from '../format'
+import { formatLimitReason } from '../limitReasons'
 
 type TraceViewProps = { result: TraceResult; selectedTransferId: string | null; onSelect: (id: string) => void }
 export default function TraceView({ result, selectedTransferId, onSelect }: TraceViewProps) {
@@ -12,7 +13,7 @@ export default function TraceView({ result, selectedTransferId, onSelect }: Trac
     <>
       {limits.truncated !== null && (
         <p className="notice notice-warning" role="status">
-          결과가 상한({limits.truncated.reasons.join(', ')})에 걸려 일부만 표시됨 · 대표 사유 {limits.truncated.reason} · 찾은 송금 {limits.found}건{limits.foundIsLowerBound ? ' 이상' : ''} 중 {transfers.length}건 표시
+          결과가 상한에 걸려 일부만 표시됨 · {limits.truncated.reasons.map(formatLimitReason).join(' ')} · 대표 사유: {formatLimitReason(limits.truncated.reason)} · 찾은 송금 {limits.found}건{limits.foundIsLowerBound ? ' 이상' : ''} 중 {transfers.length}건 표시
           {limits.analyzedUntil && <> · 블록 {limits.analyzedUntil.blockNumber}까지만 분석 ({formatTimestamp(limits.analyzedUntil.timestamp)})</>}
         </p>
       )}
