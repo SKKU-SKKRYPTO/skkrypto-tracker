@@ -16,6 +16,7 @@ import (
 
 type scanFunc func(dest ...any) error
 
+// Scan은 테스트가 지정한 행 스캔 함수를 실행한다.
 func (f scanFunc) Scan(dest ...any) error { return f(dest...) }
 
 type fakeRows struct {
@@ -25,9 +26,16 @@ type fakeRows struct {
 	closed bool
 }
 
-func (r *fakeRows) Close()     { r.closed = true }
+// Close는 행 반복자가 닫혔음을 기록한다.
+func (r *fakeRows) Close() { r.closed = true }
+
+// Err는 행 반복 중 주입된 오류를 반환한다.
 func (r *fakeRows) Err() error { return r.err }
+
+// Next는 스캔할 테스트 행이 남았는지 확인한다.
 func (r *fakeRows) Next() bool { return r.index < len(r.rows) }
+
+// Scan은 현재 테스트 행을 읽고 다음 행으로 이동한다.
 func (r *fakeRows) Scan(dest ...any) error {
 	row := r.rows[r.index]
 	r.index++
@@ -47,6 +55,7 @@ type fakePostgresDB struct {
 	queryRowCalls []queryCall
 }
 
+// Query는 다중 행 조회 호출을 기록하고 준비된 행 또는 오류를 반환한다.
 func (db *fakePostgresDB) Query(_ context.Context, sql string, args ...any) (postgresRows, error) {
 	db.queryCalls = append(db.queryCalls, queryCall{sql: sql, args: args})
 	if db.queryErr != nil {
@@ -55,6 +64,7 @@ func (db *fakePostgresDB) Query(_ context.Context, sql string, args ...any) (pos
 	return db.queryRows, nil
 }
 
+// QueryRow는 단일 행 조회 호출을 기록하고 준비된 행을 순서대로 반환한다.
 func (db *fakePostgresDB) QueryRow(_ context.Context, sql string, args ...any) postgresRow {
 	db.queryRowCalls = append(db.queryRowCalls, queryCall{sql: sql, args: args})
 	if len(db.rowQueue) == 0 {
@@ -65,6 +75,7 @@ func (db *fakePostgresDB) QueryRow(_ context.Context, sql string, args ...any) p
 	return row
 }
 
+// valuesRow는 주어진 값들을 Scan 대상에 복사하는 테스트 행을 만든다.
 func valuesRow(values ...any) postgresRow {
 	return scanFunc(func(dest ...any) error {
 		if len(dest) != len(values) {
@@ -77,12 +88,15 @@ func valuesRow(values ...any) postgresRow {
 	})
 }
 
+// errorRow는 Scan할 때 지정한 오류를 반환하는 테스트 행을 만든다.
 func errorRow(err error) postgresRow {
 	return scanFunc(func(...any) error { return err })
 }
 
+// ptr은 nullable DB 값을 표현하기 위한 테스트 포인터를 만든다.
 func ptr[T any](value T) *T { return &value }
 
+// datasetRow는 Dataset 조회 결과 한 행을 테스트 값으로 구성한다.
 func datasetRow(
 	id, version, status string,
 	finalizedBlock *int64,
@@ -111,6 +125,7 @@ func datasetRow(
 	)
 }
 
+// transferRow는 Transfer 조회 결과 한 행을 테스트 값으로 구성한다.
 func transferRow(id, from, to string, block int64, txIndex, logIndex int32) postgresRow {
 	return valuesRow(
 		id,
@@ -132,6 +147,7 @@ func transferRow(id, from, to string, block int64, txIndex, logIndex int32) post
 	)
 }
 
+// TestPostgresListDatasets는 Dataset 목록의 정규화·정렬 쿼리·빈 컬렉션 표현을 검증한다.
 func TestPostgresListDatasets(t *testing.T) {
 	collectedAt := time.Date(2026, 10, 26, 14, 0, 0, 0, time.UTC)
 	rows := &fakeRows{rows: []postgresRow{
@@ -166,6 +182,7 @@ func TestPostgresListDatasets(t *testing.T) {
 	}
 }
 
+// TestPostgresGetDatasetMapsNotFound는 pgx의 미조회 오류가 ErrNotFound로 변환되는지 검증한다.
 func TestPostgresGetDatasetMapsNotFound(t *testing.T) {
 	db := &fakePostgresDB{rowQueue: []postgresRow{errorRow(pgx.ErrNoRows)}}
 	repository := &Postgres{db: db}
@@ -176,6 +193,7 @@ func TestPostgresGetDatasetMapsNotFound(t *testing.T) {
 	}
 }
 
+// TestPostgresGetDatasetKeepsFixtureNulls는 Fixture의 nullable 필드를 임의 값으로 채우지 않는지 검증한다.
 func TestPostgresGetDatasetKeepsFixtureNulls(t *testing.T) {
 	db := &fakePostgresDB{rowQueue: []postgresRow{
 		datasetRow("collecting-demo", "v1", domain.StatusCollecting, nil, nil, nil, `{}`),
@@ -191,6 +209,7 @@ func TestPostgresGetDatasetKeepsFixtureNulls(t *testing.T) {
 	}
 }
 
+// TestPostgresListTransfersFiltersAndPaginates는 모든 필터와 위치 커서 기반 페이지 처리를 검증한다.
 func TestPostgresListTransfersFiltersAndPaginates(t *testing.T) {
 	zero := domain.ZeroAddress
 	to := "0x0000000000000000000000000000000000000069"
@@ -269,6 +288,7 @@ func TestPostgresListTransfersFiltersAndPaginates(t *testing.T) {
 	}
 }
 
+// TestPostgresListTransfersReturnsNotFoundForMissingDataset은 없는 Dataset에서 Transfer 조회를 시작하지 않는지 검증한다.
 func TestPostgresListTransfersReturnsNotFoundForMissingDataset(t *testing.T) {
 	db := &fakePostgresDB{rowQueue: []postgresRow{errorRow(pgx.ErrNoRows)}}
 	repository := &Postgres{db: db}
@@ -284,6 +304,7 @@ func TestPostgresListTransfersReturnsNotFoundForMissingDataset(t *testing.T) {
 	}
 }
 
+// TestPostgresListTransfersRejectsInvalidQuery는 잘못된 limit·금액·블록 범위를 거부하는지 검증한다.
 func TestPostgresListTransfersRejectsInvalidQuery(t *testing.T) {
 	repository := &Postgres{db: &fakePostgresDB{}}
 	if _, err := repository.ListTransfers(context.Background(), TransferQuery{Limit: 0}); err == nil {

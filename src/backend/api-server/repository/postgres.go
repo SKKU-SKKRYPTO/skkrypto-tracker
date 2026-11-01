@@ -49,10 +49,12 @@ type pgxPool struct {
 	pool *pgxpool.Pool
 }
 
+// Query는 pgxpool의 다중 행 조회를 내부 DB 인터페이스에 맞춰 전달한다.
 func (p pgxPool) Query(ctx context.Context, sql string, args ...any) (postgresRows, error) {
 	return p.pool.Query(ctx, sql, args...)
 }
 
+// QueryRow는 pgxpool의 단일 행 조회를 내부 DB 인터페이스에 맞춰 전달한다.
 func (p pgxPool) QueryRow(ctx context.Context, sql string, args ...any) postgresRow {
 	return p.pool.QueryRow(ctx, sql, args...)
 }
