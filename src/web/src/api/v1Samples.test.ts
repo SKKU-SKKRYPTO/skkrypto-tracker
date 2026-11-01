@@ -8,11 +8,11 @@ import { adaptTraceResponse } from '../adapters/traceAdapter'
 const samples = new URL('../../mocks/v1/samples/', import.meta.url)
 const official = new URL('../../../backend/api-server/contracts/', import.meta.url)
 describe('official v1 contract and samples', () => {
-  it('copies exactly 20 samples and the contract unchanged', () => {
+  it('copies exactly 21 samples and the contract unchanged', () => {
     expect(JSON.parse(readFileSync(new URL('openapi.json', official), 'utf8'))).toEqual(spec)
     expect(JSON.parse(readFileSync(new URL('sample-requests.json', official), 'utf8'))).toEqual(manifest)
     const files = readdirSync(samples).filter(name => name.endsWith('.json')).sort()
-    expect(files).toHaveLength(20)
+    expect(files).toHaveLength(21)
     expect(files).toEqual(manifest.map(entry => entry.sample).sort())
     for (const file of files) expect(readFileSync(new URL(file, samples), 'utf8')).toBe(readFileSync(new URL(`samples/${file}`, official), 'utf8'))
   })

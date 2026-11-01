@@ -6,6 +6,8 @@ export type Hash = string
 
 export type Amount = string
 
+export type AmountSum = string
+
 export type BlockNumber = string
 
 export type DateTime = string
@@ -34,7 +36,7 @@ export type Path = { id: string; transferIds: Array<string>; hops: number }
 
 export type Pattern = { patternId: string; ruleId: "FAN_OUT" | "FAN_IN"; ruleVersion: string; asset: Asset; address: Address; direction: "outgoing" | "incoming"; windowStart: DateTime; windowEnd: DateTime; windowSeconds: number; threshold: number; uniqueCounterparties: number; counterparties: Array<Address>; evidenceIds: Array<string>; groupId: string; incomplete: boolean }
 
-export type Summary = { uniqueTransferCount: number; uniqueAmountRaw: Amount }
+export type Summary = { uniqueTransferCount: number; uniqueAmountRaw: AmountSum }
 
 export type Truncation = { reason: "PATH_LIMIT" | "STATE_LIMIT" | "CANDIDATE_LIMIT" | "NODE_LIMIT" | "EDGE_LIMIT" | "TIME_BUDGET"; reasons: Array<"PATH_LIMIT" | "STATE_LIMIT" | "CANDIDATE_LIMIT" | "NODE_LIMIT" | "EDGE_LIMIT" | "TIME_BUDGET"> }
 

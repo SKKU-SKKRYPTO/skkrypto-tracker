@@ -645,6 +645,14 @@
           "120000"
         ]
       },
+      "AmountSum": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "여러 전송 금액을 더한 십진 문자열. 전송 하나는 uint256 이하지만 합은 2^256-1을 넘을 수 있어 상한이 없다. decimals를 적용하지 않은 원래 값이다. JSON 숫자로 보내지 않는다.",
+        "examples": [
+          "1270000"
+        ]
+      },
       "BlockNumber": {
         "type": "string",
         "pattern": "^(0|[1-9][0-9]*)$",
@@ -1189,7 +1197,7 @@
             "minimum": 0
           },
           "uniqueAmountRaw": {
-            "$ref": "#/components/schemas/Amount"
+            "$ref": "#/components/schemas/AmountSum"
           }
         }
       },

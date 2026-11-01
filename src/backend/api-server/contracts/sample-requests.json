@@ -76,6 +76,19 @@
     "description": "후보 상한 4 → 위치 순 앞 4건만 분석한 부분 결과. truncated.reason은 CANDIDATE_LIMIT, found는 최소값(foundIsLowerBound true), analyzedUntil은 실제로 분석한 마지막 전송의 블록·시각이다. 화면은 '블록 N까지만 분석'으로 보여 준다."
   },
   {
+    "sample": "trace-amount-sum.json",
+    "method": "POST",
+    "path": "/api/trace",
+    "body": {
+      "datasetId": "patterns-demo",
+      "datasetVersion": "v1",
+      "address": "0x0000000000000000000000000000000000000065",
+      "maxDepth": 1
+    },
+    "status": 200,
+    "description": "합계가 uint256 최대값을 넘는 추적. 전송 금액은 uint256 이하지만 summary.uniqueAmountRaw(AmountSum)는 상한이 없다."
+  },
+  {
     "sample": "paths-success.json",
     "method": "POST",
     "path": "/api/paths",

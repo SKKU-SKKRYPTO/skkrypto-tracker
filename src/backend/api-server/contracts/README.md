@@ -12,7 +12,7 @@
 |---|---|
 | `openapi.json` | API 7개의 요청·응답 규격(OpenAPI 3.1) |
 | `sample-requests.json` | 샘플마다 "어떤 요청을 보내면 이 응답이 오는지" |
-| `samples/*.json` | 응답 샘플 20개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
+| `samples/*.json` | 응답 샘플 21개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
 
 샘플 데이터는 모두 합성 Fixture(`fx:` ID)이고 실제 체인 데이터가 아닙니다.
 
@@ -24,7 +24,7 @@
 | `GET /api/datasets/{id}` | 한 버전의 상태·자산·범위·주소 이름표 | `dataset-detail.json` |
 | `GET /api/transfers` | 전송 목록(주소·방향·범위 필터, 위치 기반 커서) | `transfers-page.json` |
 | `GET /api/transactions/{txHash}` | 한 거래 안의 전송 | `transaction-multiple.json`, `large-amount.json` |
-| `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 | `trace-success.json`, `trace-ready-empty.json`, `trace-candidate-limit.json` |
+| `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 | `trace-success.json`, `trace-ready-empty.json`, `trace-candidate-limit.json`, `trace-amount-sum.json` |
 | `POST /api/paths` | 두 주소 사이 시간순 후보 경로 | `paths-success.json`, `paths-path-limit.json`, `paths-time-budget.json` |
 | `POST /api/patterns` | 분산(FAN_OUT)·합류(FAN_IN) 패턴 | `patterns-success.json` |
 
@@ -35,7 +35,7 @@
 - **응답 구조:** 항상 `{ "data": ..., "meta": ..., "error": ... }`. 정상이면 `error: null`, 오류면 `data: null`.
 - **meta:** 규격·규칙 버전(`contractVersion`·`ruleVersion`), 데이터셋 ID·버전·모드, 수집 범위(`coverage`), 실제로 쓴 조건(`conditions`, 빈 칸은 기본값으로 채움), 상한·잘림(`limits`), 해석 한계 문구(`limitations`).
 - **0건과 부분 결과도 200:** 결과가 0건이면 빈 배열입니다. 상한에 걸리지 않았으면 `limits.truncated: null`, 걸렸으면 `limits.truncated.reason`에 대표 사유(`PATH_LIMIT`·`STATE_LIMIT`·`CANDIDATE_LIMIT`·`NODE_LIMIT`·`EDGE_LIMIT`·`TIME_BUDGET` 중 하나), `reasons`에 함께 생긴 사유가 있습니다. 탐색을 중간에 멈췄거나 후보가 잘렸으면 `foundIsLowerBound: true`(found는 "최소 이만큼")입니다. 경로가 많기만 한 경우(`PATH_LIMIT`)는 앞 10개만 주고 found에 전체 개수를 줍니다.
-- **숫자:** 금액(`amountRaw`)과 블록 번호는 **십진 문자열**입니다. 자바스크립트 숫자는 2^53을 넘으면 정확하지 않기 때문입니다. 거래·로그 순서(`transactionIndex`·`logIndex`)처럼 작은 정수만 JSON 숫자입니다.
+- **숫자:** 금액(`amountRaw`)과 블록 번호는 **십진 문자열**입니다. 자바스크립트 숫자는 2^53을 넘으면 정확하지 않기 때문입니다. 거래·로그 순서(`transactionIndex`·`logIndex`)처럼 작은 정수만 JSON 숫자입니다. 전송 금액은 uint256 이하(`Amount`)이고, 여러 전송을 더한 합계(`summary.uniqueAmountRaw`, `AmountSum`)는 이를 넘을 수 있어 상한이 없습니다.
 - **시각:** UTC ISO-8601 문자열(예: `2026-10-26T12:00:04Z`).
 - **주소:** 응답은 항상 소문자. 요청은 대소문자 모두 받습니다.
 - **전송 ID:** Snapshot `{chainId}:{txHash}:{logIndex}`, Fixture `fx:{namespace}:{recordId}`. 그래프·표·상세·JSON이 모두 이 값을 씁니다.

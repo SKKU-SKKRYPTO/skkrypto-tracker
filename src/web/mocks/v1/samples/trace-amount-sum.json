@@ -1,0 +1,150 @@
+{
+  "data": {
+    "transfers": [
+      {
+        "id": "fx:patterns-demo-v1:p1",
+        "label": "p1",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003e9",
+        "blockHash": "0xe2d606ec8fe8528a1ec8dbbc5dd9ed8c51ecfe8a8efa4d30a050fd5a995a6055",
+        "blockNumber": "20001",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:00:00Z",
+        "from": "0x0000000000000000000000000000000000000065",
+        "to": "0x0000000000000000000000000000000000000069",
+        "amountRaw": "100"
+      },
+      {
+        "id": "fx:patterns-demo-v1:p5",
+        "label": "p5",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ed",
+        "blockHash": "0xbca6af3548b79fccf5b225ccc07dfbba23a8ad51e0f18b559f18adee90157f96",
+        "blockNumber": "20005",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:12:00Z",
+        "from": "0x0000000000000000000000000000000000000065",
+        "to": "0x0000000000000000000000000000000000000066",
+        "amountRaw": "50"
+      },
+      {
+        "id": "fx:patterns-demo-v1:p7",
+        "label": "p7",
+        "asset": {
+          "chainId": 84532,
+          "tokenAddress": "0x0000000000000000000000000000000000001000",
+          "symbol": "SKK",
+          "decimals": 2
+        },
+        "transferType": "TRANSFER",
+        "txHash": "0x00000000000000000000000000000000000000000000000000000000000003ef",
+        "blockHash": "0x64b360a952f7a4898bec6c4a734fe78883e59d1039aefd54ea0840475b6982eb",
+        "blockNumber": "20007",
+        "transactionIndex": 0,
+        "logIndex": 0,
+        "timestamp": "2026-10-26T14:20:00Z",
+        "from": "0x0000000000000000000000000000000000000065",
+        "to": "0x0000000000000000000000000000000000000066",
+        "amountRaw": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "0x0000000000000000000000000000000000000065",
+        "label": "X"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000066",
+        "label": "Y"
+      },
+      {
+        "id": "0x0000000000000000000000000000000000000069",
+        "label": "H"
+      }
+    ],
+    "paths": [],
+    "patterns": [],
+    "summary": {
+      "uniqueTransferCount": 3,
+      "uniqueAmountRaw": "115792089237316195423570985008687907853269984665640564039457584007913129640085"
+    },
+    "limits": {
+      "truncated": null,
+      "found": 3,
+      "foundIsLowerBound": false,
+      "statesVisited": 1,
+      "candidatesConsidered": 3,
+      "analyzedUntil": null,
+      "durationMs": 0
+    }
+  },
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "datasetId": "patterns-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "20000",
+      "endBlock": "20100",
+      "startTime": "2026-10-26T13:50:00Z",
+      "endTime": "2026-10-26T14:30:00Z"
+    },
+    "conditions": {
+      "datasetId": "patterns-demo",
+      "datasetVersion": "v1",
+      "asset": {
+        "chainId": 84532,
+        "tokenAddress": "0x0000000000000000000000000000000000001000",
+        "symbol": "SKK",
+        "decimals": 2
+      },
+      "address": "0x0000000000000000000000000000000000000065",
+      "direction": "outgoing",
+      "maxDepth": 1,
+      "filter": {
+        "startBlock": "20000",
+        "endBlock": "20100",
+        "startTime": "2026-10-26T13:50:00Z",
+        "endTime": "2026-10-26T14:30:00Z"
+      },
+      "limits": {
+        "maxNodes": 200,
+        "maxEdges": 500,
+        "maxPaths": 10,
+        "maxStates": 10000,
+        "maxCandidates": 10000,
+        "timeBudgetMs": 1500
+      }
+    },
+    "limits": {
+      "truncated": null,
+      "found": 3,
+      "foundIsLowerBound": false,
+      "statesVisited": 1,
+      "candidatesConsidered": 3,
+      "analyzedUntil": null,
+      "durationMs": 0
+    },
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": null
+}
