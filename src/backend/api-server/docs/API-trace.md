@@ -21,6 +21,7 @@ curl -s -X POST localhost:8080/api/trace \
 - `200` [trace-success.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/trace-success.json): S에서 2 hop 안에 시간순으로 닿는 전송.
 - `200` [trace-ready-empty.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/trace-ready-empty.json): T는 보낸 전송이 없다. 0건도 오류가 아니라 200이다(선택한 범위에서 관측되지 않음).
 - `200` [trace-candidate-limit.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/trace-candidate-limit.json): 후보 상한 4 → 위치 순 앞 4건만 분석한 부분 결과. truncated.reason은 CANDIDATE_LIMIT, found는 최소값(foundIsLowerBound true), analyzedUntil은 실제로 분석한 마지막 전송의 블록·시각이다. 화면은 '블록 N까지만 분석'으로 보여 준다.
+- `200` [trace-amount-sum.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/trace-amount-sum.json): 합계가 uint256 최대값을 넘는 추적. 전송 금액은 uint256 이하지만 summary.uniqueAmountRaw(AmountSum)는 상한이 없다.
 - `409` [error-not-ready.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/error-not-ready.json): 수집 중인 데이터셋은 분석하지 않는다.
 - `422` [error-out-of-range.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/error-out-of-range.json): 수집 범위 밖 블록. 0건이 아니라 422로 알린다.
 - `422` [error-unsupported-asset.json](https://github.com/SKKU-SKKRYPTO/skkrypto-tracker/blob/main/src/backend/api-server/contracts/samples/error-unsupported-asset.json): 데이터셋과 다른 토큰.
@@ -49,3 +50,4 @@ curl -s -X POST localhost:8080/api/trace \
 |---|---|---|
 | 2026-10-30 | #8 | v1 규격 확정 |
 | 2026-10-31 | #14 | 서버 구현 |
+| 2026-11-01 | #36 | 합계 `summary.uniqueAmountRaw`의 uint256 상한을 없앰(여러 전송을 더하면 넘을 수 있음) |

@@ -39,7 +39,7 @@ curl -s -X POST localhost:8080/api/trace \
 - `data.nodes`가 점, `data.transfers`가 선입니다. 선은 `from` → `to`.
 - `data.paths[].transferIds`의 순서가 경로 순서입니다. 같은 전송이 여러 경로에 나올 수 있습니다.
 - 노드 `label`이 있으면 이름을, 없으면 주소 앞뒤 몇 자리를 보여 줍니다.
-- 합계는 `data.summary`를 씁니다. 경로마다 더하면 같은 전송을 두 번 셀 수 있습니다.
+- 합계는 `data.summary`를 씁니다. 경로마다 더하면 같은 전송을 두 번 셀 수 있습니다. 합계 `uniqueAmountRaw`는 여러 전송을 더한 값이라 uint256 최대값을 넘을 수 있으니 `BigInt`로 다룹니다.
 
 ## 5. 0건과 부분 결과
 

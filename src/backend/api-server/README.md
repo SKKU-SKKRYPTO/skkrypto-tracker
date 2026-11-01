@@ -53,7 +53,7 @@ PostgreSQL에서 읽으려면 아래 [DB로 실행하기](#db로-실행하기)�
 | 본문 크기 | 64KB → 400 |
 | 요청 시간 | 3초(엔진 시간 예산 최대 2초 + 여유) → 503 `REQUEST_TIMEOUT` |
 | 응답 헤더 | `X-Content-Type-Options: nosniff`, `Cache-Control: no-store` |
-| CORS | 등록한 웹 주소만 허용 |
+| CORS | 등록한 웹 주소만 허용. 429의 `Retry-After`도 읽을 수 있게 노출 |
 
 ## 규격을 바꿀 때
 
@@ -104,14 +104,14 @@ make test-api
 | 회의록 예시 | 테스트 |
 |---|---|
 | 잘못된 주소 형식을 보내면 에러를 돌려주는지 | `TestInvalidAddressReturns400`, `TestAnalysisRejectsBadInput` |
-| 응답 형식이 문서와 같은지 | `TestResponsesMatchSamples`(샘플 20개와 글자 그대로 비교) |
+| 응답 형식이 문서와 같은지 | `TestResponsesMatchSamples`(샘플 21개와 글자 그대로 비교) |
 
 그 밖에 커서 페이지 넘기기, 다른 조건(400)·다른 버전(409)의 커서 거절, 형식이 틀린 쿼리 거절(400), CORS, 분석·거래 조회 중 무효화(409), 요청 제한(429)과 기록 정리 주기, 시간 초과(503)를 확인합니다.
 
 `make test-integration`은 실제 저장소(Fixture 메모리)와 실제 엔진으로 아래를 확인합니다. DB·웹이 붙으면 같은 흐름을 그대로 돌립니다.
 
 - 데이터셋 선택 → 주소 검색 → 1 hop 그래프 → 거래 상세(`TestFixtureFlowSearchOneHopDetail`)
-- 샘플 20개와 실제 응답 비교(`TestResponsesMatchSamples`)
+- 샘플 21개와 실제 응답 비교(`TestResponsesMatchSamples`)
 - 1만 건 성능(`TestTenThousandTransfersAnswerWithinTwoSeconds`)
 
 ## 성능 결과
