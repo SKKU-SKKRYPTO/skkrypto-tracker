@@ -86,6 +86,7 @@ SELECT
           AND boundary.dataset_version = d.dataset_version
           AND (
               boundary.block_number = d.start_block
+	              OR boundary.block_number = d.end_block
               OR EXISTS (
                   SELECT 1
                   FROM ingestion_chunks chunk
@@ -186,14 +187,12 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 		if *finalizedBlock < 0 {
 			return domain.Dataset{}, fmt.Errorf("database contains a negative finalized block")
 		}
-		dataset.FinalizedBlock = domain.BlockNumber(*finalizedBlock)
-	} else if dataset.SourceMode == domain.SourceFixture {
-		// Fixture에는 RPC finality가 없지만 공개 Dataset 계약은 이 값을 요구한다.
-		// 기존 Fixture Repository와 동일하게 고정 범위의 끝을 응답값으로 사용한다.
-		dataset.FinalizedBlock = dataset.EndBlock
+		value := domain.BlockNumber(*finalizedBlock)
+		dataset.FinalizedBlock = &value
 	}
 	if collectedAt != nil {
-		dataset.CollectedAt = collectedAt.UTC()
+		value := collectedAt.UTC()
+		dataset.CollectedAt = &value
 	}
 	if invalidationReason != nil {
 		dataset.InvalidationReason = *invalidationReason

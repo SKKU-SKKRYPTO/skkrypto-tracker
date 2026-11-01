@@ -144,8 +144,11 @@ func TestPostgresListDatasets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].ID != "flow-demo" || got[0].FinalizedBlock != 200 {
+	if len(got) != 1 || got[0].ID != "flow-demo" || got[0].FinalizedBlock == nil || *got[0].FinalizedBlock != 200 {
 		t.Fatalf("datasets = %+v", got)
+	}
+	if got[0].CollectedAt == nil || !got[0].CollectedAt.Equal(collectedAt) {
+		t.Fatalf("collectedAt = %v", got[0].CollectedAt)
 	}
 	if got[0].StartTime.Location() != time.UTC || got[0].BoundaryHashes["200"] != "0xbbb" {
 		t.Fatalf("dataset normalization = %+v", got[0])
@@ -156,7 +159,9 @@ func TestPostgresListDatasets(t *testing.T) {
 	if !rows.closed {
 		t.Fatal("rows must be closed")
 	}
-	if len(db.queryCalls) != 1 || !strings.Contains(db.queryCalls[0].sql, "ORDER BY d.dataset_id") {
+	if len(db.queryCalls) != 1 ||
+		!strings.Contains(db.queryCalls[0].sql, "boundary.block_number = d.end_block") ||
+		!strings.Contains(db.queryCalls[0].sql, "ORDER BY d.dataset_id") {
 		t.Fatalf("query = %+v", db.queryCalls)
 	}
 }
@@ -171,7 +176,7 @@ func TestPostgresGetDatasetMapsNotFound(t *testing.T) {
 	}
 }
 
-func TestPostgresGetDatasetUsesFixtureEndAsFinalizedBlock(t *testing.T) {
+func TestPostgresGetDatasetKeepsFixtureNulls(t *testing.T) {
 	db := &fakePostgresDB{rowQueue: []postgresRow{
 		datasetRow("collecting-demo", "v1", domain.StatusCollecting, nil, nil, nil, `{}`),
 	}}
@@ -181,7 +186,7 @@ func TestPostgresGetDatasetUsesFixtureEndAsFinalizedBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.FinalizedBlock != got.EndBlock || !got.CollectedAt.IsZero() || got.BoundaryHashes == nil {
+	if got.FinalizedBlock != nil || got.CollectedAt != nil || got.BoundaryHashes == nil {
 		t.Fatalf("dataset = %+v", got)
 	}
 }
