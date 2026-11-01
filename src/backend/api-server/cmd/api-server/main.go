@@ -1,5 +1,4 @@
-// api-server는 Fixture를 메모리에 올려 API를 띄운다.
-// DB 연결은 담당 1의 저장소 구현이 나오면 repository.Repository 자리에 바꿔 끼운다.
+// api-server는 API를 띄운다. DATABASE_URL이 있으면 PostgreSQL에서, 없으면 Fixture를 메모리에 올려 읽는다.
 //
 //	go -C src/backend run ./api-server/cmd/api-server   (레포 루트에서, 또는 make run-api)
 package main
@@ -7,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +15,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/analyzer"
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/api-server/httpapi"
@@ -35,10 +37,11 @@ func main() {
 		}
 	}
 
-	repo, err := repository.LoadFixtureDir(fixtureDir)
+	repo, source, closeRepo, err := openRepository(os.Getenv("DATABASE_URL"), fixtureDir)
 	if err != nil {
-		log.Fatalf("Fixture를 읽지 못했습니다: %v", err)
+		log.Fatal(err)
 	}
+	defer closeRepo()
 	srv := &http.Server{
 		Addr: addr,
 		Handler: httpapi.New(httpapi.Config{
@@ -53,7 +56,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("API 서버 시작: http://localhost%s (Fixture: %s)", addr, fixtureDir)
+		log.Printf("API 서버 시작: http://localhost%s (데이터: %s)", addr, source)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal(err)
 		}
@@ -68,6 +71,31 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("종료 중 오류: %v", err)
 	}
+}
+
+// openRepository는 dsn이 있으면 PostgreSQL 저장소를, 비어 있으면 Fixture 저장소를 연다.
+// 돌려주는 설명은 로그용이라 접속 주소의 계정·비밀번호는 넣지 않는다.
+// DB에 처음 연결되지 않으면 바로 실패한다(Railway는 재시작 정책으로 다시 띄운다).
+func openRepository(dsn, fixtureDir string) (repository.Repository, string, func(), error) {
+	if dsn == "" {
+		repo, err := repository.LoadFixtureDir(fixtureDir)
+		if err != nil {
+			return nil, "", nil, fmt.Errorf("Fixture를 읽지 못했습니다: %w", err)
+		}
+		return repo, "Fixture " + fixtureDir, func() {}, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("DATABASE_URL을 읽지 못했습니다: %w", err)
+	}
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, "", nil, fmt.Errorf("PostgreSQL에 연결하지 못했습니다: %w", err)
+	}
+	cfg := pool.Config().ConnConfig
+	return repository.NewPostgres(pool), fmt.Sprintf("PostgreSQL %s:%d/%s", cfg.Host, cfg.Port, cfg.Database), pool.Close, nil
 }
 
 func env(name, fallback string) string {
