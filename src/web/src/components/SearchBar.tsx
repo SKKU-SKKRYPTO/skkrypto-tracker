@@ -5,18 +5,19 @@ import type { Direction, MaxDepth, SearchConditions } from '../searchConditions'
 
 type Props = {
   isSearching: boolean
+  disabled?: boolean
   conditions: SearchConditions
   onConditionsChange: (conditions: SearchConditions) => void
   onSearch: (address: string) => void
 }
 
-function SearchBar({ isSearching, conditions, onConditionsChange, onSearch }: Props) {
+function SearchBar({ isSearching, disabled = false, conditions, onConditionsChange, onSearch }: Props) {
   const [address, setAddress] = useState('')
 
   // form의 submit을 쓰면 버튼 클릭과 입력창에서 Enter 둘 다 검색이 된다.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    onSearch(address)
+    if (!disabled && !isSearching) onSearch(address)
   }
 
   // 조건 메뉴는 기본 <select>라서 Tab으로 이동하고 방향키로 고를 수 있다.
@@ -67,7 +68,7 @@ function SearchBar({ isSearching, conditions, onConditionsChange, onSearch }: Pr
         ))}
       </select>
 
-      <button type="submit" disabled={isSearching}>
+      <button type="submit" disabled={isSearching || disabled}>
         {isSearching ? '검색 중…' : '검색'}
       </button>
     </form>
