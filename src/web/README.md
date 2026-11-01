@@ -16,6 +16,8 @@ go -C src/backend run ./api-server/cmd/api-server
 
 ```powershell
 cd src/web
+# 최초 실행 시 의존성을 설치합니다. 설치 후에는 매번 실행할 필요가 없습니다.
+npm ci
 npm run dev
 ```
 
