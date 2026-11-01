@@ -16,7 +16,13 @@ export type InvalidDiagnostic = {
     | 'COVERAGE_MISMATCH' | 'REQUEST_MISMATCH' | 'DUPLICATE_TRANSFER_ID' | 'DUPLICATE_NODE_ID' | 'UNEXPECTED'
   path: string
 }
-type AdapterOptions = { onInvalid?: (diagnostic: InvalidDiagnostic) => void }
+type DatasetKey = Pick<Dataset, 'datasetId' | 'datasetVersion'>
+type AdapterOptions = { onInvalid?: (diagnostic: InvalidDiagnostic) => void; expectedDataset?: DatasetKey }
+
+// New HTTP callers must supply the selected key. The legacy entry point keeps Mock behavior unchanged.
+export function adaptSelectedTraceResponse(raw: unknown, datasetRaw: unknown, selection: DatasetKey, status = 200, request?: AnalysisRequest, options?: Pick<AdapterOptions, 'onInvalid'>): TraceResponse {
+  return adaptTraceResponse(raw, datasetRaw, status, request, { ...options, expectedDataset: selection })
+}
 
 export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 200, request?: AnalysisRequest, options?: AdapterOptions): TraceResponse {
   function invalid(code: InvalidDiagnostic['code'], path: string): TraceResponse {
@@ -40,8 +46,9 @@ export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 2
     const data = envelope.data as AnalysisResult
     const conditions = meta.conditions as AnalysisRequest | undefined
 
-    if (dataset.datasetId !== 'flow-demo') return invalid('DATASET_MISMATCH', 'dataset.data.datasetId')
-    if (dataset.datasetVersion !== 'v1') return invalid('DATASET_MISMATCH', 'dataset.data.datasetVersion')
+    const expected = options?.expectedDataset ?? { datasetId: 'flow-demo', datasetVersion: 'v1' }
+    if (dataset.datasetId !== expected.datasetId) return invalid('DATASET_MISMATCH', 'dataset.data.datasetId')
+    if (dataset.datasetVersion !== expected.datasetVersion) return invalid('DATASET_MISMATCH', 'dataset.data.datasetVersion')
     if (dataset.status !== 'READY') return invalid('DATASET_MISMATCH', 'dataset.data.status')
     if (meta.datasetId !== dataset.datasetId) return invalid('DATASET_MISMATCH', 'meta.datasetId')
     if (meta.datasetVersion !== dataset.datasetVersion) return invalid('DATASET_MISMATCH', 'meta.datasetVersion')
@@ -66,6 +73,9 @@ export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 2
     if (!sameCoverage(meta.coverage as Coverage, dataset)) return invalid('COVERAGE_MISMATCH', 'meta.coverage')
 
     if (request) {
+      // Selected-mode requests must agree with the explicit UI key, not only the returned metadata.
+      if (options?.expectedDataset && request.datasetId !== expected.datasetId) return invalid('REQUEST_MISMATCH', 'request.datasetId')
+      if (options?.expectedDataset && request.datasetVersion !== expected.datasetVersion) return invalid('REQUEST_MISMATCH', 'request.datasetVersion')
       if (conditions.address.toLowerCase() !== request.address.toLowerCase()) return invalid('REQUEST_MISMATCH', 'meta.conditions.address')
       if (conditions.direction !== request.direction) return invalid('REQUEST_MISMATCH', 'meta.conditions.direction')
       if (conditions.maxDepth !== request.maxDepth) return invalid('REQUEST_MISMATCH', 'meta.conditions.maxDepth')
