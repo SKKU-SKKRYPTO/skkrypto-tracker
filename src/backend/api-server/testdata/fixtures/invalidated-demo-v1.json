@@ -15,7 +15,7 @@
     "endBlock": "18206309",
     "startTime": "2026-10-26T11:50:04Z",
     "endTime": "2026-10-26T13:00:00Z",
-    "finalizedBlock": "18206309",
+    "finalizedBlock": null,
     "collectedAt": "2026-10-26T13:05:00Z",
     "boundaryHashes": {
       "18204211": "0x1781ce3c77ebee8c31366f5dc28e3507b4e9aeab519a23f19520b7995b58d764",

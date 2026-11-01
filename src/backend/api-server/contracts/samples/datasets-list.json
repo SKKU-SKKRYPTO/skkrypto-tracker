@@ -16,7 +16,7 @@
       "endBlock": "18206309",
       "startTime": "2026-10-26T11:50:04Z",
       "endTime": "2026-10-26T13:00:00Z",
-      "finalizedBlock": "18206309",
+      "finalizedBlock": null,
       "collectedAt": "2026-10-26T13:05:00Z",
       "boundaryHashes": {
         "18204211": "0xfdd7101ff957f79a9dcad8506ffd684c1846129bf2ced00853aff3813508ab73",
@@ -43,7 +43,7 @@
       "endBlock": "18206309",
       "startTime": "2026-10-26T11:50:04Z",
       "endTime": "2026-10-26T13:00:00Z",
-      "finalizedBlock": "18206309",
+      "finalizedBlock": null,
       "collectedAt": "2026-10-26T13:05:00Z",
       "boundaryHashes": {
         "18204211": "0x00c72a31b632d1a0fa1d326bad617f0b26df2ec7cd9d69b6e214ae6ec48360fd",
@@ -79,7 +79,7 @@
       "endBlock": "18206309",
       "startTime": "2026-10-26T11:50:04Z",
       "endTime": "2026-10-26T13:00:00Z",
-      "finalizedBlock": "18206309",
+      "finalizedBlock": null,
       "collectedAt": "2026-10-26T13:05:00Z",
       "boundaryHashes": {
         "18204211": "0x1781ce3c77ebee8c31366f5dc28e3507b4e9aeab519a23f19520b7995b58d764",
@@ -107,7 +107,7 @@
       "endBlock": "20100",
       "startTime": "2026-10-26T13:50:00Z",
       "endTime": "2026-10-26T14:30:00Z",
-      "finalizedBlock": "20100",
+      "finalizedBlock": null,
       "collectedAt": "2026-10-26T14:35:00Z",
       "boundaryHashes": {
         "20000": "0x94e5b3caeacf1d8830423a29dbfc88e128015a044c0da5cb997acfa4d247d978",

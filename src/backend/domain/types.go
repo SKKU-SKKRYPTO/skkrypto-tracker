@@ -67,8 +67,8 @@ type Dataset struct {
 	EndBlock           BlockNumber       `json:"endBlock"`
 	StartTime          time.Time         `json:"startTime"`
 	EndTime            time.Time         `json:"endTime"`
-	FinalizedBlock     BlockNumber       `json:"finalizedBlock"`
-	CollectedAt        time.Time         `json:"collectedAt"`
+	FinalizedBlock     *BlockNumber      `json:"finalizedBlock"` // SNAPSHOT만 값이 있다. FIXTURE는 null(DB datasets_finality_valid와 같음)
+	CollectedAt        *time.Time        `json:"collectedAt"`    // READY면 항상 있다. 수집 전·실패·무효화면 null일 수 있다
 	BoundaryHashes     map[string]string `json:"boundaryHashes"` // 블록 번호 → 블록 해시
 	Labels             map[string]string `json:"labels"`         // 주소(소문자) → 화면 표시용 이름
 	Notes              []string          `json:"notes"`
