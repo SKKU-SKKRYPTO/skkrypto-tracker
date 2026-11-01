@@ -7,7 +7,7 @@ const jsonResponse = (value: unknown, status = 200, headers = {}) => new Respons
 describe('common HTTP transport', () => {
   it('makes a relative GET with JSON Accept and no body/Content-Type', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ data: [] }))
-    const result = await createHttpClient({ fetch: fetcher })('/api/datasets')
+    const result = await createHttpClient({ baseUrl: '', fetch: fetcher })('/api/datasets')
     expect(fetcher).toHaveBeenCalledExactlyOnceWith('/api/datasets', {
       method: 'GET', headers: { Accept: 'application/json' }, body: undefined, signal: undefined,
     })
