@@ -13,7 +13,7 @@ const detail = dataset as SuccessEnvelope<Dataset>
 const request = buildLiveTraceRequest(selection, success.meta.conditions.address, { direction: 'outgoing', maxDepth: 2 })
 function setup(body: unknown, status = 200, headers = {}) {
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(body), { status, headers }))
-  return { fetcher, api: createLiveTraceApi(createHttpClient({ fetch: fetcher })) }
+  return { fetcher, api: createLiveTraceApi(createHttpClient({ baseUrl: '', fetch: fetcher })) }
 }
 describe('live trace service', () => {
   it('builds the selected dataset/version and preserves all user direction/depth choices', () => {

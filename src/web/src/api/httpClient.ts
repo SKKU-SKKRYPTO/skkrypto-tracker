@@ -19,16 +19,17 @@ function abortError(): DOMException {
   return new DOMException('Request cancelled', 'AbortError')
 }
 
-// Relative /api URLs work with a future dev proxy; baseUrl and fetch are injectable for tests/deployment.
+// Services supply /api paths; the base URL excludes /api. Empty configuration uses the dev proxy.
+// Explicit baseUrl (including '') overrides the Vite build-time environment value.
 // HTTP error responses are read normally: the service validates their v1 error envelopes.
 export function createHttpClient(config: { baseUrl?: string; fetch?: typeof fetch } = {}): HttpClient {
-  const baseUrl = (config.baseUrl ?? '').replace(/\/+$/, '')
+  const baseUrl = (config.baseUrl ?? import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
   return async (path, options = {}) => {
     if (options.signal?.aborted) throw abortError()
     const body = options.body === undefined ? undefined : JSON.stringify(options.body)
     let response: Response
     try {
-      response = await (config.fetch ?? globalThis.fetch)(`${baseUrl}${path}`, {
+      response = await (config.fetch ?? globalThis.fetch)(`${baseUrl}/${path.replace(/^\/+/, '')}`, {
         method: options.method ?? 'GET',
         headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
         body,

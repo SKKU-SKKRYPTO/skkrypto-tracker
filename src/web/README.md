@@ -26,6 +26,38 @@ npm run dev
 API의 CORS 변경은 필요하지 않습니다. 이 프록시는 개발 전용입니다.
 운영 배포에서는 같은 출처의 `/api` 역방향 프록시 또는 별도 CORS 구성이 필요합니다.
 
+## API 서버 주소 설정
+
+`VITE_API_BASE_URL`을 설정하지 않거나 빈 값으로 두면 기존 로컬 실행 방식이 유지됩니다.
+개발 서버에서는 상대 경로 `/api/...`를 Vite 프록시가 로컬 Go 서버로 전달합니다.
+이 설정은 Mock 전환 옵션이 아니며, 실제 HTTP API의 연결 주소만 변경합니다.
+
+다른 API 서버에 연결하려면 `src/web`에서 `.env.example`을 `.env.local`로 복사한 뒤 값을 지정합니다.
+Railway 연결 예시는 다음과 같습니다.
+
+```dotenv
+VITE_API_BASE_URL=https://api-production-965fc.up.railway.app
+```
+
+주소에는 `/api`를 붙이지 않습니다. 서비스가 `/api/datasets`, `/api/trace` 등의 경로를 추가합니다.
+끝의 `/`는 있어도 됩니다. 예를 들어 위 설정의 목록 요청 주소는
+`https://api-production-965fc.up.railway.app/api/datasets`입니다.
+환경변수 변경 후에는 `npm run dev`를 다시 실행합니다. 배포 시에는 빌드 환경에 설정하고 다시 빌드해야 합니다.
+`VITE_` 환경변수는 브라우저 번들에 공개되므로 비밀번호, API 비밀 키, DB·RPC 비밀값을 넣지 않습니다.
+
+다른 출처의 API에 직접 연결하면 Vite 프록시를 거치지 않으므로 서버의 CORS 허용이 필요합니다.
+현재 Go 서버는 `CORS_ALLOWED_ORIGINS`로 허용 출처를 설정할 수 있습니다.
+Railway 서버에는 실제 웹 출처(예: `http://localhost:5173` 또는 배포된 웹의 HTTPS 주소)를
+쉼표로 구분하여 설정합니다. 출처에는 경로나 끝의 `/`를 넣지 않으며 포트도 일치해야 합니다.
+백엔드 코드를 수정할 필요는 없습니다. 현재 기본 허용값은 `http://localhost:5173,http://localhost:8081`입니다.
+
+브라우저 개발자 도구의 Network에서 목록·상세 GET 및 Trace POST를 확인합니다.
+응답의 `Access-Control-Allow-Origin`이 웹 출처와 일치해야 하며, JSON POST의 사전 요청 OPTIONS는
+GET·POST 메서드와 `Content-Type` 헤더를 허용해야 합니다.
+브라우저에서 CORS 차단은 네트워크 오류로 보일 수 있으므로 Console도 함께 확인합니다.
+`Retry-After` 값을 교차 출처 브라우저에서도 표시하려면 서버가
+`Access-Control-Expose-Headers: Retry-After`를 제공해야 합니다(현재 Go 구현에는 없음).
+
 ## 화면 동작
 
 - 첫 READY 데이터셋의 ID·버전을 선택하고 상세 정보를 조회합니다.
