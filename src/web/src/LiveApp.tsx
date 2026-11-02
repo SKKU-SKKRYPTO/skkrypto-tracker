@@ -1,3 +1,4 @@
+import JsonDownloadButton from './components/JsonDownloadButton'
 import PatternSearchBar from './components/PatternSearchBar'
 import PatternResults from './components/PatternResults'
 import { useEffect, useState, useSyncExternalStore } from 'react'
@@ -36,6 +37,7 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
         onChange={session.setPathConditions} onSearch={() => { void session.searchPaths() }} onCancel={session.cancelSearch} />
       : <PatternSearchBar conditions={state.patternConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
         onChange={session.setPatternConditions} onSearch={() => { void session.searchPatterns() }} onCancel={session.cancelSearch} />}
+    <JsonDownloadButton session={session} />
     {state.isSearching && <p className="notice" role="status">검색 중…</p>}
     {!state.isSearching && !state.pathValidationError && !state.patternValidationError && (state.mode === 'trace' ? state.response === null : state.mode === 'paths' ? state.pathResponse === null : state.patternResponse === null) && <p className="notice">{canSearch(state) ? (state.mode === 'trace' ? '주소를 입력하고 검색하면 송금 목록이 나옵니다.' : state.mode === 'paths' ? '시작 주소와 대상 주소를 입력하고 경로를 검색해 주세요.' : '기준 주소와 방향을 입력하고 패턴을 검색해 주세요.') : 'READY 데이터셋의 상세 정보를 확인한 뒤 검색할 수 있습니다.'}</p>}
     {state.mode === 'patterns' && <>

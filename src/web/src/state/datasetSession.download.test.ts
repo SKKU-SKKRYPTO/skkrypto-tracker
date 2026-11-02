@@ -1,3 +1,6 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import JsonDownloadButton from '../components/JsonDownloadButton'
 import { describe, expect, it, vi } from 'vitest'
 import { createDatasetSession, getDownloadEnvelope } from './datasetSession'
 import type { AnalysisMode } from './datasetSession'
@@ -159,5 +162,37 @@ describe('download provenance across analysis generations', () => {
     session.selectPattern(body.data.patterns[0].patternId)
     expect(session.getDownloadEnvelope()).toEqual(body)
     expect(session.getDownloadEnvelope()?.data.patterns).toHaveLength(2)
+  })
+})
+
+
+describe('download button with real analysis session state', () => {
+  const disabled = (session: ReturnType<typeof createDatasetSession>) => /<button[^>]*disabled/.test(renderToStaticMarkup(createElement(JsonDownloadButton, { session })))
+  it.each(modes)('follows success, editing, loading, errors and mode changes for %s', async mode => {
+    const { session, search, fetcher } = await setup(mode)
+    expect(disabled(session)).toBe(true)
+    await search(); expect(disabled(session)).toBe(false)
+    session.selectTransfer(samples[mode].data.transfers[0].id); expect(disabled(session)).toBe(false)
+    const old = deferred<Response>(); fetcher.mockReturnValueOnce(old.promise)
+    const pending = search(); expect(disabled(session)).toBe(true)
+    old.resolve(json(samples[mode])); await pending; expect(disabled(session)).toBe(false)
+    fetcher.mockRejectedValueOnce(new TypeError('offline')); await search(); expect(disabled(session)).toBe(true)
+    fetcher.mockResolvedValueOnce(json(error, 503)); await search(); expect(disabled(session)).toBe(true)
+    fetcher.mockResolvedValueOnce(json({ data: null })); await search(); expect(disabled(session)).toBe(true)
+    await search(); expect(disabled(session)).toBe(false)
+    if (mode === 'trace') session.onTraceAddressChange()
+    if (mode === 'paths') session.setPathConditions({ ...session.getSnapshot().pathConditions, address: '' })
+    if (mode === 'patterns') session.setPatternConditions({ ...session.getSnapshot().patternConditions, address: '' })
+    expect(disabled(session)).toBe(true)
+    session.setMode(mode === 'trace' ? 'paths' : 'trace'); expect(disabled(session)).toBe(true)
+    session.setMode(mode); expect(disabled(session)).toBe(true)
+  })
+  it.each([['trace', empty], ['trace', partial], ['paths', pathPartial]] as const)('allows successful empty/partial %s downloads', async (mode, body) => {
+    const { session, search } = await setup(mode, body); await search(); expect(disabled(session)).toBe(false)
+  })
+  it.each(modes)('disables %s download during dataset changes and until a new search', async mode => {
+    const { session, search } = await setup(mode); await search(); expect(disabled(session)).toBe(false)
+    const pending = session.selectDataset({ datasetId: samples[mode].meta.datasetId, datasetVersion: 'v1' })
+    expect(disabled(session)).toBe(true); await pending; expect(disabled(session)).toBe(true)
   })
 })
