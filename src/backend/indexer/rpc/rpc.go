@@ -20,6 +20,7 @@ var (
 // Client는 수집기가 사용하는 Ethereum RPC의 최소 기능이다.
 // 구현체는 Transfer topic과 tokenAddress를 적용한 로그만 돌려준다.
 type Client interface {
+	ChainID(ctx context.Context) (uint64, error)
 	FinalizedBlock(ctx context.Context) (Block, error)
 	TransferLogs(ctx context.Context, tokenAddress string, startBlock, endBlock domain.BlockNumber) ([]Log, error)
 	BlockByNumber(ctx context.Context, number domain.BlockNumber) (Block, error)
@@ -60,6 +61,7 @@ type Receipt struct {
 type Method string
 
 const (
+	MethodChainID        Method = "chainID"
 	MethodFinalizedBlock Method = "finalizedBlock"
 	MethodTransferLogs   Method = "transferLogs"
 	MethodBlockByNumber  Method = "blockByNumber"
