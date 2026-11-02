@@ -4,16 +4,17 @@ import type { Transfer } from '../types'
 type Props = {
   transfers: Transfer[]
   selectedTransferId: string | null
-  onSelect: (transferId: string) => void
+  onSelect?: (transferId: string) => void
+  highlightedTransferIds?: ReadonlySet<string>
 }
 
-function TransferTable({ transfers, selectedTransferId, onSelect }: Props) {
+function TransferTable({ transfers, selectedTransferId, onSelect, highlightedTransferIds }: Props) {
   return (
     <div className="table-scroll">
-      <table className="transfers">
+      <table className={onSelect ? 'transfers' : 'transfers transfers-readonly'}>
         <thead>
           <tr>
-            <th>선택</th>
+            <th>{onSelect ? '선택' : '경로 근거'}</th>
             <th>보낸 주소</th>
             <th>받은 주소</th>
             <th className="num">금액</th>
@@ -24,15 +25,18 @@ function TransferTable({ transfers, selectedTransferId, onSelect }: Props) {
         <tbody>
           {transfers.map((transfer) => {
             const isSelected = transfer.id === selectedTransferId
+            const isPathEvidence = highlightedTransferIds?.has(transfer.id) === true
             return (
               <tr
                 key={transfer.id}
-                className={isSelected ? 'selected' : undefined}
-                onClick={() => onSelect(transfer.id)}
+                className={[isSelected ? 'selected' : '', isPathEvidence ? 'path-highlighted' : ''].filter(Boolean).join(' ') || undefined}
+                data-transfer-id={transfer.id}
+                data-path-highlighted={isPathEvidence ? 'true' : undefined}
+                onClick={onSelect ? () => onSelect(transfer.id) : undefined}
               >
                 <td>
                   {/* 키보드 사용자는 Tab으로 이 버튼에 와서 Enter나 Space로 선택한다 */}
-                  <button
+                  {onSelect ? <button
                     type="button"
                     className="select-button"
                     aria-pressed={isSelected}
@@ -40,7 +44,8 @@ function TransferTable({ transfers, selectedTransferId, onSelect }: Props) {
                     onClick={() => onSelect(transfer.id)}
                   >
                     {isSelected ? '✓ 선택됨' : '보기'}
-                  </button>
+                  </button> : <span>{isPathEvidence ? '경로 포함' : '—'}</span>}
+                  {onSelect && isPathEvidence && <span className="path-membership">경로 포함</span>}
                 </td>
                 <td className="mono" title={transfer.from}>
                   {shortenHex(transfer.from)}
