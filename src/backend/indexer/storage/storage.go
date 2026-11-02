@@ -37,6 +37,14 @@ type DatasetSpec struct {
 	FinalizedBlock  domain.BlockNumber
 }
 
+// Dataset은 저장된 Snapshot Dataset의 고정 규격과 수명주기 metadata다.
+type Dataset struct {
+	Spec               DatasetSpec
+	Status             string
+	CollectedAt        *time.Time
+	InvalidationReason *string
+}
+
 // Block은 한 Dataset 버전에서 관측한 블록이다.
 type Block struct {
 	Number domain.BlockNumber

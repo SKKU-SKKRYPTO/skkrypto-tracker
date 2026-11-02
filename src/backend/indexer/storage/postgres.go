@@ -22,6 +22,8 @@ type Postgres struct {
 	db postgresDB
 }
 
+const cleanupTimeout = 5 * time.Second
+
 // NewPostgres는 연결 풀이 준비된 Indexer 저장 구현을 만든다.
 // 연결 풀의 종료는 호출자가 담당한다.
 func NewPostgres(pool *pgxpool.Pool) *Postgres {
@@ -214,7 +216,7 @@ func (p *Postgres) TryLockDataset(ctx context.Context, key DatasetKey) (*Collect
 	var locked bool
 	if err := conn.QueryRow(ctx, `
 SELECT pg_try_advisory_lock(hashtextextended($1, 0))`, lockName).Scan(&locked); err != nil {
-		conn.Release()
+		destroyConnection(conn)
 		return nil, fmt.Errorf("acquire dataset lock: %w", err)
 	}
 	if !locked {
@@ -241,7 +243,7 @@ func (l *CollectionLock) Release(ctx context.Context) error {
 	}
 	l.released = true
 
-	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 	defer cancel()
 	var unlocked bool
 	if err := l.conn.QueryRow(cleanupCtx, `
@@ -255,6 +257,26 @@ SELECT pg_advisory_unlock(hashtextextended($1, 0))`, l.name).Scan(&unlocked); er
 	}
 	l.conn.Release()
 	return nil
+}
+
+// GetDataset은 저장된 Snapshot Dataset의 전체 고정 규격과 게시 metadata를 읽는다.
+func (p *Postgres) GetDataset(ctx context.Context, key DatasetKey) (Dataset, error) {
+	if err := validateKey(key); err != nil {
+		return Dataset{}, err
+	}
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return Dataset{}, fmt.Errorf("begin get dataset: %w", err)
+	}
+	defer rollback(tx)
+	stored, err := loadDataset(ctx, tx, key, false)
+	if err != nil {
+		return Dataset{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Dataset{}, fmt.Errorf("commit get dataset: %w", err)
+	}
+	return stored.public(), nil
 }
 
 // CommitChunk는 정규화된 청크의 모든 행과 체크포인트를 한 트랜잭션으로 저장한다.
@@ -337,6 +359,59 @@ VALUES ($1, $2, $3, $4)`, chunk.Key.ID, chunk.Key.Version, startBlock, endBlock)
 	return nil
 }
 
+// RestartFailed는 실패한 Dataset 행을 잠그고 같은 규격과 청크를 유지한 채 수집 상태로 되돌린다.
+func (p *Postgres) RestartFailed(ctx context.Context, key DatasetKey) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin restart failed dataset: %w", err)
+	}
+	defer rollback(tx)
+	dataset, err := loadDatasetForUpdate(ctx, tx, key)
+	if err != nil {
+		return err
+	}
+	if dataset.status != domain.StatusFailed {
+		return fmt.Errorf("%w: %s to COLLECTING", ErrInvalidStatusTransition, dataset.status)
+	}
+	if _, err := tx.Exec(ctx, `
+UPDATE datasets
+SET status = 'COLLECTING', invalidation_reason = NULL
+WHERE dataset_id = $1 AND dataset_version = $2`, key.ID, key.Version); err != nil {
+		return fmt.Errorf("restart failed dataset: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit restart failed dataset: %w", err)
+	}
+	return nil
+}
+
+// CommittedBoundaries는 커밋된 청크 종료 경계를 시작 블록 순서로 반환한다.
+func (p *Postgres) CommittedBoundaries(ctx context.Context, key DatasetKey) ([]BoundaryHash, error) {
+	if err := validateKey(key); err != nil {
+		return nil, err
+	}
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin committed boundaries: %w", err)
+	}
+	defer rollback(tx)
+	dataset, err := loadDataset(ctx, tx, key, false)
+	if err != nil {
+		return nil, err
+	}
+	_, boundaries, err := readCommittedChunks(ctx, tx, dataset)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit committed boundaries: %w", err)
+	}
+	return boundaries, nil
+}
+
 // ResumePoint는 Dataset 시작부터 연속해서 저장된 마지막 청크 다음 위치를 반환한다.
 func (p *Postgres) ResumePoint(ctx context.Context, key DatasetKey) (ResumePoint, error) {
 	if err := validateKey(key); err != nil {
@@ -352,7 +427,7 @@ func (p *Postgres) ResumePoint(ctx context.Context, key DatasetKey) (ResumePoint
 	if err != nil {
 		return ResumePoint{}, err
 	}
-	if dataset.status != domain.StatusCollecting {
+	if dataset.status != domain.StatusCollecting && dataset.status != domain.StatusFailed {
 		return ResumePoint{}, fmt.Errorf("%w: status is %s", ErrDatasetNotCollecting, dataset.status)
 	}
 	point, err := readResumePoint(ctx, tx, dataset)
@@ -399,6 +474,9 @@ func (p *Postgres) MarkReady(ctx context.Context, key DatasetKey, boundary *Boun
 	}
 	if boundary.BlockNumber != point.Boundary.BlockNumber || boundary.BlockHash != point.Boundary.BlockHash {
 		return fmt.Errorf("%w: READY boundary hash", ErrInconsistentSource)
+	}
+	if err := verifyCoverageEndpoints(ctx, tx, dataset); err != nil {
+		return err
 	}
 
 	if _, err := tx.Exec(ctx, `
@@ -447,7 +525,7 @@ func (p *Postgres) changeStatus(ctx context.Context, key DatasetKey, target, rea
 			return fmt.Errorf("%w: %s to FAILED", ErrInvalidStatusTransition, dataset.status)
 		}
 	case domain.StatusInvalidated:
-		if dataset.status != domain.StatusCollecting && dataset.status != domain.StatusReady {
+		if dataset.status != domain.StatusCollecting && dataset.status != domain.StatusReady && dataset.status != domain.StatusFailed {
 			return fmt.Errorf("%w: %s to INVALIDATED", ErrInvalidStatusTransition, dataset.status)
 		}
 	default:
@@ -468,12 +546,27 @@ WHERE dataset_id = $1 AND dataset_version = $2`, key.ID, key.Version, target, re
 }
 
 type storedDataset struct {
-	key          DatasetKey
-	status       string
-	chainID      uint64
-	tokenAddress string
-	startBlock   domain.BlockNumber
-	endBlock     domain.BlockNumber
+	key                DatasetKey
+	status             string
+	sourceNamespace    string
+	chainID            uint64
+	tokenAddress       string
+	symbol             string
+	decimals           int
+	startBlock         domain.BlockNumber
+	endBlock           domain.BlockNumber
+	startTime          time.Time
+	endTime            time.Time
+	finalizedBlock     domain.BlockNumber
+	collectedAt        *time.Time
+	invalidationReason *string
+}
+
+func (d storedDataset) public() Dataset {
+	return Dataset{Spec: DatasetSpec{Key: d.key, SourceNamespace: d.sourceNamespace,
+		Asset:          domain.Asset{ChainID: d.chainID, TokenAddress: d.tokenAddress, Symbol: d.symbol, Decimals: d.decimals},
+		Coverage:       domain.Coverage{StartBlock: d.startBlock, EndBlock: d.endBlock, StartTime: d.startTime, EndTime: d.endTime},
+		FinalizedBlock: d.finalizedBlock}, Status: d.status, CollectedAt: d.collectedAt, InvalidationReason: d.invalidationReason}
 }
 
 // loadDatasetForUpdate는 상태 변경과 청크 저장을 위해 Dataset 행을 잠가 읽는다.
@@ -484,23 +577,35 @@ func loadDatasetForUpdate(ctx context.Context, tx postgresTx, key DatasetKey) (s
 // loadDataset은 Snapshot Dataset의 저장 범위와 현재 상태를 읽는다.
 func loadDataset(ctx context.Context, tx postgresTx, key DatasetKey, forUpdate bool) (storedDataset, error) {
 	query := `
-SELECT status, chain_id, token_address, start_block, end_block
-FROM datasets
-WHERE dataset_id = $1
-  AND dataset_version = $2
-  AND source_mode = 'SNAPSHOT'`
+SELECT d.status, d.source_namespace, d.chain_id, d.token_address, a.symbol, a.decimals,
+       d.start_block, d.end_block, d.start_time, d.end_time, d.finalized_block,
+       d.collected_at, d.invalidation_reason
+FROM datasets d
+JOIN assets a ON a.chain_id = d.chain_id AND a.token_address = d.token_address
+WHERE d.dataset_id = $1
+  AND d.dataset_version = $2
+  AND d.source_mode = 'SNAPSHOT'`
 	if forUpdate {
-		query += "\nFOR UPDATE"
+		query += "\nFOR UPDATE OF d"
 	}
 
 	var dataset storedDataset
-	var chainID, startBlock, endBlock int64
+	var chainID, startBlock, endBlock, finalizedBlock int64
+	var decimals int16
 	err := tx.QueryRow(ctx, query, key.ID, key.Version).Scan(
 		&dataset.status,
+		&dataset.sourceNamespace,
 		&chainID,
 		&dataset.tokenAddress,
+		&dataset.symbol,
+		&decimals,
 		&startBlock,
 		&endBlock,
+		&dataset.startTime,
+		&dataset.endTime,
+		&finalizedBlock,
+		&dataset.collectedAt,
+		&dataset.invalidationReason,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return storedDataset{}, fmt.Errorf("%w: %s/%s", ErrNotFound, key.ID, key.Version)
@@ -508,14 +613,39 @@ WHERE dataset_id = $1
 	if err != nil {
 		return storedDataset{}, fmt.Errorf("read dataset: %w", err)
 	}
-	if chainID <= 0 || startBlock < 0 || endBlock < 0 {
+	if chainID != int64(domain.ChainID) || startBlock < 0 || endBlock < startBlock || finalizedBlock < endBlock ||
+		strings.TrimSpace(dataset.sourceNamespace) == "" || strings.TrimSpace(dataset.symbol) == "" ||
+		decimals < 0 || decimals > 255 || !lowerTokenAddress(dataset.tokenAddress) || dataset.startTime.IsZero() ||
+		dataset.endTime.Before(dataset.startTime) || (startBlock == endBlock && !dataset.startTime.Equal(dataset.endTime)) ||
+		!validStoredStatus(dataset.status, dataset.collectedAt, dataset.invalidationReason) {
 		return storedDataset{}, fmt.Errorf("%w: invalid dataset values", ErrInconsistentSource)
 	}
 	dataset.key = key
 	dataset.chainID = uint64(chainID)
 	dataset.startBlock = domain.BlockNumber(startBlock)
 	dataset.endBlock = domain.BlockNumber(endBlock)
+	dataset.startTime = dataset.startTime.UTC()
+	dataset.endTime = dataset.endTime.UTC()
+	dataset.finalizedBlock = domain.BlockNumber(finalizedBlock)
+	dataset.decimals = int(decimals)
+	if dataset.collectedAt != nil {
+		value := dataset.collectedAt.UTC()
+		dataset.collectedAt = &value
+	}
 	return dataset, nil
+}
+
+func validStoredStatus(status string, collectedAt *time.Time, reason *string) bool {
+	switch status {
+	case domain.StatusCollecting, domain.StatusFailed:
+		return collectedAt == nil && reason == nil
+	case domain.StatusReady:
+		return collectedAt != nil && !collectedAt.IsZero() && reason == nil
+	case domain.StatusInvalidated:
+		return reason != nil && strings.TrimSpace(*reason) != "" && (collectedAt == nil || !collectedAt.IsZero())
+	default:
+		return false
+	}
 }
 
 // storeBlock은 블록을 추가하거나 같은 번호의 기존 원천 값과 일치하는지 확인한다.
@@ -719,6 +849,11 @@ ON CONFLICT DO NOTHING`, key.ID, key.Version, transfer.ID); err != nil {
 
 // readResumePoint는 저장된 청크가 Dataset 시작부터 겹침 없이 연속되는지 확인한다.
 func readResumePoint(ctx context.Context, tx postgresTx, dataset storedDataset) (ResumePoint, error) {
+	point, _, err := readCommittedChunks(ctx, tx, dataset)
+	return point, err
+}
+
+func readCommittedChunks(ctx context.Context, tx postgresTx, dataset storedDataset) (ResumePoint, []BoundaryHash, error) {
 	rows, err := tx.Query(ctx, `
 SELECT c.start_block, c.end_block, b.block_hash
 FROM ingestion_chunks c
@@ -729,31 +864,61 @@ JOIN blocks b
 WHERE c.dataset_id = $1 AND c.dataset_version = $2
 ORDER BY c.start_block`, dataset.key.ID, dataset.key.Version)
 	if err != nil {
-		return ResumePoint{}, fmt.Errorf("read committed chunks: %w", err)
+		return ResumePoint{}, nil, fmt.Errorf("read committed chunks: %w", err)
 	}
 	defer rows.Close()
 
 	expected := dataset.startBlock
 	point := ResumePoint{NextBlock: expected}
+	var boundaries []BoundaryHash
 	for rows.Next() {
 		var start, end int64
 		var hash string
 		if err := rows.Scan(&start, &end, &hash); err != nil {
-			return ResumePoint{}, fmt.Errorf("scan committed chunk: %w", err)
+			return ResumePoint{}, nil, fmt.Errorf("scan committed chunk: %w", err)
 		}
-		if start < 0 || end < start || domain.BlockNumber(start) != expected || domain.BlockNumber(end) > dataset.endBlock {
-			return ResumePoint{}, ErrIncompleteCoverage
+		if start < 0 || end < start || domain.BlockNumber(start) != expected || domain.BlockNumber(end) > dataset.endBlock || !lowerHash(hash) {
+			return ResumePoint{}, nil, ErrIncompleteCoverage
 		}
-		boundary := &BoundaryHash{BlockNumber: domain.BlockNumber(end), BlockHash: hash}
-		point.Boundary = boundary
+		boundary := BoundaryHash{BlockNumber: domain.BlockNumber(end), BlockHash: hash}
+		boundaries = append(boundaries, boundary)
+		point.Boundary = &boundaries[len(boundaries)-1]
 		point.NextBlock = domain.BlockNumber(end) + 1
 		expected = point.NextBlock
 	}
 	if err := rows.Err(); err != nil {
-		return ResumePoint{}, fmt.Errorf("read committed chunks: %w", err)
+		return ResumePoint{}, nil, fmt.Errorf("read committed chunks: %w", err)
 	}
 	point.Complete = point.Boundary != nil && point.Boundary.BlockNumber == dataset.endBlock
-	return point, nil
+	return point, boundaries, nil
+}
+
+func verifyCoverageEndpoints(ctx context.Context, tx postgresTx, dataset storedDataset) error {
+	check := func(number domain.BlockNumber, want time.Time) error {
+		postgresNumber, _ := postgresBlock(number)
+		var got time.Time
+		if err := tx.QueryRow(ctx, `
+SELECT block_time
+FROM blocks
+WHERE dataset_id = $1 AND dataset_version = $2 AND block_number = $3`,
+			dataset.key.ID, dataset.key.Version, postgresNumber).Scan(&got); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrIncompleteCoverage
+			}
+			return fmt.Errorf("read coverage endpoint block %d: %w", number, err)
+		}
+		if !got.Equal(want) {
+			return fmt.Errorf("%w: block %d time", ErrInconsistentSource, number)
+		}
+		return nil
+	}
+	if err := check(dataset.startBlock, dataset.startTime); err != nil {
+		return err
+	}
+	if dataset.endBlock != dataset.startBlock {
+		return check(dataset.endBlock, dataset.endTime)
+	}
+	return nil
 }
 
 // validateDatasetSpec은 Base Sepolia Snapshot의 자산·범위·finality 입력을 검사한다.
@@ -767,14 +932,15 @@ func validateDatasetSpec(spec DatasetSpec) error {
 	if spec.Asset.ChainID != domain.ChainID {
 		return invalidInput("chainId must be Base Sepolia")
 	}
-	if !lowerAddress(spec.Asset.TokenAddress) {
+	if !lowerTokenAddress(spec.Asset.TokenAddress) {
 		return invalidInput("token address must be a lowercase EVM address")
 	}
 	if strings.TrimSpace(spec.Asset.Symbol) == "" || spec.Asset.Decimals < 0 || spec.Asset.Decimals > 255 {
 		return invalidInput("invalid asset metadata")
 	}
 	if spec.Coverage.EndBlock < spec.Coverage.StartBlock || spec.Coverage.StartTime.IsZero() ||
-		spec.Coverage.EndTime.IsZero() || spec.Coverage.EndTime.Before(spec.Coverage.StartTime) {
+		spec.Coverage.EndTime.IsZero() || spec.Coverage.EndTime.Before(spec.Coverage.StartTime) ||
+		(spec.Coverage.StartBlock == spec.Coverage.EndBlock && !spec.Coverage.StartTime.Equal(spec.Coverage.EndTime)) {
 		return invalidInput("invalid dataset coverage")
 	}
 	if spec.Coverage.EndBlock > spec.FinalizedBlock {
@@ -802,8 +968,18 @@ func validateChunk(chunk Chunk, dataset storedDataset) error {
 		return invalidInput("chunk end block record is required")
 	}
 	if chunk.StartBlock == dataset.startBlock {
-		if _, ok := blocks[chunk.StartBlock]; !ok {
+		block, ok := blocks[chunk.StartBlock]
+		if !ok {
 			return invalidInput("dataset start block record is required")
+		}
+		if !block.Time.Equal(dataset.startTime) {
+			return fmt.Errorf("%w: dataset start block time", ErrInconsistentSource)
+		}
+	}
+	if chunk.EndBlock == dataset.endBlock {
+		block := blocks[chunk.EndBlock]
+		if !block.Time.Equal(dataset.endTime) {
+			return fmt.Errorf("%w: dataset end block time", ErrInconsistentSource)
 		}
 	}
 
@@ -883,6 +1059,11 @@ func lowerAddress(value string) bool {
 	return domain.ValidAddress(value) && value == strings.ToLower(value)
 }
 
+// lowerTokenAddress는 Snapshot 자산 계약이 소문자 형식이며 0주소가 아닌지 확인한다.
+func lowerTokenAddress(value string) bool {
+	return lowerAddress(value) && value != domain.ZeroAddress
+}
+
 // lowerHash는 값이 소문자 EVM hash 형식인지 확인한다.
 func lowerHash(value string) bool {
 	return domain.ValidHash(value) && value == strings.ToLower(value)
@@ -895,5 +1076,13 @@ func datasetLockName(key DatasetKey) string {
 
 // rollback은 성공적으로 커밋되지 않은 트랜잭션을 정리한다.
 func rollback(tx postgresTx) {
-	_ = tx.Rollback(context.Background())
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+	defer cancel()
+	_ = tx.Rollback(cleanupCtx)
+}
+
+func destroyConnection(conn postgresConn) {
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+	defer cancel()
+	_ = conn.Destroy(cleanupCtx)
 }
