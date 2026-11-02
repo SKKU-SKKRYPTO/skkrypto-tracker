@@ -1,0 +1,56 @@
+# main 병합 후 API를 Railway에 배포한다. 배포는 self-hosted runner(skkrypto-deploy)에서만 한다.
+# 배포 토큰(RAILWAY_TOKEN)은 production 환경 시크릿이고, production 환경은 main에서만 쓸 수 있다.
+# public 저장소라 pull_request로는 돌리지 않는다(남이 올린 코드가 runner에서 실행되고 토큰을 노릴 수 있다).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/backend/**
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 배포가 겹치면 앞의 배포를 끝까지 마치고 다음 배포를 한다.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  # main은 CI 통과를 강제하지 않으므로 배포 전에 한 번 더 테스트한다.
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: src/backend/go.mod
+          cache: false
+      - run: go test ./...
+
+  deploy:
+    name: deploy-api
+    needs: test
+    runs-on: skkrypto-deploy
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # 빌드 폴더 src/backend만 올린다. Dockerfile 위치(api-server/Dockerfile)는 Railway 서비스 설정에 있다.
+      - name: railway up
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: npx --yes @railway/cli@4.40.0 up src/backend --path-as-root --service api --ci --message "main ${{ github.sha }}"
