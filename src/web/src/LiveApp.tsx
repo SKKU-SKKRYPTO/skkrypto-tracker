@@ -31,7 +31,7 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
       </select>
     </div>
     {state.mode === 'trace' ? <SearchBar isSearching={state.isSearching} disabled={!canSearch(state)} conditions={state.conditions}
-      onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
+      onAddressChange={session.onTraceAddressChange} onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
       : state.mode === 'paths' ? <PathSearchBar conditions={state.pathConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
         onChange={session.setPathConditions} onSearch={() => { void session.searchPaths() }} onCancel={session.cancelSearch} />
       : <PatternSearchBar conditions={state.patternConditions} disabled={!canSearch(state)} isSearching={state.isSearching}

@@ -1,3 +1,6 @@
+import large from '../../mocks/v1/samples/trace-amount-sum.json'
+import list from '../../mocks/v1/samples/datasets-list.json'
+import { adaptSelectedTraceResponse } from './traceAdapter'
 import { describe, expect, it } from 'vitest'
 import dataset from '../../mocks/v1/samples/dataset-detail.json'
 import success from '../../mocks/v1/samples/trace-success.json'
@@ -160,7 +163,7 @@ const fixedMutations = [
 
 describe('pre-refactor exact behavior characterization', () => {
   it.each([success, empty, limited])('returns the exact existing normal/empty/partial UI result', sample => {
-    expect(adaptTraceResponse(sample, dataset)).toEqual({ ok: true, result: {
+    expect(adaptTraceResponse(sample, dataset)).toEqual({ ok: true, envelope: sample, result: {
       sourceMode: dataset.data.sourceMode, asset: sample.meta.conditions.asset,
       coverage: sample.meta.coverage, conditions: sample.meta.conditions,
       nodes: sample.data.nodes, transfers: sample.data.transfers,
@@ -202,7 +205,9 @@ describe('pre-refactor exact behavior characterization', () => {
   it('characterizes existing behavior: summary is not cross-checked against transfers', () => {
     const raw = structuredClone(success)
     raw.data.summary.uniqueTransferCount = 999
-    expect(adaptTraceResponse(raw, dataset)).toEqual(adaptTraceResponse(success, dataset))
+    const response = adaptTraceResponse(raw, dataset), baseline = adaptTraceResponse(success, dataset)
+    expect(response.ok && response.result).toEqual(baseline.ok && baseline.result)
+    expect(response.ok && response.envelope).toEqual(raw)
   })
 })
 
@@ -307,3 +312,40 @@ describe('optional Adapter diagnostics', () => {
   })
 })
 
+
+// Export keeps all official fields even when the UI model intentionally omits them.
+describe('Trace original envelope preservation', () => {
+  it.each([success, empty, limited])('retains the complete independent success envelope', sample => {
+    const raw = structuredClone(sample), response = adaptTraceResponse(raw, dataset)
+    if (!response.ok) throw Error('expected success')
+    expect(response.envelope).toEqual(raw)
+    expect(response.envelope).not.toBe(raw)
+    expect(response.envelope.data).not.toBe(raw.data)
+    expect(response.envelope.data.transfers).not.toBe(response.result.transfers)
+    expect(response.envelope.meta.conditions).not.toBe(response.result.conditions)
+    response.result.conditions.address = 'UI edit'
+    response.result.limitations.push('UI text')
+    response.result.coverage.startBlock = '0'
+    if (response.result.transfers[0]) response.result.transfers[0].amountRaw = 'formatted amount'
+    expect(response.envelope).toEqual(sample)
+    raw.meta.limitations.push('caller edit')
+    expect(response.envelope).toEqual(sample)
+  })
+  it.each([unavailable, { ...success, data: null }, '{'])('never exposes an envelope for failed validation', raw => {
+    const response = adaptTraceResponse(raw, dataset)
+    expect(response.ok).toBe(false); expect(response).not.toHaveProperty('envelope')
+  })
+})
+
+
+describe('Trace large-value export precision', () => {
+  it('preserves uint256 amounts and a sum larger than uint256 as original decimal strings', () => {
+    const ds = list.data.find(row => row.datasetId === 'patterns-demo')!
+    const response = adaptSelectedTraceResponse(large, { ...dataset, data: ds }, { datasetId: 'patterns-demo', datasetVersion: 'v1' })
+    if (!response.ok) throw Error('expected valid official sample')
+    expect(response.envelope).toEqual(large)
+    expect(response.envelope.data.summary.uniqueAmountRaw).toBe(large.data.summary.uniqueAmountRaw)
+    expect(typeof response.envelope.data.summary.uniqueAmountRaw).toBe('string')
+    for (const t of response.envelope.data.transfers) { expect(typeof t.amountRaw).toBe('string'); expect(typeof t.blockNumber).toBe('string') }
+  })
+})

@@ -123,3 +123,16 @@ describe('live Trace and Path UI integration', () => {
     expect(render().input.disabled).toBe(false)
   })
 })
+
+
+describe('Trace draft address export invalidation', () => {
+  it('wires local address editing to invalidation without replacing the applied result', async () => {
+    const { session, render } = await setup(); await session.search(traceJson.meta.conditions.address)
+    const previous = session.getSnapshot().response
+    expect(session.getDownloadEnvelope()).toEqual(traceJson)
+    ;(render().input.onAddressChange as (value: string) => void)('edited draft')
+    expect(session.getDownloadEnvelope()).toBeNull()
+    expect(session.getSnapshot().response).toBe(previous)
+    expect(render().html).toContain('송금 상세')
+  })
+})
