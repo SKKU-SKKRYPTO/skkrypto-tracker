@@ -357,3 +357,8 @@
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
+
+.pattern-list { padding-left: 24px; }
+.pattern-list h2 { margin: 0 0 8px; font-size: 18px; }
+.pattern-list .full-value { overflow-wrap: anywhere; }
+.pattern-list summary { cursor: pointer; }
