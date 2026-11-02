@@ -7,12 +7,13 @@ export function uniqueTransfers(transfers: readonly Transfer[]): Transfer[] {
   return [...byId.values()]
 }
 
+// Missing evidence invalidates the whole selection; never fabricate a partial match.
+export function resolveEvidenceIds(ids: readonly string[], transfers: readonly Transfer[]): Set<string> {
+  const available = new Set(transfers.map(transfer => transfer.id))
+  return ids.length === 0 || ids.some(id => !available.has(id)) ? new Set() : new Set(ids)
+}
 export function resolvePathSelection(paths: readonly Path[], transfers: readonly Transfer[], selectedPathId: string | null) {
   const path = paths.find(row => row.id === selectedPathId)
-  const available = new Set(transfers.map(transfer => transfer.id))
-  // A partially resolved path must not look like complete evidence for that path.
-  if (!path || path.transferIds.length === 0 || path.transferIds.some(id => !available.has(id))) {
-    return { path: null, transferIds: new Set<string>() }
-  }
-  return { path, transferIds: new Set(path.transferIds) }
+  const transferIds = resolveEvidenceIds(path?.transferIds ?? [], transfers)
+  return { path: transferIds.size > 0 ? path ?? null : null, transferIds }
 }

@@ -49,11 +49,11 @@ async function setup() {
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
 
 describe('live Trace and Path UI integration', () => {
-  it('defaults to the existing Trace form and exposes no Pattern option', async () => {
+  it('defaults to the existing Trace form alongside Path and Pattern modes', async () => {
     const { render } = await setup(), ui = render()
     expect(ui.html).toContain('추적(Trace)')
     expect(ui.html).toContain('경로(Path)')
-    expect(ui.html).not.toContain('Pattern')
+    expect(ui.html).toContain('패턴(Pattern)')
     expect(ui.html).not.toContain('대상 주소')
     expect(ui.html).toContain('송금 목록')
   })

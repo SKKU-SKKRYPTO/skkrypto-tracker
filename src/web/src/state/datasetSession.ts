@@ -1,3 +1,8 @@
+import { resolvePatternSelection } from '../patternSelection'
+import { buildPatternRequest, createPatternApi } from '../api/patterns'
+import type { PatternDiagnostic, PatternResponse } from '../api/patterns'
+import { DEFAULT_PATTERN_CONDITIONS, validatePatternConditions } from '../patternConditions'
+import type { PatternConditions } from '../patternConditions'
 import { createDatasetApi } from '../api/datasets'
 import type { DatasetKey, DatasetResponse } from '../api/datasets'
 import { buildLiveTraceRequest, createLiveTraceApi } from '../api/liveTrace'
@@ -14,8 +19,9 @@ import type { Dataset, SuccessEnvelope } from '../api/v1Types'
 import { DEFAULT_SEARCH_CONDITIONS } from '../searchConditions'
 import type { SearchConditions } from '../searchConditions'
 
-export type RequestFailure = Exclude<DatasetResponse<unknown>, { ok: true }> | Exclude<LiveTraceResponse, { ok: true }> | Exclude<PathsResponse, { ok: true }>
-export type AnalysisMode = 'trace' | 'paths'
+export type RequestFailure = Exclude<DatasetResponse<unknown>, { ok: true }> | Exclude<LiveTraceResponse, { ok: true }> | Exclude<PathsResponse, { ok: true }> | Exclude<PatternResponse, { ok: true }>
+export type AnalysisMode = 'trace' | 'paths' | 'patterns'
+export type PatternSearchResponse = PatternResponse | SearchFailure
 export type PathSearchResponse = PathsResponse | SearchFailure
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type DatasetSessionState = {
@@ -23,6 +29,8 @@ export type DatasetSessionState = {
   selection: DatasetKey | null; detail: SuccessEnvelope<Dataset> | null; detailStatus: LoadStatus; detailError: RequestFailure | null
   conditions: SearchConditions; response: LiveTraceResponse | null; isSearching: boolean; selectedTransferId: string | null
   mode: AnalysisMode; pathConditions: PathConditions; pathResponse: PathSearchResponse | null; pathValidationError: string | null
+  patternConditions: PatternConditions; patternResponse: PatternSearchResponse | null; patternValidationError: string | null
+  selectedPatternId: string | null
   selectedPathId: string | null
 }
 export function canSearch(state: DatasetSessionState): boolean {
@@ -37,6 +45,8 @@ const aborted = (cause: unknown, signal: AbortSignal) => signal.aborted || (caus
 // Immutable snapshots make this store usable by React.useSyncExternalStore and testable without a DOM library.
 export function createDatasetSession(dependencies: {
   datasets?: ReturnType<typeof createDatasetApi>; trace?: ReturnType<typeof createLiveTraceApi>
+  patterns?: ReturnType<typeof createPatternApi>
+  onInvalidPattern?: (diagnostic: PatternDiagnostic) => void
   paths?: ReturnType<typeof createPathsApi>
   onInvalid?: (diagnostic: InvalidDiagnostic) => void
   onInvalidPath?: (diagnostic: PathsDiagnostic) => void
@@ -44,12 +54,14 @@ export function createDatasetSession(dependencies: {
   const datasets = dependencies.datasets ?? createDatasetApi()
   const trace = dependencies.trace ?? createLiveTraceApi()
   const paths = dependencies.paths ?? createPathsApi()
+  const patterns = dependencies.patterns ?? createPatternApi()
   const listeners = new Set<() => void>()
   let state: DatasetSessionState = {
     datasets: [], listStatus: 'idle', listError: null, selection: null, detail: null, detailStatus: 'idle', detailError: null,
     conditions: { ...DEFAULT_SEARCH_CONDITIONS }, response: null, isSearching: false, selectedTransferId: null,
     mode: 'trace', pathConditions: { ...DEFAULT_PATH_CONDITIONS }, pathResponse: null, pathValidationError: null,
-    selectedPathId: null,
+    patternConditions: { ...DEFAULT_PATTERN_CONDITIONS }, patternResponse: null, patternValidationError: null,
+    selectedPatternId: null, selectedPathId: null,
   }
   let listId = 0, detailId = 0, traceId = 0
   let listController: AbortController | undefined, detailController: AbortController | undefined, traceController: AbortController | undefined
@@ -58,8 +70,8 @@ export function createDatasetSession(dependencies: {
     ++traceId
     traceController?.abort()
     traceController = undefined
-    // One request generation covers both modes, so stale catch/finally cannot cross modes.
-    update({ isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
+    // One request generation covers all modes, so stale catch/finally cannot cross modes.
+    update({ selectedPatternId: null, patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
   }
   function cancelPending() {
     ++listId; ++detailId
@@ -149,16 +161,43 @@ export function createDatasetSession(dependencies: {
       if (id === traceId) update({ isSearching: false })
     }
   }
+  async function searchPatterns() {
+    if (state.mode !== 'patterns' || !canSearch(state) || !state.selection || !state.detail) return
+    invalidateTrace(true)
+    const conditions = { ...state.patternConditions }
+    const validationError = validatePatternConditions(conditions)
+    if (validationError) { update({ patternValidationError: validationError }); return }
+    const id = traceId, controller = new AbortController()
+    traceController = controller
+    const selection = { ...state.selection }, dataset = state.detail
+    update({ isSearching: true })
+    try {
+      const request = buildPatternRequest(selection, conditions.address, conditions.direction === 'all' ? undefined : conditions.direction)
+      const result = await patterns.searchPatterns({ selection, dataset, request, signal: controller.signal, onInvalid: dependencies.onInvalidPattern })
+      if (id !== traceId || controller.signal.aborted) return
+      update({ patternResponse: result })
+      if (!result.ok && result.kind === 'api' && ['DATASET_NOT_READY', 'DATASET_INVALIDATED', 'DATASET_NOT_FOUND'].includes(result.error.code)) {
+        update({ detail: null, detailStatus: 'error', detailError: null })
+      }
+    } catch (cause) {
+      if (id === traceId && !aborted(cause, controller.signal)) update({ patternResponse: searchFailure(cause) })
+    } finally {
+      if (id === traceId) update({ isSearching: false })
+    }
+  }
   return {
     getSnapshot: () => state,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
-    loadDatasets, selectDataset, search, searchPaths, cancelPending,
+    loadDatasets, selectDataset, search, searchPaths, searchPatterns, cancelPending,
     setMode(mode: AnalysisMode) {
       if (mode === state.mode) return
       invalidateTrace(true); update({ mode })
     },
     setPathConditions(conditions: PathConditions) {
       invalidateTrace(true); update({ pathConditions: { ...conditions } })
+    },
+    setPatternConditions(conditions: PatternConditions) {
+      invalidateTrace(true); update({ patternConditions: { ...conditions } })
     },
     cancelSearch() { invalidateTrace(true) },
     setConditions(conditions: SearchConditions) { invalidateTrace(); update({ conditions: { ...conditions } }) },
@@ -170,7 +209,23 @@ export function createDatasetSession(dependencies: {
       if (next.path) update({ selectedPathId: id,
         selectedTransferId: state.selectedTransferId !== null && next.transferIds.has(state.selectedTransferId) ? state.selectedTransferId : null })
     },
+    selectPattern(id: string | null) {
+      if (state.mode !== 'patterns' || state.isSearching || !state.patternResponse?.ok) return
+      if (id === null) { update({ selectedPatternId: null }); return }
+      const { patterns, transfers } = state.patternResponse.envelope.data
+      const next = resolvePatternSelection(patterns, transfers, id)
+      if (next.pattern) update({ selectedPatternId: id,
+        selectedTransferId: state.selectedTransferId !== null && next.transferIds.has(state.selectedTransferId) ? state.selectedTransferId : null })
+    },
     selectTransfer(id: string) {
+      if (state.mode === 'patterns') {
+        if (state.isSearching || !state.patternResponse?.ok) return
+        const { patterns, transfers } = state.patternResponse.envelope.data
+        if (!transfers.some(transfer => transfer.id === id)) return
+        const current = resolvePatternSelection(patterns, transfers, state.selectedPatternId)
+        update({ selectedTransferId: id, selectedPatternId: current.transferIds.has(id) ? current.pattern!.patternId : null })
+        return
+      }
       if (state.mode === 'paths') {
         if (state.isSearching || !state.pathResponse?.ok) return
         const { paths, transfers } = state.pathResponse.result.data

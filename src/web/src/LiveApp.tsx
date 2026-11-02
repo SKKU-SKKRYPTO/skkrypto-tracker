@@ -1,3 +1,5 @@
+import PatternSearchBar from './components/PatternSearchBar'
+import PatternResults from './components/PatternResults'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createDatasetSession, canSearch } from './state/datasetSession'
 import type { DatasetSession } from './state/datasetSession'
@@ -25,15 +27,23 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     <div className="search-bar">
       <label htmlFor="analysis-mode">분석 종류</label>
       <select id="analysis-mode" value={state.mode} onChange={event => session.setMode(event.target.value as AnalysisMode)}>
-        <option value="trace">추적(Trace)</option><option value="paths">경로(Path)</option>
+        <option value="trace">추적(Trace)</option><option value="paths">경로(Path)</option><option value="patterns">패턴(Pattern)</option>
       </select>
     </div>
     {state.mode === 'trace' ? <SearchBar isSearching={state.isSearching} disabled={!canSearch(state)} conditions={state.conditions}
       onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
-      : <PathSearchBar conditions={state.pathConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
-        onChange={session.setPathConditions} onSearch={() => { void session.searchPaths() }} onCancel={session.cancelSearch} />}
+      : state.mode === 'paths' ? <PathSearchBar conditions={state.pathConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
+        onChange={session.setPathConditions} onSearch={() => { void session.searchPaths() }} onCancel={session.cancelSearch} />
+      : <PatternSearchBar conditions={state.patternConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
+        onChange={session.setPatternConditions} onSearch={() => { void session.searchPatterns() }} onCancel={session.cancelSearch} />}
     {state.isSearching && <p className="notice" role="status">검색 중…</p>}
-    {!state.isSearching && !state.pathValidationError && (state.mode === 'trace' ? state.response === null : state.pathResponse === null) && <p className="notice">{canSearch(state) ? (state.mode === 'trace' ? '주소를 입력하고 검색하면 송금 목록이 나옵니다.' : '시작 주소와 대상 주소를 입력하고 경로를 검색해 주세요.') : 'READY 데이터셋의 상세 정보를 확인한 뒤 검색할 수 있습니다.'}</p>}
+    {!state.isSearching && !state.pathValidationError && !state.patternValidationError && (state.mode === 'trace' ? state.response === null : state.mode === 'paths' ? state.pathResponse === null : state.patternResponse === null) && <p className="notice">{canSearch(state) ? (state.mode === 'trace' ? '주소를 입력하고 검색하면 송금 목록이 나옵니다.' : state.mode === 'paths' ? '시작 주소와 대상 주소를 입력하고 경로를 검색해 주세요.' : '기준 주소와 방향을 입력하고 패턴을 검색해 주세요.') : 'READY 데이터셋의 상세 정보를 확인한 뒤 검색할 수 있습니다.'}</p>}
+    {state.mode === 'patterns' && <>
+      {state.patternValidationError && <p className="notice notice-error" role="alert">{state.patternValidationError}</p>}
+      {state.patternResponse && !state.patternResponse.ok && <RequestNotice failure={state.patternResponse} />}
+      {state.patternResponse?.ok && <PatternResults envelope={state.patternResponse.envelope} selectedPatternId={state.selectedPatternId} onSelectPattern={session.selectPattern}
+        selectedTransferId={state.selectedTransferId} onSelectTransfer={session.selectTransfer} />}
+    </>}
     {state.mode === 'paths' && <>
       {state.pathValidationError && <p className="notice notice-error" role="alert">{state.pathValidationError}</p>}
       {state.pathResponse && !state.pathResponse.ok && <RequestNotice failure={state.pathResponse} />}
