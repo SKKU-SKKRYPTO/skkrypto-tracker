@@ -290,3 +290,70 @@
 .detail-empty {
   font-size: 14px;
 }
+
+.path-list {
+  padding-left: 24px;
+}
+
+.path-list h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.path-list .full-value,
+.notice.full-value {
+  overflow-wrap: anywhere;
+}
+
+.path-list summary {
+  cursor: pointer;
+}
+
+.path-list .path-selected {
+  border: 2px solid var(--accent);
+  background: var(--accent-bg);
+}
+
+.transfers tbody tr.path-highlighted {
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-weight: 600;
+
+  td:first-child {
+    border-left: 4px dashed var(--accent);
+  }
+}
+
+.transfers-readonly tbody tr {
+  cursor: default;
+}
+
+.path-evidence {
+  grid-template-rows: auto;
+  grid-template-areas: 'table graph';
+
+  @media (max-width: 960px) {
+    grid-template-areas: 'table' 'graph';
+  }
+}
+
+.path-evidence.path-with-detail {
+  grid-template-rows: auto 1fr;
+  grid-template-areas: 'table graph' 'table detail';
+
+  @media (max-width: 960px) {
+    grid-template-rows: auto;
+    grid-template-areas: 'table' 'graph' 'detail';
+  }
+}
+
+.path-membership {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+.transfers tbody tr.selected.path-highlighted {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

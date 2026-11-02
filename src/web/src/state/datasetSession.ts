@@ -2,18 +2,28 @@ import { createDatasetApi } from '../api/datasets'
 import type { DatasetKey, DatasetResponse } from '../api/datasets'
 import { buildLiveTraceRequest, createLiveTraceApi } from '../api/liveTrace'
 import type { LiveTraceResponse } from '../api/liveTrace'
+import { buildPathsRequest, createPathsApi } from '../api/paths'
+import type { PathsDiagnostic, PathsResponse } from '../adapters/pathsAdapter'
+import type { SearchFailure } from '../api/searchFailure'
+import { DEFAULT_PATH_CONDITIONS, validatePathAddresses } from '../pathConditions'
+import type { PathConditions } from '../pathConditions'
+import { resolvePathSelection } from '../pathSelection'
 import { searchFailure } from '../api/searchFailure'
 import type { InvalidDiagnostic } from '../adapters/traceAdapter'
 import type { Dataset, SuccessEnvelope } from '../api/v1Types'
 import { DEFAULT_SEARCH_CONDITIONS } from '../searchConditions'
 import type { SearchConditions } from '../searchConditions'
 
-export type RequestFailure = Exclude<DatasetResponse<unknown>, { ok: true }> | Exclude<LiveTraceResponse, { ok: true }>
+export type RequestFailure = Exclude<DatasetResponse<unknown>, { ok: true }> | Exclude<LiveTraceResponse, { ok: true }> | Exclude<PathsResponse, { ok: true }>
+export type AnalysisMode = 'trace' | 'paths'
+export type PathSearchResponse = PathsResponse | SearchFailure
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type DatasetSessionState = {
   datasets: Dataset[]; listStatus: LoadStatus; listError: RequestFailure | null
   selection: DatasetKey | null; detail: SuccessEnvelope<Dataset> | null; detailStatus: LoadStatus; detailError: RequestFailure | null
   conditions: SearchConditions; response: LiveTraceResponse | null; isSearching: boolean; selectedTransferId: string | null
+  mode: AnalysisMode; pathConditions: PathConditions; pathResponse: PathSearchResponse | null; pathValidationError: string | null
+  selectedPathId: string | null
 }
 export function canSearch(state: DatasetSessionState): boolean {
   return state.detailStatus === 'ready' && state.detail?.data.status === 'READY' &&
@@ -27,14 +37,19 @@ const aborted = (cause: unknown, signal: AbortSignal) => signal.aborted || (caus
 // Immutable snapshots make this store usable by React.useSyncExternalStore and testable without a DOM library.
 export function createDatasetSession(dependencies: {
   datasets?: ReturnType<typeof createDatasetApi>; trace?: ReturnType<typeof createLiveTraceApi>
+  paths?: ReturnType<typeof createPathsApi>
   onInvalid?: (diagnostic: InvalidDiagnostic) => void
+  onInvalidPath?: (diagnostic: PathsDiagnostic) => void
 } = {}) {
   const datasets = dependencies.datasets ?? createDatasetApi()
   const trace = dependencies.trace ?? createLiveTraceApi()
+  const paths = dependencies.paths ?? createPathsApi()
   const listeners = new Set<() => void>()
   let state: DatasetSessionState = {
     datasets: [], listStatus: 'idle', listError: null, selection: null, detail: null, detailStatus: 'idle', detailError: null,
     conditions: { ...DEFAULT_SEARCH_CONDITIONS }, response: null, isSearching: false, selectedTransferId: null,
+    mode: 'trace', pathConditions: { ...DEFAULT_PATH_CONDITIONS }, pathResponse: null, pathValidationError: null,
+    selectedPathId: null,
   }
   let listId = 0, detailId = 0, traceId = 0
   let listController: AbortController | undefined, detailController: AbortController | undefined, traceController: AbortController | undefined
@@ -43,7 +58,8 @@ export function createDatasetSession(dependencies: {
     ++traceId
     traceController?.abort()
     traceController = undefined
-    update({ isSearching: false, selectedTransferId: null, ...(clearResult ? { response: null } : {}) })
+    // One request generation covers both modes, so stale catch/finally cannot cross modes.
+    update({ isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
   }
   function cancelPending() {
     ++listId; ++detailId
@@ -87,7 +103,7 @@ export function createDatasetSession(dependencies: {
     }
   }
   async function search(address: string) {
-    if (!canSearch(state) || !state.selection || !state.detail) return
+    if (state.mode !== 'trace' || !canSearch(state) || !state.selection || !state.detail) return
     invalidateTrace(true)
     const id = traceId
     const controller = new AbortController()
@@ -109,12 +125,60 @@ export function createDatasetSession(dependencies: {
       if (id === traceId) update({ isSearching: false })
     }
   }
+  async function searchPaths() {
+    if (state.mode !== 'paths' || !canSearch(state) || !state.selection || !state.detail) return
+    invalidateTrace(true)
+    const conditions = { ...state.pathConditions }
+    const validationError = validatePathAddresses(conditions.address, conditions.targetAddress)
+    if (validationError) { update({ pathValidationError: validationError }); return }
+    const id = traceId, controller = new AbortController()
+    traceController = controller
+    const selection = { ...state.selection }, dataset = state.detail
+    const request = buildPathsRequest(selection, conditions.address, conditions.targetAddress, conditions)
+    update({ isSearching: true })
+    try {
+      const result = await paths.searchPaths({ selection, dataset, request, signal: controller.signal, onInvalid: dependencies.onInvalidPath })
+      if (id !== traceId || controller.signal.aborted) return
+      update({ pathResponse: result })
+      if (!result.ok && result.kind === 'api' && ['DATASET_NOT_READY', 'DATASET_INVALIDATED', 'DATASET_NOT_FOUND'].includes(result.error.code)) {
+        update({ detail: null, detailStatus: 'error', detailError: null })
+      }
+    } catch (cause) {
+      if (id === traceId && !aborted(cause, controller.signal)) update({ pathResponse: searchFailure(cause) })
+    } finally {
+      if (id === traceId) update({ isSearching: false })
+    }
+  }
   return {
     getSnapshot: () => state,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
-    loadDatasets, selectDataset, search, cancelPending,
+    loadDatasets, selectDataset, search, searchPaths, cancelPending,
+    setMode(mode: AnalysisMode) {
+      if (mode === state.mode) return
+      invalidateTrace(true); update({ mode })
+    },
+    setPathConditions(conditions: PathConditions) {
+      invalidateTrace(true); update({ pathConditions: { ...conditions } })
+    },
+    cancelSearch() { invalidateTrace(true) },
     setConditions(conditions: SearchConditions) { invalidateTrace(); update({ conditions: { ...conditions } }) },
+    selectPath(id: string | null) {
+      if (state.mode !== 'paths' || state.isSearching || !state.pathResponse?.ok) return
+      if (id === null) { update({ selectedPathId: null }); return }
+      const { paths, transfers } = state.pathResponse.result.data
+      const next = resolvePathSelection(paths, transfers, id)
+      if (next.path) update({ selectedPathId: id,
+        selectedTransferId: state.selectedTransferId !== null && next.transferIds.has(state.selectedTransferId) ? state.selectedTransferId : null })
+    },
     selectTransfer(id: string) {
+      if (state.mode === 'paths') {
+        if (state.isSearching || !state.pathResponse?.ok) return
+        const { paths, transfers } = state.pathResponse.result.data
+        if (!transfers.some(transfer => transfer.id === id)) return
+        const current = resolvePathSelection(paths, transfers, state.selectedPathId)
+        update({ selectedTransferId: id, selectedPathId: current.transferIds.has(id) ? current.path!.id : null })
+        return
+      }
       if (state.response?.ok && state.response.result.transfers.some(transfer => transfer.id === id)) update({ selectedTransferId: id })
     },
   }

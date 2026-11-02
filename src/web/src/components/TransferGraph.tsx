@@ -1,18 +1,23 @@
 import cytoscape from 'cytoscape'
 import type { Core, StylesheetJson } from 'cytoscape'
 import { useEffect, useRef } from 'react'
-import type { TraceResult } from '../types'
 import { buildElements } from './graphElements'
+import type { TransferGraphData } from './graphElements'
+import { applyTransferHighlights } from './graphHighlights'
+
+const NO_PATH_HIGHLIGHTS: ReadonlySet<string> = new Set()
 
 type Props = {
-  result: TraceResult
+  result: TransferGraphData
   selectedTransferId: string | null
-  onSelect: (transferId: string) => void
+  onSelect?: (transferId: string) => void
+  highlightedTransferIds?: ReadonlySet<string>
 }
 
 // 주소 = 점, 송금 = 화살표. 간선 id는 transfers[].id 그대로라서 표·상세와 같은 키를 쓴다.
 // 그래프는 보조 화면이다. 모든 정보는 표와 상세에도 있다.
-function TransferGraph({ result, selectedTransferId, onSelect }: Props) {
+function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransferIds = NO_PATH_HIGHLIGHTS }: Props) {
+  const isPathView = highlightedTransferIds !== NO_PATH_HIGHLIGHTS
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<Core | null>(null)
   // 그래프는 결과가 바뀔 때만 새로 그린다. 클릭 처리 함수는 ref로 최신 것을 쓴다.
@@ -33,8 +38,9 @@ function TransferGraph({ result, selectedTransferId, onSelect }: Props) {
       layout: {
         name: 'breadthfirst',
         directed: true,
-        // 검색한 시작 주소(점 id)를 맨 위(뿌리)에 둔다.
-        roots: [result.conditions.address.toLowerCase()],
+        // Trace retains its existing root. Incoming Path can place the money-flow source
+        // at the top without changing the searched-address marker or reversing edges.
+        roots: [(result.layoutRoot ?? result.conditions.address).toLowerCase()],
         spacingFactor: 1.1,
         padding: 24,
       },
@@ -46,9 +52,9 @@ function TransferGraph({ result, selectedTransferId, onSelect }: Props) {
     })
     cyRef.current = cy
 
-    cy.on('tap', 'edge', (event) => onSelectRef.current(event.target.id()))
+    cy.on('tap', 'edge', (event) => onSelectRef.current?.(event.target.id()))
     cy.on('mouseover', 'edge', () => {
-      container.style.cursor = 'pointer'
+      container.style.cursor = onSelectRef.current ? 'pointer' : ''
     })
     cy.on('mouseout', 'edge', () => {
       container.style.cursor = ''
@@ -69,11 +75,8 @@ function TransferGraph({ result, selectedTransferId, onSelect }: Props) {
   useEffect(() => {
     const cy = cyRef.current
     if (cy === null) return
-    cy.edges().removeClass('selected')
-    if (selectedTransferId !== null) {
-      cy.getElementById(selectedTransferId).addClass('selected')
-    }
-  }, [result, selectedTransferId])
+    applyTransferHighlights(cy, selectedTransferId, highlightedTransferIds)
+  }, [result, selectedTransferId, highlightedTransferIds])
 
   return (
     <figure className="graph">
@@ -81,11 +84,12 @@ function TransferGraph({ result, selectedTransferId, onSelect }: Props) {
         ref={containerRef}
         className="graph-canvas"
         role="img"
-        aria-label="송금 흐름 그래프. 같은 정보가 송금 목록 표와 상세에 모두 있습니다."
+        aria-label={isPathView ? '경로 근거 송금 그래프. 경로는 굵은 점선, 선택한 송금은 굵은 실선으로 구분합니다.' : '송금 흐름 그래프. 같은 정보가 송금 목록 표와 상세에 모두 있습니다.'}
       />
       <figcaption className="graph-caption">
         <span className="graph-start-sample">시작</span> 이중 테두리 = 검색한 시작 주소 ·
-        화살표를 누르면 표와 상세에서 같은 송금을 보여 줍니다.
+        {isPathView && '굵은 점선 = 후보 경로 근거 · 굵은 실선 = 선택한 송금 · '}
+        {onSelect ? '화살표를 누르면 표와 상세에서 같은 송금을 보여 줍니다.' : '경로의 근거 송금이 표에도 함께 표시됩니다.'}
       </figcaption>
     </figure>
   )
@@ -152,11 +156,26 @@ function buildStyle(container: HTMLElement): StylesheetJson {
         'text-border-opacity': 1,
       },
     },
+    // Path evidence uses a dashed stroke, distinct from single-transfer selection.
+    {
+      selector: 'edge.path-highlighted',
+      style: {
+        width: 5,
+        'line-style': 'dashed',
+        'line-color': accent,
+        'target-arrow-color': accent,
+        'font-weight': 'bold',
+        'text-border-width': 2,
+        'text-border-color': accent,
+        'z-index': 9,
+      },
+    },
     // 선택한 송금: 색 + 굵은 선 + 굵은 글자 + 진한 금액 테두리
     {
       selector: 'edge.selected',
       style: {
         width: 6,
+        'line-style': 'solid',
         'line-color': accent,
         'target-arrow-color': accent,
         'font-weight': 'bold',
