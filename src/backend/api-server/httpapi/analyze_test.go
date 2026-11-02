@@ -61,6 +61,25 @@ func TestNodesGetDatasetLabels(t *testing.T) {
 	}
 }
 
+// 저장소의 전송·거래·블록 이름표와 메모는 분석 결과의 근거 전송에도 그대로 실린다.
+func TestTransferLabelsAndNotesReachAnalysisResults(t *testing.T) {
+	body := `{"datasetId":"patterns-demo","datasetVersion":"v1","address":"0x0000000000000000000000000000000000000065","maxDepth":1}`
+	rec := do(newServer(t, "labeled"), http.MethodPost, "/api/trace", []byte(body))
+	var result analyzer.Result
+	if err := json.Unmarshal(decode(t, rec).Data, &result); err != nil {
+		t.Fatal(err)
+	}
+	i := slices.IndexFunc(result.Transfers, func(tr domain.Transfer) bool { return tr.ID == labeledTransfer })
+	if i < 0 {
+		t.Fatalf("근거 전송에 %s가 없다: %+v", labeledTransfer, result.Transfers)
+	}
+	got := result.Transfers[i]
+	if got.Note != "전송 메모 예시" || got.TxLabel != "예시 거래" || got.TxNote != "거래 메모 예시" ||
+		got.BlockLabel != "예시 블록" || got.BlockNote != "블록 메모 예시" {
+		t.Fatalf("labels and notes = %+v", got)
+	}
+}
+
 func TestCandidateOverflowIsReported(t *testing.T) {
 	rec := do(newServer(t, ""), http.MethodPost, "/api/trace", []byte(traceBody(`,"limits":{"maxCandidates":2}`)))
 	r := decode(t, rec)

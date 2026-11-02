@@ -871,7 +871,7 @@
           "to",
           "amountRaw"
         ],
-        "description": "ERC-20 Transfer 로그 하나. 순서는 (blockNumber, transactionIndex, logIndex, id).",
+        "description": "ERC-20 Transfer 로그 하나. 순서는 (blockNumber, transactionIndex, logIndex, id). 이름표(label)·메모(note)는 전송·거래·블록마다 따로 있고, 값이 없으면 그 칸이 빠진다(빈 문자열은 보내지 않는다). 사람이 적은 글이므로 화면에는 글자 그대로 보여 준다(HTML로 해석하지 않는다).",
         "properties": {
           "id": {
             "type": "string",
@@ -883,7 +883,33 @@
           },
           "label": {
             "type": "string",
-            "description": "Fixture에서만 쓰는 짧은 이름"
+            "minLength": 1,
+            "description": "전송 이름표. Fixture에서는 e1, p3 같은 짧은 이름이다."
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "전송 메모"
+          },
+          "txLabel": {
+            "type": "string",
+            "minLength": 1,
+            "description": "이 전송이 들어 있는 거래(txHash)의 이름표. 같은 거래의 전송은 모두 같은 값이다."
+          },
+          "txNote": {
+            "type": "string",
+            "minLength": 1,
+            "description": "이 전송이 들어 있는 거래의 메모"
+          },
+          "blockLabel": {
+            "type": "string",
+            "minLength": 1,
+            "description": "이 전송이 들어 있는 블록(blockNumber)의 이름표. 같은 블록의 전송은 모두 같은 값이다."
+          },
+          "blockNote": {
+            "type": "string",
+            "minLength": 1,
+            "description": "이 전송이 들어 있는 블록의 메모"
           },
           "asset": {
             "$ref": "#/components/schemas/Asset"

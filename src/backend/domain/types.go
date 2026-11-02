@@ -82,9 +82,15 @@ func (d Dataset) Coverage() Coverage {
 
 // Transfer는 ERC-20 Transfer 로그 하나다.
 // ID는 그래프·표·상세·JSON 내보내기에서 모두 같은 값을 쓴다(id.go 참고).
+// 이름표(label)와 메모(note)는 화면 표시용이다. 전송·그 전송의 거래·블록마다 따로 있고, 값이 없으면 JSON에서 빠진다.
 type Transfer struct {
 	ID               string      `json:"id"`
-	Label            string      `json:"label,omitempty"` // Fixture에서만 쓰는 짧은 이름(e1, p3 등)
+	Label            string      `json:"label,omitempty"` // 전송 이름표(Fixture의 e1, p3 등)
+	Note             string      `json:"note,omitempty"`
+	TxLabel          string      `json:"txLabel,omitempty"` // 이 전송이 들어 있는 거래의 이름표
+	TxNote           string      `json:"txNote,omitempty"`
+	BlockLabel       string      `json:"blockLabel,omitempty"` // 이 전송이 들어 있는 블록의 이름표
+	BlockNote        string      `json:"blockNote,omitempty"`
 	Asset            Asset       `json:"asset"`
 	TransferType     string      `json:"transferType"`
 	TxHash           string      `json:"txHash"`

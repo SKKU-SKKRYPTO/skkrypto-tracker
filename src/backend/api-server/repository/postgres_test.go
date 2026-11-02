@@ -125,8 +125,18 @@ func datasetRow(
 	)
 }
 
-// transferRow는 Transfer 조회 결과 한 행을 테스트 값으로 구성한다.
+// transferRow는 Transfer 조회 결과 한 행을 테스트 값으로 구성한다. 전송 이름표는 ID, 나머지 이름표·메모는 NULL이다.
 func transferRow(id, from, to string, block int64, txIndex, logIndex int32) postgresRow {
+	return transferRowWithText(id, from, to, block, txIndex, logIndex, ptr(id), nil, nil, nil, nil, nil)
+}
+
+// transferRowWithText는 전송·거래·블록의 이름표와 메모를 정해 Transfer 조회 결과 한 행을 만든다.
+func transferRowWithText(
+	id, from, to string,
+	block int64,
+	txIndex, logIndex int32,
+	label, note, txLabel, txNote, blockLabel, blockNote *string,
+) postgresRow {
 	return valuesRow(
 		id,
 		int64(domain.ChainID),
@@ -142,8 +152,12 @@ func transferRow(id, from, to string, block int64, txIndex, logIndex int32) post
 		from,
 		to,
 		"100",
-		ptr(id),
-		(*string)(nil),
+		label,
+		note,
+		txLabel,
+		txNote,
+		blockLabel,
+		blockNote,
 	)
 }
 
@@ -285,6 +299,51 @@ func TestPostgresListTransfersFiltersAndPaginates(t *testing.T) {
 	lastArg := db.queryCalls[0].args[len(db.queryCalls[0].args)-1]
 	if lastArg != 3 {
 		t.Fatalf("LIMIT arg = %#v", lastArg)
+	}
+}
+
+// TestPostgresListTransfersReadsLabelsAndNotes는 전송·거래·블록의 이름표와 메모를 각자의 칸에 옮기고 NULL은 비워 두는지 검증한다.
+func TestPostgresListTransfersReadsLabelsAndNotes(t *testing.T) {
+	from := "0x0000000000000000000000000000000000000001"
+	to := "0x0000000000000000000000000000000000000002"
+	rows := &fakeRows{rows: []postgresRow{
+		transferRowWithText("fx:flow-demo-v1:e1", from, to, 101, 0, 0,
+			ptr("e1"), ptr("전송 메모"), ptr("거래 이름표"), ptr("거래 메모"), ptr("블록 이름표"), ptr("블록 메모")),
+		transferRowWithText("fx:flow-demo-v1:e2", from, to, 102, 0, 0, nil, nil, nil, nil, nil, nil),
+	}}
+	db := &fakePostgresDB{
+		rowQueue: []postgresRow{valuesRow(
+			domain.SourceFixture,
+			"flow-demo-v1",
+			int64(domain.ChainID),
+			"0x0000000000000000000000000000000000001000",
+			int64(100),
+			int64(200),
+		)},
+		queryRows: rows,
+	}
+	repository := &Postgres{db: db}
+
+	page, err := repository.ListTransfers(context.Background(), TransferQuery{DatasetID: "flow-demo", DatasetVersion: "v1", Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Transfers) != 2 {
+		t.Fatalf("page = %+v", page)
+	}
+	got := page.Transfers[0]
+	want := [6]string{"e1", "전송 메모", "거래 이름표", "거래 메모", "블록 이름표", "블록 메모"}
+	if [6]string{got.Label, got.Note, got.TxLabel, got.TxNote, got.BlockLabel, got.BlockNote} != want {
+		t.Fatalf("labels and notes = %+v", got)
+	}
+	empty := page.Transfers[1]
+	if empty.Label != "" || empty.Note != "" || empty.TxLabel != "" || empty.TxNote != "" || empty.BlockLabel != "" || empty.BlockNote != "" {
+		t.Fatalf("NULL labels and notes must stay empty: %+v", empty)
+	}
+	for _, part := range []string{"t.note", "tx.label", "tx.note", "b.label", "b.note"} {
+		if !strings.Contains(db.queryCalls[0].sql, part) {
+			t.Errorf("query does not contain %q", part)
+		}
 	}
 }
 

@@ -377,7 +377,11 @@ SELECT
     t.to_address,
     t.amount_raw::text,
     t.label,
-    t.note
+    t.note,
+    tx.label,
+    tx.note,
+    b.label,
+    b.note
 FROM dataset_transfers dt
 JOIN transfers t
   ON t.transfer_id = dt.transfer_id
@@ -418,6 +422,10 @@ func scanTransfer(row postgresRow) (domain.Transfer, error) {
 		logIndex         int32
 		label            *string
 		note             *string
+		txLabel          *string
+		txNote           *string
+		blockLabel       *string
+		blockNote        *string
 	)
 	if err := row.Scan(
 		&transfer.ID,
@@ -436,6 +444,10 @@ func scanTransfer(row postgresRow) (domain.Transfer, error) {
 		&transfer.AmountRaw,
 		&label,
 		&note,
+		&txLabel,
+		&txNote,
+		&blockLabel,
+		&blockNote,
 	); err != nil {
 		return domain.Transfer{}, err
 	}
@@ -453,9 +465,20 @@ func scanTransfer(row postgresRow) (domain.Transfer, error) {
 	transfer.TxHash = strings.ToLower(transfer.TxHash)
 	transfer.BlockHash = strings.ToLower(transfer.BlockHash)
 	transfer.TransferType = domain.TransferTypeOf(transfer.From, transfer.To)
-	if label != nil {
-		transfer.Label = *label
-	}
-	_ = note // note는 현재 공개 Transfer 타입에 대응 필드가 없다.
+	transfer.Label = nullText(label)
+	transfer.Note = nullText(note)
+	transfer.TxLabel = nullText(txLabel)
+	transfer.TxNote = nullText(txNote)
+	transfer.BlockLabel = nullText(blockLabel)
+	transfer.BlockNote = nullText(blockNote)
 	return transfer, nil
+}
+
+// nullText는 NULL 이름표·메모를 빈 문자열로 바꾼다.
+// DB가 빈 문자열을 막으므로 빈 값은 "없음"뿐이고, JSON에서는 그 칸이 빠진다.
+func nullText(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
