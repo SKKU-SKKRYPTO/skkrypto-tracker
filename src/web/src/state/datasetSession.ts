@@ -1,3 +1,4 @@
+import { resolvePatternSelection } from '../patternSelection'
 import { buildPatternRequest, createPatternApi } from '../api/patterns'
 import type { PatternDiagnostic, PatternResponse } from '../api/patterns'
 import { DEFAULT_PATTERN_CONDITIONS, validatePatternConditions } from '../patternConditions'
@@ -29,6 +30,7 @@ export type DatasetSessionState = {
   conditions: SearchConditions; response: LiveTraceResponse | null; isSearching: boolean; selectedTransferId: string | null
   mode: AnalysisMode; pathConditions: PathConditions; pathResponse: PathSearchResponse | null; pathValidationError: string | null
   patternConditions: PatternConditions; patternResponse: PatternSearchResponse | null; patternValidationError: string | null
+  selectedPatternId: string | null
   selectedPathId: string | null
 }
 export function canSearch(state: DatasetSessionState): boolean {
@@ -59,7 +61,7 @@ export function createDatasetSession(dependencies: {
     conditions: { ...DEFAULT_SEARCH_CONDITIONS }, response: null, isSearching: false, selectedTransferId: null,
     mode: 'trace', pathConditions: { ...DEFAULT_PATH_CONDITIONS }, pathResponse: null, pathValidationError: null,
     patternConditions: { ...DEFAULT_PATTERN_CONDITIONS }, patternResponse: null, patternValidationError: null,
-    selectedPathId: null,
+    selectedPatternId: null, selectedPathId: null,
   }
   let listId = 0, detailId = 0, traceId = 0
   let listController: AbortController | undefined, detailController: AbortController | undefined, traceController: AbortController | undefined
@@ -69,7 +71,7 @@ export function createDatasetSession(dependencies: {
     traceController?.abort()
     traceController = undefined
     // One request generation covers all modes, so stale catch/finally cannot cross modes.
-    update({ patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
+    update({ selectedPatternId: null, patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
   }
   function cancelPending() {
     ++listId; ++detailId
@@ -207,7 +209,23 @@ export function createDatasetSession(dependencies: {
       if (next.path) update({ selectedPathId: id,
         selectedTransferId: state.selectedTransferId !== null && next.transferIds.has(state.selectedTransferId) ? state.selectedTransferId : null })
     },
+    selectPattern(id: string | null) {
+      if (state.mode !== 'patterns' || state.isSearching || !state.patternResponse?.ok) return
+      if (id === null) { update({ selectedPatternId: null }); return }
+      const { patterns, transfers } = state.patternResponse.envelope.data
+      const next = resolvePatternSelection(patterns, transfers, id)
+      if (next.pattern) update({ selectedPatternId: id,
+        selectedTransferId: state.selectedTransferId !== null && next.transferIds.has(state.selectedTransferId) ? state.selectedTransferId : null })
+    },
     selectTransfer(id: string) {
+      if (state.mode === 'patterns') {
+        if (state.isSearching || !state.patternResponse?.ok) return
+        const { patterns, transfers } = state.patternResponse.envelope.data
+        if (!transfers.some(transfer => transfer.id === id)) return
+        const current = resolvePatternSelection(patterns, transfers, state.selectedPatternId)
+        update({ selectedTransferId: id, selectedPatternId: current.transferIds.has(id) ? current.pattern!.patternId : null })
+        return
+      }
       if (state.mode === 'paths') {
         if (state.isSearching || !state.pathResponse?.ok) return
         const { paths, transfers } = state.pathResponse.result.data

@@ -13,7 +13,7 @@ describe('Pattern results', () => {
       for (const text of [p.patternId, p.groupId, p.address, p.windowStart, p.windowEnd, ...p.counterparties]) expect(html).toContain(text)
     }
     for (const text of ['발견된 패턴 창 2개', '고유 상대 주소 3개', '근거 송금 3건', '근거 송금 4건', '분석 창: 600초', '시작 포함, 종료 제외', 'incomplete: 아니요', '합류(FAN_IN)', '불법 거래, 동일 소유자 또는 동일 자금의 이동을 증명하지 않습니다']) expect(html).toContain(text)
-    expect(html).not.toContain('송금 상세 보기'); expect(html).not.toContain('graph-canvas'); expect(envelope).toEqual(before)
+    expect(html).not.toContain('송금 상세 보기'); expect(html).toContain('graph-canvas'); expect(envelope).toEqual(before)
   })
   it('renders derived FAN_OUT response with the applied direction', () => {
     const e = fresh(); for (const p of e.data.patterns) { p.ruleId = 'FAN_OUT'; p.direction = 'outgoing' }

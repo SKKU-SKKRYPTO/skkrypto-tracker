@@ -41,7 +41,8 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     {state.mode === 'patterns' && <>
       {state.patternValidationError && <p className="notice notice-error" role="alert">{state.patternValidationError}</p>}
       {state.patternResponse && !state.patternResponse.ok && <RequestNotice failure={state.patternResponse} />}
-      {state.patternResponse?.ok && <PatternResults envelope={state.patternResponse.envelope} />}
+      {state.patternResponse?.ok && <PatternResults envelope={state.patternResponse.envelope} selectedPatternId={state.selectedPatternId} onSelectPattern={session.selectPattern}
+        selectedTransferId={state.selectedTransferId} onSelectTransfer={session.selectTransfer} />}
     </>}
     {state.mode === 'paths' && <>
       {state.pathValidationError && <p className="notice notice-error" role="alert">{state.pathValidationError}</p>}

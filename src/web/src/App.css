@@ -362,3 +362,8 @@
 .pattern-list h2 { margin: 0 0 8px; font-size: 18px; }
 .pattern-list .full-value { overflow-wrap: anywhere; }
 .pattern-list summary { cursor: pointer; }
+
+.pattern-list .pattern-selected {
+  border: 2px solid var(--accent);
+  background: var(--accent-bg);
+}

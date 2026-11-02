@@ -1,3 +1,4 @@
+import PatternResults from './components/PatternResults'
 import { describe, expect, it, vi } from 'vitest'
 import { isValidElement } from 'react'
 import type { ReactElement, ReactNode } from 'react'
@@ -48,7 +49,7 @@ describe('live Pattern UI integration', () => {
     expect(patterns.searchPatterns).toHaveBeenCalledWith(expect.objectContaining({ request: { datasetId: detail.data.datasetId, datasetVersion: detail.data.datasetVersion, address: conditions.address, ...(direction === 'all' ? {} : { direction }) } }))
     const html = render().html
     expect(html).toContain('패턴 1 ·'); expect(html).toContain('패턴 2 ·')
-    expect(html).toContain('발견된 패턴 창 2개'); expect(html).not.toContain('graph-canvas'); expect(html).not.toContain('송금 상세 보기')
+    expect(html).toContain('발견된 패턴 창 2개'); expect(html).toContain('graph-canvas'); expect(html).toContain('송금 상세 보기')
   })
   it('renders validation without sending and clears it after edits', async () => {
     const { render, patterns } = await setup(); (render().form!.onSearch as () => void)(); await flush()
@@ -89,3 +90,23 @@ describe('live Pattern UI integration', () => {
   })
 })
 
+
+
+describe('Live Pattern selection wiring', () => {
+  it('connects stable Pattern and transfer callbacks to the session and rendered details', async () => {
+    const { session, render } = await setup(); session.setPatternConditions(conditions); await session.searchPatterns()
+    function resultProps() {
+      return elements(LiveApp({ session })).find(n => n.type === PatternResults)!.props
+    }
+    ;(resultProps().onSelectPattern as (id: string) => void)(sample.data.patterns[0].patternId)
+    ;(resultProps().onSelectTransfer as (id: string) => void)(sample.data.transfers[0].id)
+    expect(resultProps().selectedPatternId).toBe(sample.data.patterns[0].patternId)
+    expect(resultProps().selectedTransferId).toBe(sample.data.transfers[0].id)
+    expect(render().html).toContain('근거 송금 3건을 그래프와 표에 강조')
+    expect(render().html).toContain(sample.data.transfers[0].blockHash)
+    ;(resultProps().onSelectPattern as (id: string) => void)(sample.data.patterns[1].patternId)
+    expect(resultProps().selectedTransferId).toBeNull()
+    expect(render().html).toContain('근거 송금 4건을 그래프와 표에 강조')
+    render().mode('trace'); expect(session.getSnapshot().selectedPatternId).toBeNull()
+  })
+})

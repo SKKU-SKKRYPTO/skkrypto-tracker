@@ -12,11 +12,13 @@ type Props = {
   selectedTransferId: string | null
   onSelect?: (transferId: string) => void
   highlightedTransferIds?: ReadonlySet<string>
+  evidenceKind?: 'path' | 'pattern'
 }
 
 // 주소 = 점, 송금 = 화살표. 간선 id는 transfers[].id 그대로라서 표·상세와 같은 키를 쓴다.
 // 그래프는 보조 화면이다. 모든 정보는 표와 상세에도 있다.
-function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransferIds = NO_PATH_HIGHLIGHTS }: Props) {
+function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransferIds = NO_PATH_HIGHLIGHTS, evidenceKind = 'path' }: Props) {
+  const evidenceLabel = evidenceKind === 'pattern' ? '패턴' : '경로'
   const isPathView = highlightedTransferIds !== NO_PATH_HIGHLIGHTS
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<Core | null>(null)
@@ -84,12 +86,12 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
         ref={containerRef}
         className="graph-canvas"
         role="img"
-        aria-label={isPathView ? '경로 근거 송금 그래프. 경로는 굵은 점선, 선택한 송금은 굵은 실선으로 구분합니다.' : '송금 흐름 그래프. 같은 정보가 송금 목록 표와 상세에 모두 있습니다.'}
+        aria-label={isPathView ? `${evidenceLabel} 근거 송금 그래프. ${evidenceLabel}${evidenceKind === 'pattern' ? '은' : '는'} 굵은 점선, 선택한 송금은 굵은 실선으로 구분합니다.` : '송금 흐름 그래프. 같은 정보가 송금 목록 표와 상세에 모두 있습니다.'}
       />
       <figcaption className="graph-caption">
         <span className="graph-start-sample">시작</span> 이중 테두리 = 검색한 시작 주소 ·
-        {isPathView && '굵은 점선 = 후보 경로 근거 · 굵은 실선 = 선택한 송금 · '}
-        {onSelect ? '화살표를 누르면 표와 상세에서 같은 송금을 보여 줍니다.' : '경로의 근거 송금이 표에도 함께 표시됩니다.'}
+        {isPathView && `굵은 점선 = ${evidenceKind === 'pattern' ? '패턴' : '후보 경로'} 근거 · 굵은 실선 = 선택한 송금 · `}
+        {onSelect ? '화살표를 누르면 표와 상세에서 같은 송금을 보여 줍니다.' : `${evidenceLabel}의 근거 송금이 표에도 함께 표시됩니다.`}
       </figcaption>
     </figure>
   )
@@ -188,4 +190,3 @@ function buildStyle(container: HTMLElement): StylesheetJson {
 }
 
 export default TransferGraph
-

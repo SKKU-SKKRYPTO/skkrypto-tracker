@@ -6,15 +6,17 @@ type Props = {
   selectedTransferId: string | null
   onSelect?: (transferId: string) => void
   highlightedTransferIds?: ReadonlySet<string>
+  evidenceKind?: 'path' | 'pattern'
 }
 
-function TransferTable({ transfers, selectedTransferId, onSelect, highlightedTransferIds }: Props) {
+function TransferTable({ transfers, selectedTransferId, onSelect, highlightedTransferIds, evidenceKind = 'path' }: Props) {
+  const evidenceLabel = evidenceKind === 'pattern' ? '패턴' : '경로'
   return (
     <div className="table-scroll">
       <table className={onSelect ? 'transfers' : 'transfers transfers-readonly'}>
         <thead>
           <tr>
-            <th>{onSelect ? '선택' : '경로 근거'}</th>
+            <th>{onSelect ? '선택' : `${evidenceLabel} 근거`}</th>
             <th>보낸 주소</th>
             <th>받은 주소</th>
             <th className="num">금액</th>
@@ -44,8 +46,8 @@ function TransferTable({ transfers, selectedTransferId, onSelect, highlightedTra
                     onClick={() => onSelect(transfer.id)}
                   >
                     {isSelected ? '✓ 선택됨' : '보기'}
-                  </button> : <span>{isPathEvidence ? '경로 포함' : '—'}</span>}
-                  {onSelect && isPathEvidence && <span className="path-membership">경로 포함</span>}
+                  </button> : <span>{isPathEvidence ? `${evidenceLabel} 포함` : '—'}</span>}
+                  {onSelect && isPathEvidence && <span className="path-membership">{evidenceLabel} 포함</span>}
                 </td>
                 <td className="mono" title={transfer.from}>
                   {shortenHex(transfer.from)}
