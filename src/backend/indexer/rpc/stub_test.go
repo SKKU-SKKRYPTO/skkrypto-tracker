@@ -11,6 +11,28 @@ import (
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/domain"
 )
 
+// TestStubChainIDResponses verifies the Base Sepolia default, override, queue and call trace.
+func TestStubChainIDResponses(t *testing.T) {
+	stub := NewStub(Block{})
+	chainID, err := stub.ChainID(context.Background())
+	if err != nil || chainID != domain.ChainID {
+		t.Fatalf("ChainID() = %d, %v", chainID, err)
+	}
+	stub.SetChainID(1)
+	stub.QueueChainID(0, ErrTemporary)
+	if _, err := stub.ChainID(context.Background()); !errors.Is(err, ErrTemporary) {
+		t.Fatalf("queued error = %v", err)
+	}
+	chainID, err = stub.ChainID(context.Background())
+	if err != nil || chainID != 1 {
+		t.Fatalf("overridden ChainID() = %d, %v", chainID, err)
+	}
+	calls := stub.Calls()
+	if len(calls) != 3 || calls[0].Method != MethodChainID || calls[2].Method != MethodChainID {
+		t.Fatalf("calls = %+v", calls)
+	}
+}
+
 // loadFlowFixture는 RPC Stub 검증에 사용할 기본 흐름 Fixture를 읽는다.
 func loadFlowFixture(t *testing.T) (domain.Dataset, []domain.Transfer) {
 	t.Helper()

@@ -56,17 +56,25 @@ type execResult struct {
 // stubDB는 PostgreSQL 호출에 미리 정한 결과를 돌려주고 호출 내용을 기록한다.
 // Postgres 저장 코드가 사용하는 DB·Tx·Connection 인터페이스를 하나로 구현한다.
 type stubDB struct {
-	execQueue  []execResult
-	rowQueue   []postgresRow
-	queryQueue []queryResult
-	execSQL    []string
-	querySQL   []string
-	committed  bool
-	rolledBack bool
-	released   bool
-	destroyed  bool
-	beginErr   error
-	acquireErr error
+	execQueue         []execResult
+	rowQueue          []postgresRow
+	queryQueue        []queryResult
+	execSQL           []string
+	querySQL          []string
+	rowSQL            []string
+	committed         bool
+	rolledBack        bool
+	released          bool
+	destroyed         bool
+	rollbackCtx       context.Context
+	rollbackDeadline  time.Time
+	rollbackErrAtCall error
+	destroyCtx        context.Context
+	destroyErr        error
+	beginErr          error
+	acquireErr        error
+	commitErr         error
+	rollbackErr       error
 }
 
 // Begin은 주입된 오류가 없으면 stubDB 자신을 트랜잭션으로 반환한다.
@@ -108,7 +116,8 @@ func (db *stubDB) Query(_ context.Context, sql string, _ ...any) (postgresRows, 
 }
 
 // QueryRow는 준비된 단일 행 결과를 호출 순서대로 반환한다.
-func (db *stubDB) QueryRow(_ context.Context, _ string, _ ...any) postgresRow {
+func (db *stubDB) QueryRow(_ context.Context, sql string, _ ...any) postgresRow {
+	db.rowSQL = append(db.rowSQL, sql)
 	if len(db.rowQueue) == 0 {
 		return errorRow(errors.New("unexpected QueryRow"))
 	}
@@ -119,23 +128,30 @@ func (db *stubDB) QueryRow(_ context.Context, _ string, _ ...any) postgresRow {
 
 // Commit은 트랜잭션이 커밋됐음을 기록한다.
 func (db *stubDB) Commit(context.Context) error {
+	if db.commitErr != nil {
+		return db.commitErr
+	}
 	db.committed = true
 	return nil
 }
 
 // Rollback은 트랜잭션 정리 호출을 기록한다.
-func (db *stubDB) Rollback(context.Context) error {
+func (db *stubDB) Rollback(ctx context.Context) error {
 	db.rolledBack = true
-	return nil
+	db.rollbackCtx = ctx
+	db.rollbackDeadline, _ = ctx.Deadline()
+	db.rollbackErrAtCall = ctx.Err()
+	return db.rollbackErr
 }
 
 // Release는 advisory lock 연결이 풀로 반환됐음을 기록한다.
 func (db *stubDB) Release() { db.released = true }
 
 // Destroy는 advisory lock 연결이 폐기됐음을 기록한다.
-func (db *stubDB) Destroy(context.Context) error {
+func (db *stubDB) Destroy(ctx context.Context) error {
 	db.destroyed = true
-	return nil
+	db.destroyCtx = ctx
+	return db.destroyErr
 }
 
 // valuesRow는 주어진 값들을 Scan 대상에 복사하는 테스트 행을 만든다.
@@ -189,24 +205,48 @@ func sampleSpec() DatasetSpec {
 func sampleStoredDataset() storedDataset {
 	spec := sampleSpec()
 	return storedDataset{
-		key:          spec.Key,
-		status:       domain.StatusCollecting,
-		chainID:      spec.Asset.ChainID,
-		tokenAddress: spec.Asset.TokenAddress,
-		startBlock:   spec.Coverage.StartBlock,
-		endBlock:     spec.Coverage.EndBlock,
+		key:             spec.Key,
+		status:          domain.StatusCollecting,
+		sourceNamespace: spec.SourceNamespace,
+		chainID:         spec.Asset.ChainID,
+		tokenAddress:    spec.Asset.TokenAddress,
+		symbol:          spec.Asset.Symbol,
+		decimals:        spec.Asset.Decimals,
+		startBlock:      spec.Coverage.StartBlock,
+		endBlock:        spec.Coverage.EndBlock,
+		startTime:       spec.Coverage.StartTime,
+		endTime:         spec.Coverage.EndTime,
+		finalizedBlock:  spec.FinalizedBlock,
 	}
 }
 
 // sampleDatasetRow는 Dataset 조회 결과 한 행을 테스트 값으로 구성한다.
 func sampleDatasetRow(status string) postgresRow {
 	dataset := sampleStoredDataset()
+	var collectedAt *time.Time
+	var invalidationReason *string
+	if status == domain.StatusReady {
+		value := dataset.endTime.Add(time.Minute)
+		collectedAt = &value
+	}
+	if status == domain.StatusInvalidated {
+		value := "boundary changed"
+		invalidationReason = &value
+	}
 	return valuesRow(
 		status,
+		dataset.sourceNamespace,
 		int64(dataset.chainID),
 		dataset.tokenAddress,
+		dataset.symbol,
+		int16(dataset.decimals),
 		int64(dataset.startBlock),
 		int64(dataset.endBlock),
+		dataset.startTime,
+		dataset.endTime,
+		int64(dataset.finalizedBlock),
+		collectedAt,
+		invalidationReason,
 	)
 }
 
@@ -280,6 +320,42 @@ func TestCreateDatasetRejectsChangedAssetMetadata(t *testing.T) {
 	}
 	if db.committed {
 		t.Fatal("inconsistent asset transaction was committed")
+	}
+}
+
+// TestCreateDatasetRejectsInvalidSnapshotSource verifies source invariants are
+// rejected before opening a transaction or mutating storage.
+func TestCreateDatasetRejectsInvalidSnapshotSource(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*DatasetSpec)
+	}{
+		{
+			name: "zero token",
+			edit: func(spec *DatasetSpec) { spec.Asset.TokenAddress = domain.ZeroAddress },
+		},
+		{
+			name: "single block contradictory times",
+			edit: func(spec *DatasetSpec) {
+				spec.Coverage.EndBlock = spec.Coverage.StartBlock
+				spec.Coverage.EndTime = spec.Coverage.StartTime.Add(time.Second)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := sampleSpec()
+			tt.edit(&spec)
+			db := &stubDB{}
+			err := (&Postgres{db: db}).CreateDataset(context.Background(), spec)
+			if !errors.Is(err, ErrInvalidStorageInput) {
+				t.Fatalf("error = %v", err)
+			}
+			if db.committed || len(db.execSQL) != 0 || len(db.rowSQL) != 0 {
+				t.Fatalf("invalid input touched storage: committed=%v exec=%v query=%v", db.committed, db.execSQL, db.rowSQL)
+			}
+		})
 	}
 }
 
@@ -436,8 +512,12 @@ func TestMarkReadyChecksCoverageAndBoundary(t *testing.T) {
 		valuesRow(int64(chunk.StartBlock), int64(chunk.EndBlock), chunk.Blocks[1].Hash),
 	}}
 	db := &stubDB{
-		execQueue:  []execResult{affected(1)},
-		rowQueue:   []postgresRow{sampleDatasetRow(domain.StatusCollecting)},
+		execQueue: []execResult{affected(1)},
+		rowQueue: []postgresRow{
+			sampleDatasetRow(domain.StatusCollecting),
+			valuesRow(chunk.Blocks[0].Time),
+			valuesRow(chunk.Blocks[1].Time),
+		},
 		queryQueue: []queryResult{{rows: rows}},
 	}
 	storage := &Postgres{db: db}
@@ -546,5 +626,277 @@ func TestValidateChunkRejectsWrongTransferID(t *testing.T) {
 	chunk.Transfers[0].ID = "wrong"
 	if err := validateChunk(chunk, sampleStoredDataset()); !errors.Is(err, ErrInvalidStorageInput) {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+// TestGetDatasetReadsCompletePersistedSpec verifies that manifest-relevant persisted fields survive a read.
+func TestGetDatasetReadsCompletePersistedSpec(t *testing.T) {
+	db := &stubDB{rowQueue: []postgresRow{sampleDatasetRow(domain.StatusCollecting)}}
+	got, err := (&Postgres{db: db}).GetDataset(context.Background(), sampleSpec().Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got.Spec, sampleSpec()) || got.Status != domain.StatusCollecting {
+		t.Fatalf("dataset = %+v", got)
+	}
+	if !db.committed {
+		t.Fatal("read transaction was not committed")
+	}
+}
+
+// TestGetDatasetRejectsCorruptScan verifies persisted source and status corruption is not exposed.
+func TestGetDatasetRejectsCorruptScan(t *testing.T) {
+	spec := sampleSpec()
+	validCollectedAt := spec.Coverage.EndTime.Add(time.Minute)
+	zeroTime := time.Time{}
+	reason := "boundary changed"
+	blankReason := "  "
+
+	tests := []struct {
+		name        string
+		status      string
+		chainID     int64
+		token       string
+		startBlock  int64
+		endBlock    int64
+		startTime   time.Time
+		endTime     time.Time
+		collectedAt *time.Time
+		reason      *string
+	}{
+		{name: "unknown status", status: "UNKNOWN", chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime},
+		{name: "wrong chain", status: domain.StatusCollecting, chainID: int64(domain.ChainID) + 1, token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime},
+		{name: "zero token", status: domain.StatusCollecting, chainID: int64(domain.ChainID), token: domain.ZeroAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime},
+		{name: "single block contradictory times", status: domain.StatusCollecting, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 100, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.StartTime.Add(time.Second)},
+		{name: "collecting with publication time", status: domain.StatusCollecting, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime, collectedAt: &validCollectedAt},
+		{name: "failed with invalidation reason", status: domain.StatusFailed, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime, reason: &reason},
+		{name: "ready without publication time", status: domain.StatusReady, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime},
+		{name: "ready with zero publication time", status: domain.StatusReady, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime, collectedAt: &zeroTime},
+		{name: "ready with invalidation reason", status: domain.StatusReady, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime, collectedAt: &validCollectedAt, reason: &reason},
+		{name: "invalidated without reason", status: domain.StatusInvalidated, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime},
+		{name: "invalidated with blank reason", status: domain.StatusInvalidated, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime, reason: &blankReason},
+		{name: "invalidated with zero publication time", status: domain.StatusInvalidated, chainID: int64(domain.ChainID), token: spec.Asset.TokenAddress, startBlock: 100, endBlock: 101, startTime: spec.Coverage.StartTime, endTime: spec.Coverage.EndTime, collectedAt: &zeroTime, reason: &reason},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := &stubDB{rowQueue: []postgresRow{valuesRow(
+				tt.status, spec.SourceNamespace, tt.chainID, tt.token,
+				spec.Asset.Symbol, int16(spec.Asset.Decimals), tt.startBlock, tt.endBlock,
+				tt.startTime, tt.endTime, int64(spec.FinalizedBlock), tt.collectedAt, tt.reason,
+			)}}
+			_, err := (&Postgres{db: db}).GetDataset(context.Background(), spec.Key)
+			if !errors.Is(err, ErrInconsistentSource) {
+				t.Fatalf("error = %v", err)
+			}
+		})
+	}
+}
+
+// TestGetDatasetAcceptsPublishedInvalidatedMetadata preserves collectedAt when
+// a previously READY Snapshot is later invalidated with a reason.
+func TestGetDatasetAcceptsPublishedInvalidatedMetadata(t *testing.T) {
+	spec := sampleSpec()
+	collectedAt := spec.Coverage.EndTime.Add(time.Minute)
+	reason := "boundary changed"
+	db := &stubDB{rowQueue: []postgresRow{valuesRow(
+		domain.StatusInvalidated, spec.SourceNamespace, int64(spec.Asset.ChainID), spec.Asset.TokenAddress,
+		spec.Asset.Symbol, int16(spec.Asset.Decimals), int64(spec.Coverage.StartBlock), int64(spec.Coverage.EndBlock),
+		spec.Coverage.StartTime, spec.Coverage.EndTime, int64(spec.FinalizedBlock), &collectedAt, &reason,
+	)}}
+	got, err := (&Postgres{db: db}).GetDataset(context.Background(), spec.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != domain.StatusInvalidated || got.CollectedAt == nil || !got.CollectedAt.Equal(collectedAt) ||
+		got.InvalidationReason == nil || *got.InvalidationReason != reason {
+		t.Fatalf("dataset = %+v", got)
+	}
+}
+
+// TestResumePointReadsFailedWithoutTransition verifies failed runs can be inspected before restart.
+func TestResumePointReadsFailedWithoutTransition(t *testing.T) {
+	rows := &stubRows{}
+	db := &stubDB{rowQueue: []postgresRow{sampleDatasetRow(domain.StatusFailed)}, queryQueue: []queryResult{{rows: rows}}}
+	point, err := (&Postgres{db: db}).ResumePoint(context.Background(), sampleSpec().Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if point.NextBlock != sampleSpec().Coverage.StartBlock || len(db.execSQL) != 0 {
+		t.Fatalf("point=%+v execs=%d", point, len(db.execSQL))
+	}
+}
+
+// TestRestartFailedLocksAndTransitions verifies only FAILED is restarted under the row-locking read.
+func TestRestartFailedLocksAndTransitions(t *testing.T) {
+	db := &stubDB{execQueue: []execResult{affected(1)}, rowQueue: []postgresRow{sampleDatasetRow(domain.StatusFailed)}}
+	if err := (&Postgres{db: db}).RestartFailed(context.Background(), sampleSpec().Key); err != nil {
+		t.Fatal(err)
+	}
+	if !db.committed || !strings.Contains(db.rowSQL[0], "FOR UPDATE") || !strings.Contains(db.execSQL[0], "'COLLECTING'") {
+		t.Fatalf("committed=%v rowSQL=%q execSQL=%q", db.committed, db.rowSQL, db.execSQL)
+	}
+
+	for _, status := range []string{domain.StatusReady, domain.StatusInvalidated, domain.StatusCollecting} {
+		rejected := &stubDB{rowQueue: []postgresRow{sampleDatasetRow(status)}}
+		err := (&Postgres{db: rejected}).RestartFailed(context.Background(), sampleSpec().Key)
+		if !errors.Is(err, ErrInvalidStatusTransition) || rejected.committed {
+			t.Fatalf("status=%s error=%v committed=%v", status, err, rejected.committed)
+		}
+	}
+}
+
+// TestFailedDatasetCanInvalidate verifies a detected source change terminates a failed version directly.
+func TestFailedDatasetCanInvalidate(t *testing.T) {
+	db := &stubDB{execQueue: []execResult{affected(1)}, rowQueue: []postgresRow{sampleDatasetRow(domain.StatusFailed)}}
+	if err := (&Postgres{db: db}).Invalidate(context.Background(), sampleSpec().Key, "boundary changed"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestCommittedBoundariesPreservesChunkOrder verifies publication receives every continuous boundary in order.
+func TestCommittedBoundariesPreservesChunkOrder(t *testing.T) {
+	rows := &stubRows{rows: []postgresRow{
+		valuesRow(int64(100), int64(100), hash(100)),
+		valuesRow(int64(101), int64(101), hash(101)),
+	}}
+	db := &stubDB{rowQueue: []postgresRow{sampleDatasetRow(domain.StatusReady)}, queryQueue: []queryResult{{rows: rows}}}
+	got, err := (&Postgres{db: db}).CommittedBoundaries(context.Background(), sampleSpec().Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []BoundaryHash{{BlockNumber: 100, BlockHash: hash(100)}, {BlockNumber: 101, BlockHash: hash(101)}}
+	if !reflect.DeepEqual(got, want) || !strings.Contains(db.querySQL[0], "ORDER BY c.start_block") {
+		t.Fatalf("boundaries = %+v", got)
+	}
+}
+
+// TestCommitChunkRejectsCoverageEndpointTimes verifies storage enforces the immutable Coverage independently.
+func TestCommitChunkRejectsCoverageEndpointTimes(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*Chunk)
+	}{
+		{"start", func(c *Chunk) { c.Blocks[0].Time = c.Blocks[0].Time.Add(time.Second) }},
+		{"end", func(c *Chunk) { c.Blocks[1].Time = c.Blocks[1].Time.Add(time.Second) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			chunk := sampleChunk()
+			tt.edit(&chunk)
+			db := &stubDB{rowQueue: []postgresRow{sampleDatasetRow(domain.StatusCollecting)}}
+			err := (&Postgres{db: db}).CommitChunk(context.Background(), chunk)
+			if !errors.Is(err, ErrInconsistentSource) || len(db.execSQL) != 0 {
+				t.Fatalf("error=%v execs=%d", err, len(db.execSQL))
+			}
+		})
+	}
+}
+
+// TestValidateChunkSingleBlockChecksBothCoverageTimes verifies one block cannot represent conflicting endpoint times.
+func TestValidateChunkSingleBlockChecksBothCoverageTimes(t *testing.T) {
+	dataset := sampleStoredDataset()
+	dataset.endBlock = dataset.startBlock
+	dataset.endTime = dataset.startTime
+	chunk := Chunk{Key: dataset.key, StartBlock: dataset.startBlock, EndBlock: dataset.endBlock,
+		Blocks: []Block{{Number: dataset.startBlock, Hash: hash(100), Time: dataset.startTime}}}
+	if err := validateChunk(chunk, dataset); err != nil {
+		t.Fatal(err)
+	}
+	chunk.Blocks[0].Time = chunk.Blocks[0].Time.Add(time.Second)
+	if err := validateChunk(chunk, dataset); !errors.Is(err, ErrInconsistentSource) {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+// TestMarkReadyRejectsPersistedEndpointTimeMismatch verifies publication rechecks saved endpoint rows.
+func TestMarkReadyRejectsPersistedEndpointTimeMismatch(t *testing.T) {
+	chunk := sampleChunk()
+	rows := &stubRows{rows: []postgresRow{valuesRow(int64(100), int64(101), chunk.Blocks[1].Hash)}}
+	db := &stubDB{rowQueue: []postgresRow{
+		sampleDatasetRow(domain.StatusCollecting), valuesRow(chunk.Blocks[0].Time.Add(time.Second)),
+	}, queryQueue: []queryResult{{rows: rows}}}
+	err := (&Postgres{db: db}).MarkReady(context.Background(), chunk.Key,
+		&BoundaryHash{BlockNumber: chunk.EndBlock, BlockHash: chunk.Blocks[1].Hash}, time.Now())
+	if !errors.Is(err, ErrInconsistentSource) || db.committed {
+		t.Fatalf("error=%v committed=%v", err, db.committed)
+	}
+}
+
+// TestMarkReadyRejectsMissingPersistedEndpoint verifies missing Coverage endpoint rows block publication.
+func TestMarkReadyRejectsMissingPersistedEndpoint(t *testing.T) {
+	chunk := sampleChunk()
+	rows := &stubRows{rows: []postgresRow{valuesRow(int64(100), int64(101), chunk.Blocks[1].Hash)}}
+	db := &stubDB{rowQueue: []postgresRow{
+		sampleDatasetRow(domain.StatusCollecting), errorRow(pgx.ErrNoRows),
+	}, queryQueue: []queryResult{{rows: rows}}}
+	err := (&Postgres{db: db}).MarkReady(context.Background(), chunk.Key,
+		&BoundaryHash{BlockNumber: chunk.EndBlock, BlockHash: chunk.Blocks[1].Hash}, time.Now())
+	if !errors.Is(err, ErrIncompleteCoverage) || db.committed {
+		t.Fatalf("error=%v committed=%v", err, db.committed)
+	}
+}
+
+// TestCoverageEndpointInstantAllowsDifferentTimezone verifies endpoint comparison uses instant equality.
+func TestCoverageEndpointInstantAllowsDifferentTimezone(t *testing.T) {
+	chunk := sampleChunk()
+	chunk.Blocks[0].Time = chunk.Blocks[0].Time.In(time.FixedZone("offset", 9*60*60))
+	chunk.Blocks[1].Time = chunk.Blocks[1].Time.In(time.FixedZone("offset", 9*60*60))
+	if err := validateChunk(chunk, sampleStoredDataset()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRollbackUsesIndependentBoundedContext verifies cleanup remains live after caller cancellation and is bounded.
+func TestRollbackUsesIndependentBoundedContext(t *testing.T) {
+	db := &stubDB{}
+	rollback(db)
+	if db.rollbackCtx == nil || db.rollbackErrAtCall != nil {
+		t.Fatalf("rollback context = %v", db.rollbackCtx)
+	}
+	if db.rollbackDeadline.IsZero() || time.Until(db.rollbackDeadline) <= 0 || time.Until(db.rollbackDeadline) > cleanupTimeout {
+		t.Fatalf("rollback deadline = %v", db.rollbackDeadline)
+	}
+}
+
+// TestDatasetLockUncertainAcquisitionDestroysConnection verifies an ambiguous session lock is never pooled.
+func TestDatasetLockUncertainAcquisitionDestroysConnection(t *testing.T) {
+	primary := errors.New("scan failed")
+	db := &stubDB{rowQueue: []postgresRow{errorRow(primary)}, destroyErr: errors.New("destroy failed")}
+	_, err := (&Postgres{db: db}).TryLockDataset(context.Background(), sampleSpec().Key)
+	if !errors.Is(err, primary) || !db.destroyed || db.released {
+		t.Fatalf("error=%v destroyed=%v released=%v", err, db.destroyed, db.released)
+	}
+	if db.destroyCtx == nil {
+		t.Fatal("destroy did not receive a bounded cleanup context")
+	}
+}
+
+// TestStorageReadFailuresRollback verifies scan, query, and commit failures all leave cleanup to rollback.
+func TestStorageReadFailuresRollback(t *testing.T) {
+	tests := []struct {
+		name string
+		db   *stubDB
+		run  func(*Postgres) error
+	}{
+		{"scan", &stubDB{rowQueue: []postgresRow{errorRow(errors.New("scan"))}}, func(p *Postgres) error {
+			_, err := p.GetDataset(context.Background(), sampleSpec().Key)
+			return err
+		}},
+		{"query", &stubDB{rowQueue: []postgresRow{sampleDatasetRow(domain.StatusReady)}, queryQueue: []queryResult{{err: errors.New("query")}}}, func(p *Postgres) error {
+			_, err := p.CommittedBoundaries(context.Background(), sampleSpec().Key)
+			return err
+		}},
+		{"commit", &stubDB{rowQueue: []postgresRow{sampleDatasetRow(domain.StatusCollecting)}, commitErr: errors.New("commit")}, func(p *Postgres) error {
+			_, err := p.GetDataset(context.Background(), sampleSpec().Key)
+			return err
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.run(&Postgres{db: tt.db}); err == nil || !tt.db.rolledBack {
+				t.Fatalf("error=%v rolledBack=%v", err, tt.db.rolledBack)
+			}
+		})
 	}
 }

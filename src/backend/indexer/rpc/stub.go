@@ -26,11 +26,13 @@ type logRequest struct {
 type Stub struct {
 	mu sync.Mutex
 
+	chainID   uint64
 	finalized Block
 	logs      []Log
 	blocks    map[domain.BlockNumber]Block
 	receipts  map[string]Receipt
 
+	chainIDQueue   []response[uint64]
 	finalizedQueue []response[Block]
 	logQueues      map[logRequest][]response[[]Log]
 	blockQueues    map[domain.BlockNumber][]response[Block]
@@ -44,6 +46,7 @@ type Stub struct {
 // NewStub은 기본 finalized 블록을 반환하는 빈 RPC Stub을 만든다.
 func NewStub(finalized Block) *Stub {
 	return &Stub{
+		chainID:       domain.ChainID,
 		finalized:     finalized,
 		blocks:        make(map[domain.BlockNumber]Block),
 		receipts:      make(map[string]Receipt),
@@ -51,6 +54,13 @@ func NewStub(finalized Block) *Stub {
 		blockQueues:   make(map[domain.BlockNumber][]response[Block]),
 		receiptQueues: make(map[string][]response[Receipt]),
 	}
+}
+
+// SetChainID는 Stub의 기본 체인 번호를 바꾼다.
+func (s *Stub) SetChainID(chainID uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.chainID = chainID
 }
 
 // SetLimits는 공급자의 최대 블록 수와 결과 수를 흉내 낸다. 0이면 제한하지 않는다.
@@ -90,6 +100,13 @@ func (s *Stub) QueueFinalized(block Block, err error) {
 	s.finalizedQueue = append(s.finalizedQueue, response[Block]{value: block, err: err})
 }
 
+// QueueChainID는 다음 ChainID 호출의 응답을 예약한다.
+func (s *Stub) QueueChainID(chainID uint64, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.chainIDQueue = append(s.chainIDQueue, response[uint64]{value: chainID, err: err})
+}
+
 // QueueTransferLogs는 특정 토큰·범위 호출의 다음 로그 응답을 예약한다.
 func (s *Stub) QueueTransferLogs(tokenAddress string, startBlock, endBlock domain.BlockNumber, logs []Log, err error) {
 	s.mu.Lock()
@@ -125,6 +142,22 @@ func (s *Stub) ResetCalls() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.calls = nil
+}
+
+// ChainID는 예약된 응답 또는 설정된 기본 체인 번호를 반환한다.
+func (s *Stub) ChainID(ctx context.Context) (uint64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.calls = append(s.calls, Call{Method: MethodChainID})
+	if len(s.chainIDQueue) != 0 {
+		result := s.chainIDQueue[0]
+		s.chainIDQueue = s.chainIDQueue[1:]
+		return result.value, result.err
+	}
+	return s.chainID, nil
 }
 
 // FinalizedBlock은 예약된 응답 또는 기본 finalized 블록을 반환한다.
