@@ -40,6 +40,18 @@ describe('transfer evidence detail', () => {
     expect(html).not.toContain(transfer.blockHash)
     expect(html).not.toContain(transfer.asset.tokenAddress)
   })
+  it('shows transfer, transaction and block labels and notes when present', () => {
+    const labeled = { ...transfer, label: '송금A', note: '메모A', txLabel: '거래B', txNote: '메모B', blockLabel: '블록C', blockNote: '<b>메모C</b>' }
+    const html = renderToStaticMarkup(<TransferDetail transfer={labeled} />)
+    for (const text of ['송금 이름표', '송금A', '송금 메모', '메모A', '거래 이름표', '거래B', '거래 메모', '메모B', '블록 이름표', '블록C', '블록 메모']) expect(html).toContain(text)
+    expect(html).toContain('&lt;b&gt;메모C&lt;/b&gt;')
+    expect(html).not.toContain('<b>메모C</b>')
+  })
+  it('omits label and note rows that the API did not send', () => {
+    const html = renderToStaticMarkup(<TransferDetail transfer={{ ...transfer, label: undefined, txLabel: '거래B' }} />)
+    expect(html).toContain('거래 이름표')
+    for (const name of ['송금 이름표', '송금 메모', '거래 메모', '블록 이름표', '블록 메모']) expect(html).not.toContain(name)
+  })
   it('keeps the unselected placeholder and omits evidence controls', () => {
     const html = renderToStaticMarkup(<TransferDetail transfer={null} />)
     expect(html).toContain('표나 그래프에서 송금을 선택하면')
