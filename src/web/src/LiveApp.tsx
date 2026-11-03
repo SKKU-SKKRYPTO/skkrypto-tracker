@@ -1,3 +1,4 @@
+import AnalysisResultHeader from './components/AnalysisResultHeader'
 import JsonDownloadButton from './components/JsonDownloadButton'
 import PatternSearchBar from './components/PatternSearchBar'
 import PatternResults from './components/PatternResults'
@@ -11,7 +12,6 @@ import RequestNotice from './components/RequestNotice'
 import PathSearchBar from './components/PathSearchBar'
 import PathResults from './components/PathResults'
 import type { AnalysisMode } from './state/datasetSession'
-import { formatConditions } from './searchConditions'
 import './App.css'
 
 export default function LiveApp({ session: provided }: { session?: DatasetSession } = {}) {
@@ -22,9 +22,19 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     return session.cancelPending
   }, [session])
   return <main className="app">
-    <h1>송금 목록</h1>
+    <header className="page-heading">
+      <h1>SKKRYPTO Tracker</h1>
+      <p>온체인 송금 흐름을 분석하고 근거를 확인하는 도구</p>
+    </header>
+    <section className="workspace-section" aria-labelledby="dataset-heading">
+    <h2 id="dataset-heading">데이터셋 설정</h2>
+    <p className="section-description">분석할 데이터셋과 버전, 준비 상태를 확인해 주세요.</p>
     <DatasetSelector state={state} onSelect={key => { void session.selectDataset(key) }} onReload={() => { void session.loadDatasets() }}
       onRetryDetail={() => { if (state.selection) void session.selectDataset(state.selection) }} />
+    </section>
+    <section className="workspace-section" aria-labelledby="analysis-heading">
+    <h2 id="analysis-heading">분석 설정</h2>
+    <p className="section-description">분석 종류를 선택하고 주소와 검색 조건을 입력해 주세요.</p>
     <div className="search-bar">
       <label htmlFor="analysis-mode">분석 종류</label>
       <select id="analysis-mode" value={state.mode} onChange={event => session.setMode(event.target.value as AnalysisMode)}>
@@ -37,26 +47,29 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
         onChange={session.setPathConditions} onSearch={() => { void session.searchPaths() }} onCancel={session.cancelSearch} />
       : <PatternSearchBar conditions={state.patternConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
         onChange={session.setPatternConditions} onSearch={() => { void session.searchPatterns() }} onCancel={session.cancelSearch} />}
-    <JsonDownloadButton session={session} />
+    </section>
+    <section className="workspace-section" aria-labelledby="results-heading">
+    <div className="result-heading"><h2 id="results-heading">분석 결과</h2><JsonDownloadButton session={session} /></div>
+    {state.traceResultOutdated && state.mode === 'trace' && state.response?.ok && <p className="notice notice-warning" role="status">검색 조건이 변경되었습니다. 현재 표시된 내용은 이전 검색 결과입니다. 새 조건을 적용하려면 다시 검색해 주세요.</p>}
+    <AnalysisResultHeader state={state} />
     {state.isSearching && <p className="notice" role="status">검색 중…</p>}
     {!state.isSearching && !state.pathValidationError && !state.patternValidationError && (state.mode === 'trace' ? state.response === null : state.mode === 'paths' ? state.pathResponse === null : state.patternResponse === null) && <p className="notice">{canSearch(state) ? (state.mode === 'trace' ? '주소를 입력하고 검색하면 송금 목록이 나옵니다.' : state.mode === 'paths' ? '시작 주소와 대상 주소를 입력하고 경로를 검색해 주세요.' : '기준 주소와 방향을 입력하고 패턴을 검색해 주세요.') : 'READY 데이터셋의 상세 정보를 확인한 뒤 검색할 수 있습니다.'}</p>}
     {state.mode === 'patterns' && <>
       {state.patternValidationError && <p className="notice notice-error" role="alert">{state.patternValidationError}</p>}
       {state.patternResponse && !state.patternResponse.ok && <RequestNotice failure={state.patternResponse} />}
-      {state.patternResponse?.ok && <PatternResults envelope={state.patternResponse.envelope} selectedPatternId={state.selectedPatternId} onSelectPattern={session.selectPattern}
+      {state.patternResponse?.ok && <PatternResults showContext={false} envelope={state.patternResponse.envelope} selectedPatternId={state.selectedPatternId} onSelectPattern={session.selectPattern}
         selectedTransferId={state.selectedTransferId} onSelectTransfer={session.selectTransfer} />}
     </>}
     {state.mode === 'paths' && <>
       {state.pathValidationError && <p className="notice notice-error" role="alert">{state.pathValidationError}</p>}
       {state.pathResponse && !state.pathResponse.ok && <RequestNotice failure={state.pathResponse} />}
-      {state.pathResponse?.ok && <PathResults result={state.pathResponse.result} selectedPathId={state.selectedPathId} onSelectPath={session.selectPath}
+      {state.pathResponse?.ok && <PathResults showContext={false} result={state.pathResponse.result} selectedPathId={state.selectedPathId} onSelectPath={session.selectPath}
         selectedTransferId={state.selectedTransferId} onSelectTransfer={session.selectTransfer} />}
     </>}
     {state.mode === 'trace' && state.response && !state.response.ok && <RequestNotice failure={state.response} />}
     {state.mode === 'trace' && state.response?.ok && <>
-      {state.response.result.sourceMode === 'FIXTURE' && <p className="fixture-badge">합성 데이터(FIXTURE)</p>}
-      <p className="applied-conditions">적용 데이터셋: {state.response.result.conditions.datasetId} / {state.response.result.conditions.datasetVersion} · 조건: {formatConditions(state.response.result.conditions)}</p>
       <TraceView result={state.response.result} selectedTransferId={state.selectedTransferId} onSelect={session.selectTransfer} />
     </>}
+    </section>
   </main>
 }

@@ -367,3 +367,17 @@
   border: 2px solid var(--accent);
   background: var(--accent-bg);
 }
+
+.page-heading { margin-bottom: 24px; }
+.page-heading h1 { margin-bottom: 8px; }
+.workspace-section { border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px; }
+.workspace-section > h2, .result-heading h2 { font-size: 22px; margin-bottom: 8px; }
+.section-description { font-size: 15px; margin-bottom: 16px; }
+.result-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.result-heading .search-bar { margin-bottom: 0; }
+.result-summary { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; font-size: 15px; }
+.result-summary p + p, .dataset-details p { margin-top: 6px; }
+.result-summary .full-value, .dataset-panel .full-value { overflow-wrap: anywhere; }
+.dataset-details { margin-top: 10px; }
+.dataset-details summary { cursor: pointer; color: var(--text-h); }
+.dataset-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

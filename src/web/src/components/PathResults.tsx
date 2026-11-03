@@ -9,10 +9,11 @@ import TransferTable from './TransferTable'
 import TransferDetail from './TransferDetail'
 
 type Props = {
+  showContext?: boolean
   result: PathsResult; selectedPathId?: string | null; onSelectPath?: (id: string | null) => void
   selectedTransferId?: string | null; onSelectTransfer?: (id: string) => void
 }
-export default function PathResults({ result, selectedPathId = null, onSelectPath, selectedTransferId = null, onSelectTransfer }: Props) {
+export default function PathResults({ result, selectedPathId = null, onSelectPath, selectedTransferId = null, onSelectTransfer, showContext = true }: Props) {
   const { data, meta } = result
   const { limits, paths } = data
   // Keep graph input stable while only the chosen path changes; do not rebuild the canvas.
@@ -24,12 +25,12 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
   const selectedTransfer = selectedTransferId === null ? null : transfers.get(selectedTransferId) ?? null
   const resolvedTransferId = selectedTransfer?.id ?? null
   return <section aria-label="경로 검색 결과">
-    {meta.sourceMode === 'FIXTURE' && <p className="fixture-badge">합성 데이터(FIXTURE)</p>}
+    {showContext && meta.sourceMode === 'FIXTURE' && <p className="fixture-badge">합성 데이터(FIXTURE)</p>}
     <p className="notice">경로는 시간순 송금의 후보 연결이며, 동일 자금의 이동이나 소유 관계를 확정하지 않습니다.</p>
-    <p className="applied-conditions">적용 데이터셋: {meta.datasetId} / {meta.datasetVersion} · {formatConditions({ direction: meta.conditions.direction, maxDepth: meta.conditions.maxDepth as 1 | 2 | 3 })}</p>
-    <p className="notice mono full-value">검색 시작 주소: {meta.conditions.address} · 대상 주소: {meta.conditions.targetAddress}</p>
+    {showContext && <p className="applied-conditions">적용 데이터셋: {meta.datasetId} / {meta.datasetVersion} · {formatConditions({ direction: meta.conditions.direction, maxDepth: meta.conditions.maxDepth as 1 | 2 | 3 })}</p>}
+    {showContext && <p className="notice mono full-value">검색 시작 주소: {meta.conditions.address} · 대상 주소: {meta.conditions.targetAddress}</p>}
     {meta.conditions.direction === 'incoming' && <p className="notice">받은 쪽 탐색: 아래 연결은 대상 주소에서 검색 시작 주소로 이어지는 실제 송금 순서입니다.</p>}
-    <p className="notice" role="status">찾은 경로 {limits.found}개{limits.foundIsLowerBound ? ' 이상' : ''} 중 {paths.length}개 표시</p>
+    {showContext && <p className="notice" role="status">찾은 경로 {limits.found}개{limits.foundIsLowerBound ? ' 이상' : ''} 중 {paths.length}개 표시</p>}
     {onSelectPath && paths.length > 0 && <p className="notice" role="status">
       {selection.path ? `경로 ${paths.indexOf(selection.path) + 1} 선택됨 · 근거 송금 ${selection.transferIds.size}건을 그래프와 표에 강조합니다.` : '경로를 선택하면 해당 근거 송금을 그래프와 표에 함께 강조합니다.'}
       {selection.path && <button type="button" className="select-button" onClick={() => onSelectPath(null)}>경로 선택 해제</button>}

@@ -10,10 +10,11 @@ import TransferTable from './TransferTable'
 import TransferDetail from './TransferDetail'
 
 type Props = {
+  showContext?: boolean
   envelope: PatternEnvelope; selectedPatternId?: string | null; onSelectPattern?: (id: string | null) => void
   selectedTransferId?: string | null; onSelectTransfer?: (id: string) => void
 }
-export default function PatternResults({ envelope, selectedPatternId = null, onSelectPattern, selectedTransferId = null, onSelectTransfer }: Props) {
+export default function PatternResults({ envelope, selectedPatternId = null, onSelectPattern, selectedTransferId = null, onSelectTransfer, showContext = true }: Props) {
   const { data, meta } = envelope
   const { patterns, limits } = data
   const conditions = meta.conditions as PatternRequest
@@ -23,11 +24,11 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
   const selectedTransfer = selectedTransferId === null ? null : transfers.get(selectedTransferId) ?? null
   const resolvedTransferId = selectedTransfer?.id ?? null
   return <section aria-label="패턴 검색 결과">
-    {meta.sourceMode === 'FIXTURE' && <p className="fixture-badge">합성 데이터(FIXTURE)</p>}
+    {showContext && meta.sourceMode === 'FIXTURE' && <p className="fixture-badge">합성 데이터(FIXTURE)</p>}
     <p className="notice">패턴은 규칙에 맞는 구조적인 송금 형태입니다. 불법 거래, 동일 소유자 또는 동일 자금의 이동을 증명하지 않습니다.</p>
-    <p className="applied-conditions">적용 데이터셋: {meta.datasetId} / {meta.datasetVersion} · 방향: {PATTERN_DIRECTION_LABELS[conditions.direction ?? 'all']}</p>
-    <p className="notice mono full-value">분석 기준 주소: {conditions.address}</p>
-    <p className="notice" role="status">발견된 패턴 창 {limits.found}개{limits.foundIsLowerBound ? ' 이상 (최소 발견 건수)' : ''} · {patterns.length}개 표시</p>
+    {showContext && <p className="applied-conditions">적용 데이터셋: {meta.datasetId} / {meta.datasetVersion} · 방향: {PATTERN_DIRECTION_LABELS[conditions.direction ?? 'all']}</p>}
+    {showContext && <p className="notice mono full-value">분석 기준 주소: {conditions.address}</p>}
+    {showContext && <p className="notice" role="status">발견된 패턴 창 {limits.found}개{limits.foundIsLowerBound ? ' 이상 (최소 발견 건수)' : ''} · {patterns.length}개 표시</p>}
     {onSelectPattern && patterns.length > 0 && <p className="notice" role="status">
       {selection.pattern ? `패턴 ${patterns.indexOf(selection.pattern) + 1} 선택됨 · 근거 송금 ${selection.transferIds.size}건을 그래프와 표에 강조합니다.` : '패턴을 선택하면 해당 근거 송금을 그래프와 표에 함께 강조합니다.'}
       {selection.pattern && <button type="button" className="select-button" onClick={() => onSelectPattern(null)}>패턴 선택 해제</button>}

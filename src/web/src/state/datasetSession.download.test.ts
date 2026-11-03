@@ -196,3 +196,33 @@ describe('download button with real analysis session state', () => {
     expect(disabled(session)).toBe(true); await pending; expect(disabled(session)).toBe(true)
   })
 })
+
+describe('Trace previous-result notice state', () => {
+  it('marks only edits with a displayed successful result and clears on the next search', async () => {
+    const { session, search } = await setup('trace')
+    session.onTraceAddressChange(); expect(session.getSnapshot().traceResultOutdated).toBe(false)
+    await search(); session.onTraceAddressChange()
+    expect(session.getSnapshot().traceResultOutdated).toBe(true); expect(session.getDownloadEnvelope()).toBeNull()
+    const pending = search(); expect(session.getSnapshot().traceResultOutdated).toBe(false)
+    await pending; expect(session.getSnapshot().traceResultOutdated).toBe(false)
+    session.setConditions({ direction: 'incoming', maxDepth: 1 }); expect(session.getSnapshot().traceResultOutdated).toBe(true)
+    session.setMode('paths'); expect(session.getSnapshot().traceResultOutdated).toBe(false)
+  })
+  it('does not describe cancellation or errors as edited conditions', async () => {
+    const { session, search, fetcher } = await setup('trace'); await search()
+    session.cancelPending(); expect(session.getSnapshot().traceResultOutdated).toBe(false)
+    fetcher.mockRejectedValueOnce(new TypeError('offline')); await search(); session.onTraceAddressChange()
+    expect(session.getSnapshot().traceResultOutdated).toBe(false)
+  })
+  it.each(['paths', 'patterns'] as const)('clears %s results on edits without showing a stale Trace warning', async mode => {
+    const { session, search } = await setup(mode); await search()
+    if (mode === 'paths') session.setPathConditions({ ...session.getSnapshot().pathConditions, address: '' })
+    else session.setPatternConditions({ ...session.getSnapshot().patternConditions, address: '' })
+    expect(session.getSnapshot().traceResultOutdated).toBe(false); expect(session.getDownloadEnvelope()).toBeNull()
+  })
+  it('clears edited-result notice on dataset change', async () => {
+    const { session, search } = await setup('trace'); await search(); session.onTraceAddressChange()
+    await session.selectDataset({ datasetId: 'flow-demo', datasetVersion: 'v1' })
+    expect(session.getSnapshot().traceResultOutdated).toBe(false)
+  })
+})
