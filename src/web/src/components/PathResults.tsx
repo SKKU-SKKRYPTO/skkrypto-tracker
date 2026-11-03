@@ -1,3 +1,4 @@
+import WorkspaceSelection from './WorkspaceSelection'
 import AddressValue from './AddressValue'
 import CopyButton from './CopyButton'
 import { shortenHex } from '../format'
@@ -42,6 +43,9 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
       제한으로 일부 경로만 반환되었으며, 전체 결과가 아닐 수 있습니다. {limits.truncated.reasons.map(formatLimitReason).join(' ')} · 대표 사유: {formatLimitReason(limits.truncated.reason)}
       {limits.analyzedUntil && <> · 블록 {limits.analyzedUntil.blockNumber}까지만 분석 ({formatTimestamp(limits.analyzedUntil.timestamp)})</>}
     </p>}
+    <WorkspaceSelection group={selection.path ? "경로 " + (paths.indexOf(selection.path) + 1) : null} transfer={selectedTransfer} />
+    <div className={graph.transfers.length > 0 ? 'analysis-workspace' : 'analysis-workspace workspace-empty'}>
+      <div className="result-list" role="region" aria-label="경로 선택 목록">
     {paths.length === 0
       ? <p className="notice" role="status">{limits.truncated ? '분석한 범위에서 표시할 경로를 찾지 못했습니다. 제한 때문에 전체 범위에 경로가 없다고 단정할 수 없습니다.' : '선택한 조건과 수집 범위에서 후보 경로가 관측되지 않았습니다.'}</p>
       : <ol className="path-list">{paths.map((path, index) => {
@@ -71,11 +75,13 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
           </details>
         </li>
       })}</ol>}
-    {graph.transfers.length > 0 && <div className={`layout path-evidence${onSelectTransfer ? ' path-with-detail' : ''}`}>
-      <TransferTable transfers={graph.transfers} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} />
+      </div>
+    {graph.transfers.length > 0 && <>
       <TransferGraph result={graph} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} />
+      <TransferTable transfers={graph.transfers} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} />
       {onSelectTransfer && <TransferDetail transfer={selectedTransfer} />}
-    </div>}
+    </>}
+    </div>
     <ul className="notice">{meta.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>
   </section>
 }

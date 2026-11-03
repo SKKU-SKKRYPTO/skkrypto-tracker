@@ -1,3 +1,4 @@
+import WorkspaceSelection from './WorkspaceSelection'
 import AddressValue from './AddressValue'
 import CopyButton from './CopyButton'
 import { useMemo } from 'react'
@@ -20,7 +21,7 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
   const { data, meta } = envelope
   const { patterns, limits } = data
   const conditions = meta.conditions as PatternRequest
-  const graph = useMemo(() => ({ nodes: data.nodes, transfers: uniqueTransfers(data.transfers), conditions }), [data, conditions])
+  const graph = useMemo(() => ({ nodes: data.nodes, transfers: uniqueTransfers(data.transfers), conditions, startLabel: '기준' as const }), [data, conditions])
   const selection = resolvePatternSelection(patterns, graph.transfers, selectedPatternId)
   const transfers = new Map(graph.transfers.map(transfer => [transfer.id, transfer]))
   const selectedTransfer = selectedTransferId === null ? null : transfers.get(selectedTransferId) ?? null
@@ -39,6 +40,9 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
       분석 제한으로 일부 결과만 반환되었으며, 전체 결과가 아닐 수 있습니다. {limits.truncated.reasons.map(formatLimitReason).join(' ')} · 대표 사유: {formatLimitReason(limits.truncated.reason)}
       {limits.analyzedUntil && <> · 블록 {limits.analyzedUntil.blockNumber}까지만 분석 ({formatTimestamp(limits.analyzedUntil.timestamp)})</>}
     </p>}
+    <WorkspaceSelection group={selection.pattern ? "패턴 " + (patterns.indexOf(selection.pattern) + 1) : null} transfer={selectedTransfer} />
+    <div className={graph.transfers.length > 0 ? 'analysis-workspace' : 'analysis-workspace workspace-empty'}>
+      <div className="result-list" role="region" aria-label="패턴 선택 목록">
     {patterns.length === 0
       ? <p className="notice" role="status">{limits.truncated || limits.foundIsLowerBound ? '분석한 범위에서 패턴이 관측되지 않았습니다. 전체 범위에 패턴이 없다고 단정할 수 없습니다.' : '선택한 조건과 수집 범위에서 패턴이 관측되지 않았습니다.'}</p>
       : <ol className="pattern-list">{patterns.map((pattern, index) => <li key={pattern.patternId} className={`notice${selection.pattern === pattern ? ' pattern-selected' : ''}`}>
@@ -74,11 +78,13 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
           ? <p className="notice notice-warning">incomplete: 예 · 관측 범위가 불완전하여 이 창의 전후 거래를 모두 확인할 수 없습니다. 분석 제한(truncated)과는 별개입니다.</p>
           : <p>incomplete: 아니요 · 관측 범위 안의 분석 창입니다.</p>}
       </li>)}</ol>}
-    {graph.transfers.length > 0 && <div className={`layout path-evidence${onSelectTransfer ? ' path-with-detail' : ''}`}>
-      <TransferTable transfers={graph.transfers} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} evidenceKind="pattern" onSelect={onSelectTransfer} />
+      </div>
+    {graph.transfers.length > 0 && <>
       <TransferGraph result={graph} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} evidenceKind="pattern" onSelect={onSelectTransfer} />
+      <TransferTable transfers={graph.transfers} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} evidenceKind="pattern" onSelect={onSelectTransfer} />
       {onSelectTransfer && <TransferDetail transfer={selectedTransfer} />}
-    </div>}
+    </>}
+    </div>
     <ul className="notice">{meta.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>
   </section>
 }

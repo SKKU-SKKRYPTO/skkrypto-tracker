@@ -404,3 +404,27 @@
 .result-counts { font-size: 18px; font-weight: 600; color: var(--text-h); }
 .applied-addresses { margin-top: 6px; font-size: 14px; }
 @media (max-width: 600px) { .search-field, .search-field.address-field { flex-basis: 100%; } .search-actions { width: 100%; } }
+
+/* One result workspace: related list and graph above the evidence table and details. */
+.analysis-workspace { display: grid; grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr); grid-template-areas: 'list graph' 'table table' 'detail detail'; gap: 20px; align-items: start; margin-bottom: 16px; }
+.analysis-workspace > * { min-width: 0; }
+.analysis-workspace > .result-list { grid-area: list; max-height: 580px; overflow-y: auto; overflow-wrap: anywhere; }
+.analysis-workspace > .graph { grid-area: graph; }
+.analysis-workspace > .table-scroll { grid-area: table; }
+.analysis-workspace > .detail { grid-area: detail; }
+.analysis-workspace .graph-canvas { height: clamp(400px, 42vw, 560px); }
+.analysis-workspace.trace-workspace { grid-template-areas: 'graph graph' 'table detail'; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); }
+.workspace-selection { border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 12px; overflow-wrap: anywhere; }
+.workspace-selection a { display: inline-block; padding: 8px 0; color: var(--text-h); text-decoration: underline; }
+.workspace-selection a:focus-visible, #detail-title:focus { outline: 2px solid var(--accent); outline-offset: 3px; }
+.detail { scroll-margin-top: 16px; min-width: 0; }
+.detail dd { min-width: 0; }
+.detail dd .full-value { min-width: 0; }
+@media (max-width: 960px) {
+  .analysis-workspace, .analysis-workspace.trace-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'list' 'graph' 'table' 'detail'; }
+  .analysis-workspace.trace-workspace { grid-template-areas: 'graph' 'table' 'detail'; }
+  .analysis-workspace > .result-list { max-height: none; overflow-y: visible; }
+  .analysis-workspace .graph-canvas { height: 400px; }
+}
+
+.analysis-workspace.workspace-empty { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'list'; }
