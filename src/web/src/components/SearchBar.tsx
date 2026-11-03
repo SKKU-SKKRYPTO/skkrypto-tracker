@@ -4,6 +4,7 @@ import { DIRECTION_LABELS, DIRECTIONS, MAX_DEPTHS } from '../searchConditions'
 import type { Direction, MaxDepth, SearchConditions } from '../searchConditions'
 
 type Props = {
+  address?: string
   isSearching: boolean
   disabled?: boolean
   conditions: SearchConditions
@@ -12,8 +13,9 @@ type Props = {
   onAddressChange?: (address: string) => void
 }
 
-function SearchBar({ isSearching, disabled = false, conditions, onConditionsChange, onSearch, onAddressChange }: Props) {
-  const [address, setAddress] = useState('')
+function SearchBar({ address: controlledAddress, isSearching, disabled = false, conditions, onConditionsChange, onSearch, onAddressChange }: Props) {
+  const [localAddress, setAddress] = useState('')
+  const address = controlledAddress ?? localAddress
 
   // form의 submit을 쓰면 버튼 클릭과 입력창에서 Enter 둘 다 검색이 된다.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -23,8 +25,8 @@ function SearchBar({ isSearching, disabled = false, conditions, onConditionsChan
 
   // 조건 메뉴는 기본 <select>라서 Tab으로 이동하고 방향키로 고를 수 있다.
   return (
-    <form className="search-bar" role="search" onSubmit={handleSubmit}>
-      <label htmlFor="address-input">주소</label>
+    <form className="search-bar analysis-form" role="search" onSubmit={handleSubmit}>
+      <div className="search-field address-field"><label htmlFor="address-input">주소</label>
       <input
         id="address-input"
         className="mono"
@@ -37,9 +39,9 @@ function SearchBar({ isSearching, disabled = false, conditions, onConditionsChan
         placeholder="0x로 시작하는 40자리 주소"
         autoComplete="off"
         spellCheck={false}
-      />
+      /></div>
 
-      <label htmlFor="direction-select">방향</label>
+      <div className="search-field"><label htmlFor="direction-select">방향</label>
       <select
         id="direction-select"
         value={conditions.direction}
@@ -52,9 +54,9 @@ function SearchBar({ isSearching, disabled = false, conditions, onConditionsChan
             {DIRECTION_LABELS[direction]}({direction})
           </option>
         ))}
-      </select>
+      </select></div>
 
-      <label htmlFor="depth-select">깊이</label>
+      <div className="search-field"><label htmlFor="depth-select">깊이</label>
       <select
         id="depth-select"
         value={conditions.maxDepth}
@@ -70,11 +72,11 @@ function SearchBar({ isSearching, disabled = false, conditions, onConditionsChan
             {depth}단계
           </option>
         ))}
-      </select>
+      </select></div>
 
-      <button type="submit" disabled={isSearching || disabled}>
+      <div className="search-actions"><button type="submit" disabled={isSearching || disabled}>
         {isSearching ? '검색 중…' : '검색'}
-      </button>
+      </button></div>
     </form>
   )
 }

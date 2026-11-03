@@ -1,3 +1,6 @@
+import AddressValue from './AddressValue'
+import CopyButton from './CopyButton'
+import { shortenHex } from '../format'
 import type { PathsResult } from '../adapters/pathsAdapter'
 import { formatAmount, formatTimestamp } from '../format'
 import { formatLimitReason } from '../limitReasons'
@@ -49,11 +52,15 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
           <h2>경로 {index + 1} · {path.hops}단계</h2>
           {onSelectPath && <button type="button" className="select-button" aria-pressed={selection.path === path}
             aria-label={`경로 ${index + 1} 선택`} onClick={() => onSelectPath(path.id)}>{selection.path === path ? '✓ 경로 선택됨' : '경로 선택'}</button>}
-          <p className="mono full-value">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].join(' → ')}</p>
-          <p className="mono full-value">경로 ID: {path.id}</p>
+          <p className="mono full-value">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map(shortenHex).join(' → ')}</p>
+          <p>근거 송금 {path.transferIds.length}건</p>
+          <details className="technical-details"><summary>기술 상세 · 경로 {index + 1}</summary>
+            <p className="mono full-value">경로 ID: {path.id} <CopyButton value={path.id} label="경로 ID" /></p>
+            <p>전체 주소 연결</p><ol>{[evidence[0]!.from, ...evidence.map(t => t!.to)].map((address, i) => <li key={i}><AddressValue value={address} label={'경로 ' + (index + 1) + ' 주소 ' + (i + 1)} /></li>)}</ol>
+          </details>
           <details><summary>근거 송금 {path.transferIds.length}건</summary>
             <ol>{evidence.map(transfer => <li key={transfer!.id}>
-              <p className="mono full-value">{transfer!.from} → {transfer!.to}</p>
+              <div className="evidence-addresses"><AddressValue value={transfer!.from} label="보낸 주소" /> → <AddressValue value={transfer!.to} label="받은 주소" /></div>
               <p>{formatAmount(transfer!)} · 블록 {transfer!.blockNumber} · {formatTimestamp(transfer!.timestamp)}</p>
               <p className="mono full-value">송금 ID: {transfer!.id}</p>
               {onSelectTransfer && <button type="button" className="select-button" aria-label={`경로 ${index + 1} 근거 송금 ${transfer!.id} 상세 보기`}

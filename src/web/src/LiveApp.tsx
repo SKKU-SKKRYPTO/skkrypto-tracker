@@ -16,6 +16,7 @@ import './App.css'
 
 export default function LiveApp({ session: provided }: { session?: DatasetSession } = {}) {
   const [session] = useState(() => provided ?? createDatasetSession())
+  const [traceAddress, setTraceAddress] = useState('')
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot)
   useEffect(() => {
     void session.loadDatasets()
@@ -35,14 +36,18 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     <section className="workspace-section" aria-labelledby="analysis-heading">
     <h2 id="analysis-heading">분석 설정</h2>
     <p className="section-description">분석 종류를 선택하고 주소와 검색 조건을 입력해 주세요.</p>
-    <div className="search-bar">
-      <label htmlFor="analysis-mode">분석 종류</label>
-      <select id="analysis-mode" value={state.mode} onChange={event => session.setMode(event.target.value as AnalysisMode)}>
-        <option value="trace">추적(Trace)</option><option value="paths">경로(Path)</option><option value="patterns">패턴(Pattern)</option>
-      </select>
+    <div className="mode-switch" role="group" aria-label="분석 종류">
+      {([
+        ['trace', '송금 추적(Trace)', '한 주소에서 시간순 송금 흐름을 추적합니다.'],
+        ['paths', '경로 탐색(Path)', '두 주소 사이의 후보 연결을 확인합니다.'],
+        ['patterns', '패턴 탐지(Pattern)', '분산·합류 형태와 그 근거를 확인합니다.'],
+      ] as const).map(([mode, label, description]) => <button key={mode} id={'analysis-mode-' + mode} type="button"
+        aria-label={label} aria-pressed={state.mode === mode} aria-describedby={'mode-description-' + mode} onClick={() => session.setMode(mode as AnalysisMode)}>
+        <strong>{label}</strong><span id={'mode-description-' + mode}>{description}</span>
+      </button>)}
     </div>
-    {state.mode === 'trace' ? <SearchBar isSearching={state.isSearching} disabled={!canSearch(state)} conditions={state.conditions}
-      onAddressChange={session.onTraceAddressChange} onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
+    {state.mode === 'trace' ? <SearchBar isSearching={state.isSearching} disabled={!canSearch(state)} conditions={state.conditions} address={traceAddress}
+      onAddressChange={address => { setTraceAddress(address); session.onTraceAddressChange() }} onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
       : state.mode === 'paths' ? <PathSearchBar conditions={state.pathConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
         onChange={session.setPathConditions} onSearch={() => { void session.searchPaths() }} onCancel={session.cancelSearch} />
       : <PatternSearchBar conditions={state.patternConditions} disabled={!canSearch(state)} isSearching={state.isSearching}

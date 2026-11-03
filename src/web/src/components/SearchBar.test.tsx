@@ -27,3 +27,11 @@ describe('Trace address draft notifications', () => {
     expect(() => (field.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'draft' } })).not.toThrow()
   })
 })
+
+it('submits the controlled Trace draft after the form remounts', () => {
+  const onSearch = vi.fn()
+  const tree = SearchBar({ address: 'preserved draft', conditions: DEFAULT_SEARCH_CONDITIONS, isSearching: false, onConditionsChange: vi.fn(), onSearch })
+  expect(elements(tree).find(n => n.props.id === 'address-input')!.props.value).toBe('preserved draft')
+  tree.props.onSubmit({ preventDefault: vi.fn() } as never)
+  expect(onSearch).toHaveBeenCalledExactlyOnceWith('preserved draft')
+})

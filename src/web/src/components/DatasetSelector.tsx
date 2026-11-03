@@ -19,7 +19,7 @@ export default function DatasetSelector({ state, onSelect, onReload, onRetryDeta
         {state.datasets.length === 0 && <option value="">선택 가능한 데이터셋 없음</option>}
         {state.datasets.map(row => <option key={datasetKeyValue(row)} value={datasetKeyValue(row)}>{row.datasetId} / {row.datasetVersion} · {row.status}</option>)}
       </select>
-      <button type="button" disabled={state.listStatus === 'loading'} onClick={onReload}>목록 다시 조회</button>
+      <button className="button-secondary" type="button" disabled={state.listStatus === 'loading'} onClick={onReload}>목록 다시 조회</button>
     </div>
     {state.listStatus === 'loading' && <p className="notice" role="status">데이터셋 목록을 불러오는 중…</p>}
     {state.listStatus === 'ready' && state.datasets.length === 0 && <p className="notice" role="status">선택 가능한 데이터셋이 없습니다.</p>}

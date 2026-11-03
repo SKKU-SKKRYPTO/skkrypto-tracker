@@ -30,7 +30,7 @@ export default function JsonDownloadButton({ session }: Props) {
 
   return <>
     <div className="search-bar">
-      <button type="button" disabled={!envelope || preparing} aria-busy={preparing} onClick={() => { void download() }}>검색 결과 JSON 다운로드</button>
+      <button className="button-secondary" type="button" disabled={!envelope || preparing} aria-busy={preparing} onClick={() => { void download() }}>검색 결과 JSON 다운로드</button>
     </div>
     {failure && failure.envelope === envelope && <p className="notice notice-error" role="alert">{failure.message}</p>}
   </>

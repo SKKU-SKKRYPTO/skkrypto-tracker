@@ -40,10 +40,9 @@ async function setup() {
   await session.loadDatasets()
   function render() {
     const tree = LiveApp({ session }), nodes = elements(tree)
-    const mode = nodes.find(node => node.props.id === 'analysis-mode')!
     const input = nodes.find(node => node.type === PathSearchBar || node.type === SearchBar)!
     return { html: renderToStaticMarkup(tree), input: input.props,
-      changeMode(value: string) { (mode.props.onChange as (event: { target: { value: string } }) => void)({ target: { value } }) } }
+      changeMode(value: string) { (nodes.find(node => node.props.id === 'analysis-mode-' + value)!.props.onClick as () => void)() } }
   }
   return { session, paths, trace, render }
 }
@@ -53,8 +52,8 @@ describe('live Trace and Path UI integration', () => {
   it('defaults to the existing Trace form alongside Path and Pattern modes', async () => {
     const { render } = await setup(), ui = render()
     expect(ui.html).toContain('추적(Trace)')
-    expect(ui.html).toContain('경로(Path)')
-    expect(ui.html).toContain('패턴(Pattern)')
+    expect(ui.html).toContain('경로 탐색(Path)')
+    expect(ui.html).toContain('패턴 탐지(Pattern)')
     expect(ui.html).not.toContain('대상 주소')
     expect(ui.html).toContain('송금 목록')
   })

@@ -1,3 +1,4 @@
+import AddressValue from './AddressValue'
 import type { DatasetSessionState } from '../state/datasetSession'
 import type { AnalysisRequest } from '../api/v1Types'
 import { DIRECTION_LABELS } from '../searchConditions'
@@ -16,9 +17,9 @@ export default function AnalysisResultHeader({ state }: { state: DatasetSessionS
   return <div className="result-summary" aria-label="적용 조건 및 결과 요약">
     <p><strong>{MODES[state.mode]}</strong> · {limited ? '부분 결과' : '정상 응답'}{meta.sourceMode === 'FIXTURE' && ' · 합성 데이터(FIXTURE)'}</p>
     <p>적용 데이터셋: {meta.datasetId} / {meta.datasetVersion}</p>
-    <p className="full-value">적용 주소: <span className="mono">{conditions.address}</span>{state.mode === 'paths' && <> · 대상 주소: <span className="mono">{conditions.targetAddress}</span></>}</p>
+    <div className="applied-addresses">적용 주소: <AddressValue value={conditions.address} label="적용 주소" />{state.mode === 'paths' && <> · 대상 주소: <AddressValue value={conditions.targetAddress!} label="대상 주소" /></>}</div>
     <p>적용 방향: {state.mode === 'patterns' ? PATTERN_DIRECTION_LABELS[conditions.direction ?? 'all'] : DIRECTION_LABELS[conditions.direction!]}{state.mode !== 'patterns' && <> · 최대 깊이: {conditions.maxDepth}단계</>}</p>
-    <p>반환 송금 {data.transfers.length}건{state.mode === 'paths' && <> · 반환 경로 {data.paths.length}개</>}{state.mode === 'patterns' && <> · 반환 패턴 창 {data.patterns.length}개</>}</p>
+    <p className="result-counts">반환 송금 {data.transfers.length}건{state.mode === 'paths' && <> · 반환 경로 {data.paths.length}개</>}{state.mode === 'patterns' && <> · 반환 패턴 창 {data.patterns.length}개</>}</p>
     {state.mode === 'paths' && <p>찾은 경로 {data.limits.found}개{data.limits.foundIsLowerBound ? ' 이상' : ''} 중 {data.paths.length}개 표시</p>}
     {state.mode === 'patterns' && <p>발견된 패턴 창 {data.limits.found}개{data.limits.foundIsLowerBound ? ' 이상 (최소 발견 건수)' : ''} · {data.patterns.length}개 표시</p>}
     {data.patterns.some(pattern => pattern.incomplete) && <p className="notice notice-warning">관측 범위가 불완전한 패턴 창이 포함되어 있습니다. 결과 잘림 여부와는 별개입니다.</p>}
