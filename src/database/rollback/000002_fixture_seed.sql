@@ -1,5 +1,13 @@
 BEGIN;
 
+DELETE FROM dataset_addresses
+WHERE (dataset_id, dataset_version) IN (
+    ('collecting-demo', 'v1'),
+    ('flow-demo', 'v1'),
+    ('invalidated-demo', 'v1'),
+    ('patterns-demo', 'v1')
+);
+
 DELETE FROM dataset_transfers
 WHERE (dataset_id, dataset_version) IN (
     ('collecting-demo', 'v1'),

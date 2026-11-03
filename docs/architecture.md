@@ -40,6 +40,7 @@ RPC / Fixture → 수집·정규화 → PostgreSQL → 분석 엔진 → Go API 
 | 테이블 | 용도 |
 | --- | --- |
 | `datasets` | 데이터셋 ID·버전·모드·범위·상태 |
+| `dataset_addresses` | 데이터셋 버전별 주소 표시 정보 |
 | `ingestion_chunks` | 수집 청크와 체크포인트 |
 | `blocks` | 블록 번호·해시·시각 |
 | `transactions` | 거래 |

@@ -12,6 +12,7 @@ erDiagram
     ASSETS ||--o{ TRANSFERS : "전송 자산"
 
     DATASETS ||--o{ INGESTION_CHUNKS : "성공 청크"
+    DATASETS ||--o{ DATASET_ADDRESSES : "주소 표시 정보"
 
     DATASETS ||--o{ BLOCKS : "관측"
     BLOCKS ||--o| INGESTION_CHUNKS : "종료 경계"
@@ -51,6 +52,14 @@ erDiagram
         text dataset_version FK
         bigint start_block
         bigint end_block
+    }
+
+    DATASET_ADDRESSES {
+        text dataset_id PK
+        text dataset_version PK
+        text address PK
+        text label "NULL"
+        text note "NULL"
     }
 
     BLOCKS {
@@ -145,6 +154,18 @@ Fixture의 `source_namespace`는 Transfer ID의 namespace로 사용하며 Datase
 - `READY`이면 `collected_at IS NOT NULL`
 - `INVALIDATED`이면 `invalidation_reason IS NOT NULL`
 
+### `dataset_addresses`
+
+Dataset 버전에 등장하는 주소와 선택적인 표시 정보를 저장합니다.
+
+| 컬럼 | 타입 | 제약·의미 |
+| --- | --- | --- |
+| `dataset_id`, `dataset_version`, `address` | `TEXT` | 복합 PK, `datasets` 복합 FK |
+| `label` | `TEXT NULL` | 문제·화면에서 사용할 짧은 표시 이름 |
+| `note` | `TEXT NULL` | 주소의 역할이나 해석에 대한 보조 설명 |
+
+같은 주소도 Dataset마다 다른 역할을 가질 수 있으므로 `label`과 `note`는 주소 자체가 아니라 Dataset 버전에 종속됩니다. 수집기는 Transfer의 송신·수신 주소를 등록하되 표시 정보를 추론하지 않습니다. `label`과 `note`가 있으면 빈 문자열일 수 없습니다.
+
 ### `ingestion_chunks`
 
 성공적으로 커밋된 청크만 저장합니다. 실패 시도와 분할 전 부모 범위는 저장하지 않습니다.
@@ -224,7 +245,7 @@ Dataset과 독립적인 Transfer ID와 전송 내용을 저장합니다.
 
 전송 유형은 `from_address`와 `to_address`로 계산하며 DB에 중복 저장하지 않습니다.
 
-Block·Transaction·Transfer의 `label`과 `note`는 선택적인 표시 정보입니다. 식별자나 수집 정합성 판단에는 사용하지 않으며, 값이 있으면 빈 문자열일 수 없습니다.
+Address·Block·Transaction·Transfer의 `label`과 `note`는 선택적인 표시 정보입니다. 식별자나 수집 정합성 판단에는 사용하지 않으며, 값이 있으면 빈 문자열일 수 없습니다.
 
 ### `dataset_transfers`
 
@@ -260,8 +281,9 @@ Dataset 버전과 Transfer의 다대다 포함 관계를 저장합니다.
 1. 필요한 `blocks` insert 또는 기존 행 동일성 확인
 2. 필요한 `transactions` upsert
 3. `transfers` insert 또는 동일성 확인
-4. `dataset_transfers` insert
-5. `ingestion_chunks` insert
+4. Transfer의 송신·수신 `dataset_addresses` insert
+5. `dataset_transfers` insert
+6. `ingestion_chunks` insert
 
 하나라도 실패하면 전체를 rollback합니다. RPC 호출과 디코딩은 이 트랜잭션을 시작하기 전에 끝냅니다.
 

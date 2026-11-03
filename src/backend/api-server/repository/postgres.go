@@ -97,7 +97,18 @@ SELECT
                     AND chunk.end_block = boundary.block_number
               )
           )
-    ), '{}') AS boundary_hashes
+    ), '{}') AS boundary_hashes,
+    COALESCE((
+        SELECT jsonb_object_agg(
+            address.address,
+            address.label
+            ORDER BY address.address
+        )::text
+        FROM dataset_addresses address
+        WHERE address.dataset_id = d.dataset_id
+          AND address.dataset_version = d.dataset_version
+          AND address.label IS NOT NULL
+    ), '{}') AS address_labels
 FROM datasets d
 JOIN assets a
   ON a.chain_id = d.chain_id
@@ -153,6 +164,7 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 		collectedAt        *time.Time
 		invalidationReason *string
 		boundaryHashesJSON string
+		addressLabelsJSON  string
 	)
 	if err := row.Scan(
 		&dataset.ID,
@@ -172,6 +184,7 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 		&collectedAt,
 		&invalidationReason,
 		&boundaryHashesJSON,
+		&addressLabelsJSON,
 	); err != nil {
 		return domain.Dataset{}, err
 	}
@@ -204,8 +217,11 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 	if err := json.Unmarshal([]byte(boundaryHashesJSON), &dataset.BoundaryHashes); err != nil {
 		return domain.Dataset{}, fmt.Errorf("decode boundary hashes: %w", err)
 	}
-	// 현재 DB 모델에는 Dataset 주소 label과 note 컬럼이 없다.
 	dataset.Labels = map[string]string{}
+	if err := json.Unmarshal([]byte(addressLabelsJSON), &dataset.Labels); err != nil {
+		return domain.Dataset{}, fmt.Errorf("decode address labels: %w", err)
+	}
+	// 주소 note는 현재 공개 Dataset 계약에 대응하는 필드가 없어 DB에만 보존한다.
 	dataset.Notes = []string{}
 	return dataset, nil
 }

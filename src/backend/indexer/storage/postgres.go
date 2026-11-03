@@ -343,6 +343,9 @@ LIMIT 1`, chunk.Key.ID, chunk.Key.Version, startBlock, endBlock).Scan(&existingS
 		if err := storeTransfer(ctx, tx, dataset, transfer); err != nil {
 			return err
 		}
+		if err := storeTransferAddresses(ctx, tx, chunk.Key, transfer); err != nil {
+			return err
+		}
 		if err := linkTransfer(ctx, tx, chunk.Key, transfer, transaction); err != nil {
 			return err
 		}
@@ -804,6 +807,19 @@ LIMIT 1`, transfer.ID, int64(dataset.chainID), transfer.TxHash, int32(transfer.L
 	}
 	if storedNamespace != nil || storedRecordID != nil {
 		return fmt.Errorf("%w: snapshot transfer %s", ErrInconsistentSource, transfer.ID)
+	}
+	return nil
+}
+
+// storeTransferAddresses는 Dataset 버전에 등장한 송신·수신 주소를 표시 정보 없이 등록한다.
+func storeTransferAddresses(ctx context.Context, tx postgresTx, key DatasetKey, transfer Transfer) error {
+	if _, err := tx.Exec(ctx, `
+INSERT INTO dataset_addresses (dataset_id, dataset_version, address)
+VALUES
+    ($1, $2, $3),
+    ($1, $2, $4)
+ON CONFLICT DO NOTHING`, key.ID, key.Version, transfer.FromAddress, transfer.ToAddress); err != nil {
+		return fmt.Errorf("insert transfer addresses for %s: %w", transfer.ID, err)
 	}
 	return nil
 }

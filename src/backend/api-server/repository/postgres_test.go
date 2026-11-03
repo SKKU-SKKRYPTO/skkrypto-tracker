@@ -102,7 +102,7 @@ func datasetRow(
 	finalizedBlock *int64,
 	collectedAt *time.Time,
 	invalidationReason *string,
-	boundaries string,
+	boundaries, labels string,
 ) postgresRow {
 	return valuesRow(
 		id,
@@ -122,6 +122,7 @@ func datasetRow(
 		collectedAt,
 		invalidationReason,
 		boundaries,
+		labels,
 	)
 }
 
@@ -165,7 +166,16 @@ func transferRowWithText(
 func TestPostgresListDatasets(t *testing.T) {
 	collectedAt := time.Date(2026, 10, 26, 14, 0, 0, 0, time.UTC)
 	rows := &fakeRows{rows: []postgresRow{
-		datasetRow("flow-demo", "v1", domain.StatusReady, ptr(int64(200)), &collectedAt, nil, `{"100":"0xaaa","200":"0xbbb"}`),
+		datasetRow(
+			"flow-demo",
+			"v1",
+			domain.StatusReady,
+			ptr(int64(200)),
+			&collectedAt,
+			nil,
+			`{"100":"0xaaa","200":"0xbbb"}`,
+			`{"0x0000000000000000000000000000000000000001":"S"}`,
+		),
 	}}
 	db := &fakePostgresDB{queryRows: rows}
 	repository := &Postgres{db: db}
@@ -185,6 +195,9 @@ func TestPostgresListDatasets(t *testing.T) {
 	}
 	if got[0].Labels == nil || got[0].Notes == nil {
 		t.Fatal("empty labels and notes must not be nil")
+	}
+	if got[0].Labels["0x0000000000000000000000000000000000000001"] != "S" {
+		t.Fatalf("labels = %+v", got[0].Labels)
 	}
 	if !rows.closed {
 		t.Fatal("rows must be closed")
@@ -210,7 +223,7 @@ func TestPostgresGetDatasetMapsNotFound(t *testing.T) {
 // TestPostgresGetDatasetKeepsFixtureNulls는 Fixture의 nullable 필드를 임의 값으로 채우지 않는지 검증한다.
 func TestPostgresGetDatasetKeepsFixtureNulls(t *testing.T) {
 	db := &fakePostgresDB{rowQueue: []postgresRow{
-		datasetRow("collecting-demo", "v1", domain.StatusCollecting, nil, nil, nil, `{}`),
+		datasetRow("collecting-demo", "v1", domain.StatusCollecting, nil, nil, nil, `{}`, `{}`),
 	}}
 	repository := &Postgres{db: db}
 

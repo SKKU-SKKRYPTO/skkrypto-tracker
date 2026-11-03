@@ -5,6 +5,7 @@ DROP TABLE transfers;
 DROP TABLE transactions;
 DROP TABLE ingestion_chunks;
 DROP TABLE blocks;
+DROP TABLE dataset_addresses;
 DROP TABLE datasets;
 DROP TABLE assets;
 
