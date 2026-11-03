@@ -1,3 +1,4 @@
+import JsonDownloadButton from './components/JsonDownloadButton'
 import { describe, expect, it, vi } from 'vitest'
 import { isValidElement } from 'react'
 import type { ReactElement, ReactNode } from 'react'
@@ -121,5 +122,28 @@ describe('live Trace and Path UI integration', () => {
     expect(render().html).not.toContain('경로 1 ·')
     await pending
     expect(render().input.disabled).toBe(false)
+  })
+})
+
+
+describe('Trace draft address export invalidation', () => {
+  it('wires local address editing to invalidation without replacing the applied result', async () => {
+    const { session, render } = await setup(); await session.search(traceJson.meta.conditions.address)
+    const previous = session.getSnapshot().response
+    expect(session.getDownloadEnvelope()).toEqual(traceJson)
+    ;(render().input.onAddressChange as (value: string) => void)('edited draft')
+    expect(session.getDownloadEnvelope()).toBeNull()
+    expect(session.getSnapshot().response).toBe(previous)
+    expect(render().html).toContain('송금 상세')
+  })
+})
+
+
+describe('common result export action wiring', () => {
+  it('renders one shared download button connected to the actual session', async () => {
+    const { session, render } = await setup()
+    const actions = elements(LiveApp({ session })).filter(node => node.type === JsonDownloadButton)
+    expect(actions).toHaveLength(1); expect(actions[0].props.session).toBe(session)
+    expect(render().html.match(/검색 결과 JSON 다운로드/g)).toHaveLength(1)
   })
 })

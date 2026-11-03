@@ -3,8 +3,11 @@ import { isRecord, matchesResponse, matchesV1 } from '../api/validateV1'
 import type { TraceResult } from '../types'
 import type { SearchFailure } from '../api/searchFailure'
 
+// The API envelope is independent of TraceResult, which is only a presentation model.
+export type TraceSuccessEnvelope = SuccessEnvelope<AnalysisResult>
+
 export type TraceResponse =
-  | { ok: true; result: TraceResult }
+  | { ok: true; result: TraceResult; envelope: TraceSuccessEnvelope }
   | { ok: false; kind: 'api'; status: number; error: V1Error }
   | { ok: false; kind: 'mock-unsupported' | 'invalid-response'; error: { message: string } }
   | SearchFailure
@@ -85,7 +88,7 @@ export function adaptTraceResponse(raw: unknown, datasetRaw: unknown, status = 2
     if (duplicateTransfer !== -1) return invalid('DUPLICATE_TRANSFER_ID', `data.transfers[${duplicateTransfer}].id`)
     const duplicateNode = duplicateIdIndex(data.nodes)
     if (duplicateNode !== -1) return invalid('DUPLICATE_NODE_ID', `data.nodes[${duplicateNode}].id`)
-    return { ok: true, result: {
+    return { ok: true, envelope: structuredClone(envelope) as TraceSuccessEnvelope, result: {
       sourceMode: dataset.sourceMode,
       asset: { ...asset },
       coverage: { ...(meta.coverage as TraceResult['coverage']) },

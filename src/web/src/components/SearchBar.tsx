@@ -9,9 +9,10 @@ type Props = {
   conditions: SearchConditions
   onConditionsChange: (conditions: SearchConditions) => void
   onSearch: (address: string) => void
+  onAddressChange?: (address: string) => void
 }
 
-function SearchBar({ isSearching, disabled = false, conditions, onConditionsChange, onSearch }: Props) {
+function SearchBar({ isSearching, disabled = false, conditions, onConditionsChange, onSearch, onAddressChange }: Props) {
   const [address, setAddress] = useState('')
 
   // form의 submit을 쓰면 버튼 클릭과 입력창에서 Enter 둘 다 검색이 된다.
@@ -29,7 +30,10 @@ function SearchBar({ isSearching, disabled = false, conditions, onConditionsChan
         className="mono"
         type="text"
         value={address}
-        onChange={(event) => setAddress(event.target.value)}
+        onChange={(event) => {
+          setAddress(event.target.value)
+          onAddressChange?.(event.target.value)
+        }}
         placeholder="0x로 시작하는 40자리 주소"
         autoComplete="off"
         spellCheck={false}

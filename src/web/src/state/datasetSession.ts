@@ -15,7 +15,7 @@ import type { PathConditions } from '../pathConditions'
 import { resolvePathSelection } from '../pathSelection'
 import { searchFailure } from '../api/searchFailure'
 import type { InvalidDiagnostic } from '../adapters/traceAdapter'
-import type { Dataset, SuccessEnvelope } from '../api/v1Types'
+import type { AnalysisResult, Dataset, SuccessEnvelope } from '../api/v1Types'
 import { DEFAULT_SEARCH_CONDITIONS } from '../searchConditions'
 import type { SearchConditions } from '../searchConditions'
 
@@ -30,6 +30,8 @@ export type DatasetSessionState = {
   conditions: SearchConditions; response: LiveTraceResponse | null; isSearching: boolean; selectedTransferId: string | null
   mode: AnalysisMode; pathConditions: PathConditions; pathResponse: PathSearchResponse | null; pathValidationError: string | null
   patternConditions: PatternConditions; patternResponse: PatternSearchResponse | null; patternValidationError: string | null
+  // UI results may remain visible after edits, but cannot then be exported.
+  downloadReady: boolean
   selectedPatternId: string | null
   selectedPathId: string | null
 }
@@ -37,6 +39,17 @@ export function canSearch(state: DatasetSessionState): boolean {
   return state.detailStatus === 'ready' && state.detail?.data.status === 'READY' &&
     state.selection?.datasetId === state.detail.data.datasetId && state.selection?.datasetVersion === state.detail.data.datasetVersion
 }
+// Return only the current accepted success response, never reconstruct from UI fields.
+// Treat the returned envelope as read-only; selection changes do not filter its contents.
+export function getDownloadEnvelope(state: DatasetSessionState): SuccessEnvelope<AnalysisResult> | null {
+  if (!state.downloadReady || state.isSearching || !canSearch(state)) return null
+  const envelope = state.mode === 'trace' ? (state.response?.ok ? state.response.envelope : null)
+    : state.mode === 'paths' ? (state.pathResponse?.ok ? state.pathResponse.result : null)
+    : (state.patternResponse?.ok ? state.patternResponse.envelope : null)
+  if (!envelope || envelope.meta.datasetId !== state.selection?.datasetId || envelope.meta.datasetVersion !== state.selection?.datasetVersion) return null
+  return envelope
+}
+
 export function datasetKeyValue(key: DatasetKey): string {
   return JSON.stringify([key.datasetId, key.datasetVersion])
 }
@@ -61,7 +74,7 @@ export function createDatasetSession(dependencies: {
     conditions: { ...DEFAULT_SEARCH_CONDITIONS }, response: null, isSearching: false, selectedTransferId: null,
     mode: 'trace', pathConditions: { ...DEFAULT_PATH_CONDITIONS }, pathResponse: null, pathValidationError: null,
     patternConditions: { ...DEFAULT_PATTERN_CONDITIONS }, patternResponse: null, patternValidationError: null,
-    selectedPatternId: null, selectedPathId: null,
+    downloadReady: false, selectedPatternId: null, selectedPathId: null,
   }
   let listId = 0, detailId = 0, traceId = 0
   let listController: AbortController | undefined, detailController: AbortController | undefined, traceController: AbortController | undefined
@@ -71,7 +84,7 @@ export function createDatasetSession(dependencies: {
     traceController?.abort()
     traceController = undefined
     // One request generation covers all modes, so stale catch/finally cannot cross modes.
-    update({ selectedPatternId: null, patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
+    update({ downloadReady: false, selectedPatternId: null, patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
   }
   function cancelPending() {
     ++listId; ++detailId
@@ -126,7 +139,7 @@ export function createDatasetSession(dependencies: {
     try {
       const result = await trace.searchTrace({ selection, dataset: detail, request, signal: controller.signal, onInvalid: dependencies.onInvalid })
       if (id !== traceId || controller.signal.aborted) return
-      update({ response: result })
+      update({ response: result, downloadReady: result.ok })
       if (!result.ok && result.kind === 'api' && ['DATASET_NOT_READY', 'DATASET_INVALIDATED', 'DATASET_NOT_FOUND'].includes(result.error.code)) {
         // The server is authoritative if dataset state changes after the detail lookup.
         update({ detail: null, detailStatus: 'error', detailError: null })
@@ -151,7 +164,7 @@ export function createDatasetSession(dependencies: {
     try {
       const result = await paths.searchPaths({ selection, dataset, request, signal: controller.signal, onInvalid: dependencies.onInvalidPath })
       if (id !== traceId || controller.signal.aborted) return
-      update({ pathResponse: result })
+      update({ pathResponse: result, downloadReady: result.ok })
       if (!result.ok && result.kind === 'api' && ['DATASET_NOT_READY', 'DATASET_INVALIDATED', 'DATASET_NOT_FOUND'].includes(result.error.code)) {
         update({ detail: null, detailStatus: 'error', detailError: null })
       }
@@ -175,7 +188,7 @@ export function createDatasetSession(dependencies: {
       const request = buildPatternRequest(selection, conditions.address, conditions.direction === 'all' ? undefined : conditions.direction)
       const result = await patterns.searchPatterns({ selection, dataset, request, signal: controller.signal, onInvalid: dependencies.onInvalidPattern })
       if (id !== traceId || controller.signal.aborted) return
-      update({ patternResponse: result })
+      update({ patternResponse: result, downloadReady: result.ok })
       if (!result.ok && result.kind === 'api' && ['DATASET_NOT_READY', 'DATASET_INVALIDATED', 'DATASET_NOT_FOUND'].includes(result.error.code)) {
         update({ detail: null, detailStatus: 'error', detailError: null })
       }
@@ -187,6 +200,7 @@ export function createDatasetSession(dependencies: {
   }
   return {
     getSnapshot: () => state,
+    getDownloadEnvelope: () => getDownloadEnvelope(state),
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
     loadDatasets, selectDataset, search, searchPaths, searchPatterns, cancelPending,
     setMode(mode: AnalysisMode) {
@@ -200,6 +214,10 @@ export function createDatasetSession(dependencies: {
       invalidateTrace(true); update({ patternConditions: { ...conditions } })
     },
     cancelSearch() { invalidateTrace(true) },
+    onTraceAddressChange() {
+      // SearchBar owns the draft. Every edit invalidates export and any in-flight request.
+      if (state.mode === 'trace') invalidateTrace()
+    },
     setConditions(conditions: SearchConditions) { invalidateTrace(); update({ conditions: { ...conditions } }) },
     selectPath(id: string | null) {
       if (state.mode !== 'paths' || state.isSearching || !state.pathResponse?.ok) return
