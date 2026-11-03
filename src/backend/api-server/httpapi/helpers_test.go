@@ -45,6 +45,8 @@ func testConfig(t testing.TB, setup string) Config {
 		cfg.RateLimitPerMinute = 1
 	case "repo-down":
 		cfg.Repo = downRepo{}
+	case "labeled":
+		cfg.Repo = labeledRepo{loadRepo(t)}
 	default:
 		t.Fatalf("모르는 setup: %s", setup)
 	}
@@ -64,6 +66,34 @@ func (downRepo) GetDataset(context.Context, string, string) (domain.Dataset, err
 }
 func (downRepo) ListTransfers(context.Context, repository.TransferQuery) (repository.TransferPage, error) {
 	return repository.TransferPage{}, errDown
+}
+
+// labeledRepo는 DB에 블록·거래·전송 이름표와 메모가 들어 있을 때를 흉내 낸다.
+// 공개 Fixture와 DB Seed에는 이 값이 없어서, 응답 모양을 보여 주는 샘플에서만 쓴다.
+// patterns-demo 블록 20005의 거래 0x…03ed(전송 p5·p6)에 값을 넣고, 전송 메모는 p5에만 넣는다.
+type labeledRepo struct{ *repository.Memory }
+
+const (
+	labeledBlock    = domain.BlockNumber(20005)
+	labeledTx       = "0x00000000000000000000000000000000000000000000000000000000000003ed"
+	labeledTransfer = "fx:patterns-demo-v1:p5"
+)
+
+func (r labeledRepo) ListTransfers(ctx context.Context, q repository.TransferQuery) (repository.TransferPage, error) {
+	page, err := r.Memory.ListTransfers(ctx, q)
+	for i := range page.Transfers {
+		t := &page.Transfers[i]
+		if t.BlockNumber == labeledBlock {
+			t.BlockLabel, t.BlockNote = "예시 블록", "블록 메모 예시"
+		}
+		if t.TxHash == labeledTx {
+			t.TxLabel, t.TxNote = "예시 거래", "거래 메모 예시"
+		}
+		if t.ID == labeledTransfer {
+			t.Note = "전송 메모 예시"
+		}
+	}
+	return page, err
 }
 
 func do(h http.Handler, method, path string, body []byte) *httptest.ResponseRecorder {

@@ -35,6 +35,14 @@
     "description": "uint256 최대 금액. amountRaw가 문자열이라 78자리가 그대로 온다."
   },
   {
+    "sample": "transaction-labels.json",
+    "method": "GET",
+    "path": "/api/transactions/0x00000000000000000000000000000000000000000000000000000000000003ed?datasetId=patterns-demo&datasetVersion=v1",
+    "setup": "labeled",
+    "status": 200,
+    "description": "DB에 블록·거래·전송 이름표와 메모가 있을 때(값은 예시). 같은 거래의 전송은 txLabel·txNote·blockLabel·blockNote가 같고, 메모가 없는 전송(p6)은 note 칸이 빠진다."
+  },
+  {
     "sample": "trace-success.json",
     "method": "POST",
     "path": "/api/trace",

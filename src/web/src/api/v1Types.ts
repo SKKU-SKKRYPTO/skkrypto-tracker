@@ -20,7 +20,7 @@ export type Coverage = { startBlock: BlockNumber; endBlock: BlockNumber; startTi
 
 export type Dataset = { datasetId: string; datasetVersion: string; sourceMode: "FIXTURE" | "SNAPSHOT"; sourceNamespace: string; status: "READY" | "COLLECTING" | "FAILED" | "INVALIDATED"; asset: Asset; startBlock: BlockNumber; endBlock: BlockNumber; startTime: DateTime; endTime: DateTime; finalizedBlock: (null) | (BlockNumber); collectedAt: (null) | (DateTime); boundaryHashes: { [key: string]: Hash }; labels: { [key: string]: string }; notes: Array<string>; invalidationReason?: string }
 
-export type Transfer = { id: string; label?: string; asset: Asset; transferType: "TRANSFER" | "MINT" | "BURN"; txHash: Hash; blockHash: Hash; blockNumber: BlockNumber; transactionIndex: number; logIndex: number; timestamp: DateTime; from: Address; to: Address; amountRaw: Amount }
+export type Transfer = { id: string; label?: string; note?: string; txLabel?: string; txNote?: string; blockLabel?: string; blockNote?: string; asset: Asset; transferType: "TRANSFER" | "MINT" | "BURN"; txHash: Hash; blockHash: Hash; blockNumber: BlockNumber; transactionIndex: number; logIndex: number; timestamp: DateTime; from: Address; to: Address; amountRaw: Amount }
 
 export type Filter = { startBlock?: BlockNumber; endBlock?: BlockNumber; startTime?: DateTime; endTime?: DateTime; minAmountRaw?: Amount }
 
