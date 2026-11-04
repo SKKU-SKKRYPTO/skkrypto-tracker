@@ -12,6 +12,15 @@ export function formatTimestamp(timestamp: string): string {
   })
 }
 
+// Two-line table display; dateTime and exports retain the original ISO timestamp.
+export function formatTransferTime(timestamp: string, timeZone?: string): { date: string; time: string } {
+  const value = new Date(timestamp)
+  return {
+    date: new Intl.DateTimeFormat('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(value),
+    time: new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short', timeZone }).format(value),
+  }
+}
+
 // 최소 단위 금액 문자열을 decimals만큼 소수점을 옮긴 문자열로 바꾼다.
 // 큰 수의 정밀도를 잃지 않도록 Number를 거치지 않고 문자열로만 계산한다.
 // 예: ("1500000000000000000", 18) → "1.5"

@@ -22,7 +22,7 @@ describe('applied analysis summary', () => {
     const s = state(mode); s.conditions = { direction: 'incoming', maxDepth: 1 }; s.pathConditions.address = 'draft'; s.patternConditions.address = 'draft'
     const html = render(s), sample = samples[mode]
     expect(html).toContain(sample.meta.conditions.address); expect(html).not.toContain('draft')
-    expect(html).toContain(`반환 송금 ${sample.data.transfers.length}건`)
+    expect(html).toContain(`${mode === 'trace' ? '' : '반환 '}송금 ${sample.data.transfers.length}건`)
     expect(html).toContain('정상 응답'); expect(html).toContain(sample.meta.datasetVersion)
     if (mode !== 'patterns') expect(html).toContain(`최대 깊이: ${mode === 'trace' ? trace.meta.conditions.maxDepth : paths.meta.conditions.maxDepth}단계`)
     else { expect(html).toContain('적용 방향: 전체'); expect(html).not.toContain('최대 깊이') }
@@ -48,5 +48,17 @@ describe('applied analysis summary', () => {
     expect(render(base)).not.toContain('반환 송금')
     base.response = { ok: false, kind: 'invalid-response', error: { message: 'invalid' } }
     expect(render(base)).not.toContain('정상 응답')
+  })
+  it('retains accepted Trace coverage and filters while keeping partial status visible', () => {
+    const body = structuredClone(trace)
+    body.data.limits.foundIsLowerBound = true
+    const s = state('trace')
+    if (!s.response?.ok) throw Error('sample')
+    s.response = { ...s.response, envelope: body as unknown as typeof s.response.envelope }
+    const html = render(s)
+    expect(html.slice(0, html.indexOf('<details'))).toContain('부분 결과')
+    expect(html).toContain('최소 발견 건수')
+    for (const value of [body.meta.coverage.startBlock, body.meta.coverage.endBlock, body.meta.datasetId, '적용 필터:', '요청 제한:']) expect(html).toContain(value)
+    expect(html).not.toMatch(/<details[^>]*\sopen/)
   })
 })

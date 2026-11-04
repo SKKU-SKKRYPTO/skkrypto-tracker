@@ -83,7 +83,7 @@ describe('live request error notices', () => {
 describe('dataset information priority', () => {
   it('keeps summary and blocking warnings outside the collapsed details', () => {
     const data = { ...detail.data, status: 'INVALIDATED' as const, invalidationReason: '수집 범위 무효화' }
-    const html = render(state({ detail: { ...detail, data }, detailStatus: 'ready' }))
+    const html = render(state({ datasets: [data], detail: { ...detail, data }, detailStatus: 'ready' }))
     const summary = html.slice(0, html.indexOf('<details'))
     expect(summary).toContain('flow-demo'); expect(summary).toContain('분석 자산: SKK'); expect(summary).toContain('합성 데이터(FIXTURE)')
     expect(summary).toContain('검색할 수 없습니다'); expect(summary).toContain('수집 범위 무효화')

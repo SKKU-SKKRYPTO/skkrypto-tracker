@@ -31,13 +31,14 @@ export default function DatasetSelector({ state, onSelect, onReload, onRetryDeta
       데이터셋 정보를 다시 조회해 주세요. <button type="button" onClick={onRetryDetail}>상세 다시 조회</button>
     </div>}
     {dataset && <div className="notice dataset-summary">
-      <p className="dataset-identity"><strong>{dataset.datasetId} / {dataset.datasetVersion}</strong>
+      <p className="dataset-identity">
         <span className="status-badge" data-status={dataset.status}>{dataset.status}</span>
-        <span className="source-badge">{dataset.sourceMode}</span></p>
-      <p>분석 자산: {dataset.asset.symbol} · {dataset.sourceMode === 'FIXTURE' ? '합성 데이터(FIXTURE)' : '수집 데이터(SNAPSHOT)'}</p>
+        <span className="source-badge">{dataset.sourceMode === 'FIXTURE' ? '합성 데이터(FIXTURE)' : '수집 데이터(SNAPSHOT)'}</span></p>
+      <p className="dataset-asset">분석 자산: {dataset.asset.symbol}</p>
       {dataset.invalidationReason && <p className="notice notice-warning">{dataset.invalidationReason}</p>}
       {dataset.status !== 'READY' && <p role="status">현재 상태가 {dataset.status}이므로 검색할 수 없습니다.</p>}
       <details className="dataset-details"><summary>데이터셋 상세 정보</summary>
+      <p><strong>{dataset.datasetId} / {dataset.datasetVersion}</strong></p>
       <p>소수 자릿수 {dataset.asset.decimals} · Chain ID {dataset.asset.chainId}</p>
       <p className="mono full-value">토큰 주소: {dataset.asset.tokenAddress}</p>
       <p>수집 블록: {dataset.startBlock}~{dataset.endBlock}</p>

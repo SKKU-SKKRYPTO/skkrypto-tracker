@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPatternWindow, formatUnits, shortenHex } from './format'
+import { formatPatternWindow, formatTransferTime, formatUnits, shortenHex } from './format'
 
 describe('formatUnits', () => {
   it('정수 금액은 소수점 없이 표시한다', () => {
@@ -62,6 +62,11 @@ describe('v1 asset formatting', () => {
     expect(formatTimestamp(iso)).toBe(new Date(iso).toLocaleString('ko-KR', { timeZoneName: 'short' }))
     expect(formatTimestamp(iso)).not.toContain('Invalid Date')
   })
+})
+
+it('formats transfer dates and clocks compactly without losing the timezone', () => {
+  expect(formatTransferTime('2026-10-26T23:58:00Z', 'UTC')).toEqual({ date: '2026-10-26', time: '23:58:00 UTC' })
+  expect(formatTransferTime('2026-10-26T23:58:00Z', 'Asia/Seoul')).toEqual({ date: '2026-10-27', time: '08:58:00 GMT+9' })
 })
 
 it('formats same-day and cross-midnight Pattern windows compactly with a timezone', () => {

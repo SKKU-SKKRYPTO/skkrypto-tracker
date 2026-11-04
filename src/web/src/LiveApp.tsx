@@ -15,9 +15,9 @@ import type { AnalysisMode } from './state/datasetSession'
 import './App.css'
 
 const ANALYSIS_MODES = [
-  ['trace', 'Trace', '송금 추적', '한 주소에서 시간순 송금 흐름을 추적합니다.'],
-  ['paths', 'Path', '경로 탐색', '두 주소 사이의 후보 연결을 확인합니다.'],
-  ['patterns', 'Pattern', '패턴 탐지', '분산·합류 형태와 그 근거를 확인합니다.'],
+  ['trace', 'Trace', '송금 추적', '시간순 송금 흐름 추적'],
+  ['paths', 'Path', '경로 탐색', '두 주소 사이의 후보 경로 탐색'],
+  ['patterns', 'Pattern', '패턴 탐지', '송금의 분산·합류 패턴 탐지'],
 ] as const
 
 export default function LiveApp({ session: provided }: { session?: DatasetSession } = {}) {
@@ -36,15 +36,14 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
       </div>
     </header>
     <p className="page-intro">온체인 송금 흐름을 분석하고 근거를 확인하는 도구</p>
-    <section className="workspace-section" aria-labelledby="dataset-heading">
-    <h2 id="dataset-heading">데이터셋 설정</h2>
-    <p className="section-description">분석할 데이터셋과 버전, 준비 상태를 확인해 주세요.</p>
+    <section className="workspace-section dataset-section" aria-labelledby="dataset-heading">
+    <h2 id="dataset-heading" className="visually-hidden">데이터셋 설정</h2>
     <DatasetSelector state={state} onSelect={key => { void session.selectDataset(key) }} onReload={() => { void session.loadDatasets() }}
       onRetryDetail={() => { if (state.selection) void session.selectDataset(state.selection) }} />
     </section>
-    <section className="workspace-section" aria-labelledby="analysis-heading">
-    <h2 id="analysis-heading">분석 설정</h2>
-    <p className="section-description">분석 종류를 선택하고 주소와 검색 조건을 입력해 주세요.</p>
+    <section className="workspace-section search-section" aria-labelledby="analysis-heading">
+    <h2 id="analysis-heading" className="visually-hidden">분석 설정</h2>
+    <div className="analysis-toolbar">
     <div className="mode-switch" role="group" aria-label="분석 종류">
       {ANALYSIS_MODES.map(([mode, name, label, description]) => <button key={mode} id={'analysis-mode-' + mode} type="button"
         aria-label={`${label}(${name})`} aria-pressed={state.mode === mode} aria-describedby={'mode-description-' + mode} onClick={() => session.setMode(mode as AnalysisMode)}>
@@ -53,6 +52,7 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
       </button>)}
     </div>
     <p className="mode-description">{ANALYSIS_MODES.find(([mode]) => mode === state.mode)![3]}</p>
+    </div>
     {state.mode === 'trace' ? <SearchBar isSearching={state.isSearching} disabled={!canSearch(state)} conditions={state.conditions} address={traceAddress}
       onAddressChange={address => { setTraceAddress(address); session.onTraceAddressChange() }} onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
       : state.mode === 'paths' ? <PathSearchBar conditions={state.pathConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
@@ -61,7 +61,7 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
         onChange={session.setPatternConditions} onSearch={() => { void session.searchPatterns() }} onCancel={session.cancelSearch} />}
     </section>
     <section className="workspace-section" aria-labelledby="results-heading">
-    <div className="result-heading"><h2 id="results-heading">분석 결과</h2><JsonDownloadButton session={session} /></div>
+    <div className="result-heading"><h2 id="results-heading">{state.mode === 'trace' && state.response?.ok ? '송금 추적 결과' : '분석 결과'}</h2><JsonDownloadButton session={session} /></div>
     {state.traceResultOutdated && state.mode === 'trace' && state.response?.ok && <p className="notice notice-warning" role="status">검색 조건이 변경되었습니다. 현재 표시된 내용은 이전 검색 결과입니다. 새 조건을 적용하려면 다시 검색해 주세요.</p>}
     <AnalysisResultHeader state={state} />
     {state.isSearching && <p className="notice" role="status">검색 중…</p>}

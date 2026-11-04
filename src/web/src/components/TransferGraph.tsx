@@ -5,8 +5,10 @@ import { useEffect, useRef } from 'react'
 import { buildElements } from './graphElements'
 import type { TransferGraphData } from './graphElements'
 import { applyTransferHighlights } from './graphHighlights'
+import { shortenHex } from '../format'
 
 const NO_PATH_HIGHLIGHTS: ReadonlySet<string> = new Set()
+const READABLE_TRACE_ZOOM = 1
 
 type Props = {
   result: TransferGraphData
@@ -14,11 +16,12 @@ type Props = {
   onSelect?: (transferId: string) => void
   highlightedTransferIds?: ReadonlySet<string>
   evidenceKind?: 'path' | 'pattern'
+  controls?: boolean
 }
 
 // 주소 = 점, 송금 = 화살표. 간선 id는 transfers[].id 그대로라서 표·상세와 같은 키를 쓴다.
 // 그래프는 보조 화면이다. 모든 정보는 표와 상세에도 있다.
-function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransferIds = NO_PATH_HIGHLIGHTS, evidenceKind = 'path' }: Props) {
+function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransferIds = NO_PATH_HIGHLIGHTS, evidenceKind = 'path', controls = false }: Props) {
   const evidenceLabel = evidenceKind === 'pattern' ? '패턴' : '경로'
   const isPathView = highlightedTransferIds !== NO_PATH_HIGHLIGHTS
   const containerRef = useRef<HTMLDivElement>(null)
@@ -44,7 +47,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
     const cy = cytoscape({
       container,
       elements: buildElements(result),
-      style: buildStyle(container),
+      style: buildStyle(container, controls),
       layout,
       // 마우스 휠은 페이지 스크롤에 쓰도록 확대는 끈다. 끌어서 옮기기는 된다.
       userZoomingEnabled: false,
@@ -53,7 +56,12 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
       autounselectify: true,
     })
     cyRef.current = cy
-    const stopResize = watchGraphSize(container, () => { cy.resize(); cy.layout(layout).run() })
+    // Trace starts at a readable scale. All elements remain available by panning or fitting.
+    const readableScale = () => {
+      if (controls && cy.zoom() < READABLE_TRACE_ZOOM) { cy.zoom(READABLE_TRACE_ZOOM); cy.center() }
+    }
+    readableScale()
+    const stopResize = watchGraphSize(container, () => { cy.resize(); cy.layout(layout).run(); readableScale() })
 
     cy.on('tap', 'edge', (event) => onSelectRef.current?.(event.target.id()))
     cy.on('mouseover', 'edge', () => {
@@ -65,7 +73,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
 
     // Cytoscape는 CSS 변수를 못 읽어서, 밝은/어두운 화면이 바뀌면 색을 다시 읽어 넣는다.
     const colorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-    const applyColors = () => cy.style(buildStyle(container))
+    const applyColors = () => cy.style(buildStyle(container, controls))
     colorScheme.addEventListener('change', applyColors)
 
     return () => {
@@ -74,7 +82,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
       cy.destroy()
       cyRef.current = null
     }
-  }, [result])
+  }, [result, controls])
 
   useEffect(() => {
     const cy = cyRef.current
@@ -82,24 +90,42 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
     applyTransferHighlights(cy, selectedTransferId, highlightedTransferIds)
   }, [result, selectedTransferId, highlightedTransferIds])
 
+  const zoomBy = (factor: number) => {
+    const cy = cyRef.current
+    if (cy) cy.zoom({ level: Math.max(0.05, Math.min(4, cy.zoom() * factor)), renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } })
+  }
+  const selectedTransfer = controls ? result.transfers.find(transfer => transfer.id === selectedTransferId) : null
   return (
-    <figure className="graph">
+    <figure className={controls ? 'graph trace-graph' : 'graph'} aria-labelledby={controls ? 'trace-graph-title' : undefined}>
+      {controls && <div className="panel-heading"><div className="graph-heading"><h3 id="trace-graph-title">송금 흐름</h3>
+        <span className="graph-selection" role="status">{selectedTransfer ? <>
+          선택 송금 <span className="mono" title={selectedTransfer.id}>{shortenHex(selectedTransfer.id)}</span> · <a href="#detail-title" aria-label="선택한 송금 상세로 이동">상세로 이동</a>
+        </> : '선택한 송금 없음'}</span></div>
+        <div className="graph-controls" role="group" aria-label="그래프 보기 조절">
+          <button type="button" className="select-button" aria-label="그래프 축소" onClick={() => zoomBy(1 / 1.25)}>−</button>
+          <button type="button" className="select-button" aria-label="그래프 확대" onClick={() => zoomBy(1.25)}>+</button>
+          <button type="button" className="select-button" onClick={() => cyRef.current?.fit(undefined, 32)}>화면 맞춤</button>
+        </div>
+      </div>}
       <div
         ref={containerRef}
         className="graph-canvas"
         role="img"
         aria-label={isPathView ? `${evidenceLabel} 근거 송금 그래프. ${evidenceLabel}${evidenceKind === 'pattern' ? '은' : '는'} 굵은 점선, 선택한 송금은 굵은 실선으로 구분합니다.` : '송금 흐름 그래프. 같은 정보가 송금 목록 표와 상세에 모두 있습니다.'}
       />
-      <figcaption className="graph-caption">
+      {controls ? <figcaption className="graph-caption">
+        <span className="graph-start-sample">시작</span> 이중 테두리 = 시작 주소 · 화살표 = 실제 송금 방향 · 굵은 실선 = 선택한 송금
+        <p>드래그로 이동할 수 있습니다. 좁은 화면은 글자 크기를 우선하며, 화면 맞춤으로 전체 흐름을 확인할 수 있습니다.</p>
+      </figcaption> : <figcaption className="graph-caption">
         <span className="graph-start-sample">{result.startLabel ?? '시작'}</span> 이중 테두리 = {result.startLabel === '기준' ? '패턴 분석 기준 주소' : '검색한 시작 주소'} ·
         {isPathView && `굵은 점선 = ${evidenceKind === 'pattern' ? '패턴' : '후보 경로'} 근거 · 굵은 실선 = 선택한 송금 · `}
         {onSelect ? '화살표를 누르면 표와 상세에서 같은 송금을 보여 줍니다.' : `${evidenceLabel}의 근거 송금이 표에도 함께 표시됩니다.`}
-      </figcaption>
+      </figcaption>}
     </figure>
   )
 }
 
-function buildStyle(container: HTMLElement): StylesheetJson {
+function buildStyle(container: HTMLElement, trace = false): StylesheetJson {
   const css = getComputedStyle(container)
   const color = (name: string) => css.getPropertyValue(name).trim()
   const text = color('--text-h')
@@ -116,13 +142,13 @@ function buildStyle(container: HTMLElement): StylesheetJson {
         shape: 'round-rectangle',
         width: 'label',
         height: 'label',
-        padding: '8px',
+        padding: trace ? '10px' : '8px',
         label: 'data(label)',
         'text-wrap': 'wrap',
         'text-valign': 'center',
         'text-halign': 'center',
         'font-family': mono,
-        'font-size': 12,
+        'font-size': trace ? 14 : 12,
         color: text,
         'background-color': bg,
         'border-width': 1,
@@ -152,7 +178,7 @@ function buildStyle(container: HTMLElement): StylesheetJson {
         label: 'data(label)',
         // 금액 글자를 눌러도 화살표를 누른 것으로 친다. 가는 선만 누르기는 어렵다.
         'text-events': 'yes',
-        'font-size': 12,
+        'font-size': trace ? 14 : 12,
         color: text,
         'text-background-color': bg,
         'text-background-opacity': 1,

@@ -3,6 +3,7 @@ import type { DatasetSessionState } from '../state/datasetSession'
 import type { AnalysisRequest } from '../api/v1Types'
 import { DIRECTION_LABELS } from '../searchConditions'
 import { PATTERN_DIRECTION_LABELS } from '../patternConditions'
+import { formatTimestamp } from '../format'
 
 const MODES = { trace: '송금 추적(Trace)', paths: '경로 탐색(Path)', patterns: '패턴 분석(Pattern)' }
 export default function AnalysisResultHeader({ state }: { state: DatasetSessionState }) {
@@ -14,6 +15,26 @@ export default function AnalysisResultHeader({ state }: { state: DatasetSessionS
   const { data, meta } = envelope
   const conditions = meta.conditions as AnalysisRequest
   const limited = data.limits.truncated !== null || data.limits.foundIsLowerBound
+  if (state.mode === 'trace' && state.response?.ok) {
+    const coverage = state.response.result.coverage
+    return <div className="trace-result-summary" aria-label="적용 조건 및 결과 요약">
+    <p className="trace-summary-line"><strong>송금 {data.transfers.length}건</strong> · {DIRECTION_LABELS[conditions.direction!]} · 깊이 {conditions.maxDepth}단계
+      <span className="status-badge">{limited ? '부분 결과' : '정상 응답'}</span>
+      {meta.sourceMode === 'FIXTURE' && <span className="source-badge">합성 데이터(FIXTURE)</span>}
+    </p>
+    <div className="trace-summary-address">시작 주소: <AddressValue value={conditions.address} label="적용 주소" /></div>
+    <details className="trace-coverage"><summary>적용 조건·관측 범위</summary>
+      <p>적용 데이터셋: {meta.datasetId} / {meta.datasetVersion}</p>
+      <p>적용 방향: {DIRECTION_LABELS[conditions.direction!]} · 최대 깊이: {conditions.maxDepth}단계</p>
+      <p>관측 블록: {coverage.startBlock} ~ {coverage.endBlock}</p>
+      <p>관측 시간: {formatTimestamp(coverage.startTime)} ~ {formatTimestamp(coverage.endTime)}</p>
+      {conditions.filter && <p className="full-value">적용 필터: {Object.entries(conditions.filter).map(([key, value]) => `${key}: ${value}`).join(' · ')}</p>}
+      {conditions.limits && <p className="full-value">요청 제한: {Object.entries(conditions.limits).map(([key, value]) => `${key}: ${value}`).join(' · ')}</p>}
+    </details>
+    {data.limits.foundIsLowerBound && !data.limits.truncated && <p className="notice notice-warning">발견된 송금 {data.limits.found}건 이상 (최소 발견 건수)</p>}
+    {data.patterns.some(pattern => pattern.incomplete) && <p className="notice notice-warning">관측 범위가 불완전한 패턴 창이 포함되어 있습니다. 결과 잘림 여부와는 별개입니다.</p>}
+  </div>
+  }
   return <div className="result-summary" aria-label="적용 조건 및 결과 요약">
     <p><strong>{MODES[state.mode]}</strong> · {limited ? '부분 결과' : '정상 응답'}{meta.sourceMode === 'FIXTURE' && ' · 합성 데이터(FIXTURE)'}</p>
     <p>적용 데이터셋: {meta.datasetId} / {meta.datasetVersion}</p>
