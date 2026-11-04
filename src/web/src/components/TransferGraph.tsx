@@ -1,5 +1,6 @@
+import { watchGraphSize } from './graphResize'
 import cytoscape from 'cytoscape'
-import type { Core, StylesheetJson } from 'cytoscape'
+import type { Core, StylesheetJson, LayoutOptions } from 'cytoscape'
 import { useEffect, useRef } from 'react'
 import { buildElements } from './graphElements'
 import type { TransferGraphData } from './graphElements'
@@ -33,19 +34,18 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
     const container = containerRef.current
     if (container === null) return
 
+    const layout: LayoutOptions = result.startLabel === '기준' ? {
+      name: 'concentric', concentric: node => node.id() === result.conditions.address.toLowerCase() ? 2 : 1,
+      levelWidth: () => 1, minNodeSpacing: 48, avoidOverlap: true, padding: 40,
+    } : {
+      name: 'breadthfirst', directed: true, roots: [(result.layoutRoot ?? result.conditions.address).toLowerCase()],
+      spacingFactor: 1.35, avoidOverlap: true, padding: 40,
+    }
     const cy = cytoscape({
       container,
       elements: buildElements(result),
       style: buildStyle(container),
-      layout: {
-        name: 'breadthfirst',
-        directed: true,
-        // Trace retains its existing root. Incoming Path can place the money-flow source
-        // at the top without changing the searched-address marker or reversing edges.
-        roots: [(result.layoutRoot ?? result.conditions.address).toLowerCase()],
-        spacingFactor: 1.1,
-        padding: 24,
-      },
+      layout,
       // 마우스 휠은 페이지 스크롤에 쓰도록 확대는 끈다. 끌어서 옮기기는 된다.
       userZoomingEnabled: false,
       boxSelectionEnabled: false,
@@ -53,6 +53,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
       autounselectify: true,
     })
     cyRef.current = cy
+    const stopResize = watchGraphSize(container, () => { cy.resize(); cy.layout(layout).run() })
 
     cy.on('tap', 'edge', (event) => onSelectRef.current?.(event.target.id()))
     cy.on('mouseover', 'edge', () => {
@@ -69,6 +70,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
 
     return () => {
       colorScheme.removeEventListener('change', applyColors)
+      stopResize()
       cy.destroy()
       cyRef.current = null
     }
@@ -89,7 +91,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
         aria-label={isPathView ? `${evidenceLabel} 근거 송금 그래프. ${evidenceLabel}${evidenceKind === 'pattern' ? '은' : '는'} 굵은 점선, 선택한 송금은 굵은 실선으로 구분합니다.` : '송금 흐름 그래프. 같은 정보가 송금 목록 표와 상세에 모두 있습니다.'}
       />
       <figcaption className="graph-caption">
-        <span className="graph-start-sample">시작</span> 이중 테두리 = 검색한 시작 주소 ·
+        <span className="graph-start-sample">{result.startLabel ?? '시작'}</span> 이중 테두리 = {result.startLabel === '기준' ? '패턴 분석 기준 주소' : '검색한 시작 주소'} ·
         {isPathView && `굵은 점선 = ${evidenceKind === 'pattern' ? '패턴' : '후보 경로'} 근거 · 굵은 실선 = 선택한 송금 · `}
         {onSelect ? '화살표를 누르면 표와 상세에서 같은 송금을 보여 줍니다.' : `${evidenceLabel}의 근거 송금이 표에도 함께 표시됩니다.`}
       </figcaption>
@@ -141,6 +143,8 @@ function buildStyle(container: HTMLElement): StylesheetJson {
       selector: 'edge',
       style: {
         'curve-style': 'bezier',
+        'control-point-step-size': 64,
+        'text-rotation': 'none',
         width: 2,
         'line-color': muted,
         'target-arrow-color': muted,
@@ -148,11 +152,11 @@ function buildStyle(container: HTMLElement): StylesheetJson {
         label: 'data(label)',
         // 금액 글자를 눌러도 화살표를 누른 것으로 친다. 가는 선만 누르기는 어렵다.
         'text-events': 'yes',
-        'font-size': 11,
+        'font-size': 12,
         color: text,
         'text-background-color': bg,
         'text-background-opacity': 1,
-        'text-background-padding': '2px',
+        'text-background-padding': '3px',
         'text-border-width': 1,
         'text-border-color': border,
         'text-border-opacity': 1,

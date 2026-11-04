@@ -36,7 +36,7 @@ async function setup() {
     const tree = LiveApp({ session }), nodes = elements(tree)
     const form = nodes.find(n => n.type === PatternSearchBar)
     return { html: renderToStaticMarkup(tree), form: form?.props,
-      mode(value: string) { (nodes.find(n => n.props.id === 'analysis-mode')!.props.onChange as (e: { target: { value: string } }) => void)({ target: { value } }) } }
+      mode(value: string) { (nodes.find(n => n.props.id === 'analysis-mode-' + value)!.props.onClick as () => void)() } }
   }
   return { session, patterns, datasets, render }
 }

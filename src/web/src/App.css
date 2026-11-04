@@ -367,3 +367,115 @@
   border: 2px solid var(--accent);
   background: var(--accent-bg);
 }
+
+.page-heading { margin-bottom: 24px; }
+.page-heading h1 { margin-bottom: 8px; }
+.workspace-section { border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px; }
+.workspace-section > h2, .result-heading h2 { font-size: 22px; margin-bottom: 8px; }
+.section-description { font-size: 15px; margin-bottom: 16px; }
+.result-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.result-heading .search-bar { margin-bottom: 0; }
+.result-summary { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; font-size: 15px; }
+.result-summary p + p, .dataset-details p { margin-top: 6px; }
+.result-summary .full-value, .dataset-panel .full-value { overflow-wrap: anywhere; }
+.dataset-details { margin-top: 10px; }
+.dataset-details summary { cursor: pointer; color: var(--text-h); }
+.dataset-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.mode-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.mode-switch button { flex: 1 1 220px; padding: 12px; text-align: left; font: inherit; color: var(--text-h); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.mode-switch button span { display: block; margin-top: 4px; font-size: 14px; color: var(--text); }
+.mode-switch button[aria-pressed='true'] { border: 2px solid var(--accent); background: var(--accent-bg); }
+.mode-switch button:focus-visible, .technical-details summary:focus-visible, .address-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.analysis-form { align-items: end; gap: 12px; }
+.search-field { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.search-field.address-field { flex: 3 1 360px; }
+.search-field input, .search-field select { width: 100%; box-sizing: border-box; flex: none; }
+.search-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.search-bar button.button-secondary { background: var(--bg); color: var(--text-h); border-color: var(--border); }
+.address-value { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; max-width: 100%; }
+.address-details { display: inline-block; max-width: 100%; font-size: 14px; }
+.address-details summary { cursor: pointer; color: var(--text-h); }
+.address-details[open] { flex-basis: 100%; }
+.address-details .full-value, .technical-details .full-value { overflow-wrap: anywhere; }
+.technical-details { margin: 10px 0; font-size: 14px; }
+.evidence-addresses { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-top: 8px; }
+.result-summary { padding: 10px 12px; }
+.result-counts { font-size: 18px; font-weight: 600; color: var(--text-h); }
+.applied-addresses { margin-top: 6px; font-size: 14px; }
+@media (max-width: 600px) { .search-field, .search-field.address-field { flex-basis: 100%; } .search-actions { width: 100%; } }
+
+/* One result workspace: related list and graph above the evidence table and details. */
+.analysis-workspace { display: grid; grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr); grid-template-areas: 'list graph' 'table table' 'detail detail'; gap: 20px; align-items: start; margin-bottom: 16px; }
+.analysis-workspace > * { min-width: 0; }
+.analysis-workspace > .result-list { grid-area: list; max-height: 580px; overflow-y: auto; overflow-wrap: anywhere; }
+.analysis-workspace > .graph { grid-area: graph; }
+.analysis-workspace > .table-scroll { grid-area: table; }
+.analysis-workspace > .detail { grid-area: detail; }
+.analysis-workspace .graph-canvas { height: clamp(400px, 42vw, 560px); }
+.analysis-workspace.trace-workspace { grid-template-areas: 'graph graph' 'table detail'; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); }
+.workspace-selection { border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 12px; overflow-wrap: anywhere; }
+.workspace-selection a { display: inline-block; padding: 8px 0; color: var(--text-h); text-decoration: underline; }
+.workspace-selection a:focus-visible, #detail-title:focus { outline: 2px solid var(--accent); outline-offset: 3px; }
+.detail { scroll-margin-top: 16px; min-width: 0; }
+.detail dd { min-width: 0; }
+.detail dd .full-value { min-width: 0; }
+@media (max-width: 960px) {
+  .analysis-workspace, .analysis-workspace.trace-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'list' 'graph' 'table' 'detail'; }
+  .analysis-workspace.trace-workspace { grid-template-areas: 'graph' 'table' 'detail'; }
+  .analysis-workspace > .result-list { max-height: none; overflow-y: visible; }
+  .analysis-workspace .graph-canvas { height: 400px; }
+}
+
+.analysis-workspace.workspace-empty { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'list'; }
+
+/* Shared visual rhythm; preserve the existing light/dark system preference. */
+*, *::before, *::after { box-sizing: border-box; }
+.app { padding: 16px; min-width: 0; }
+.app h1 { font-size: 28px; line-height: 1.25; margin: 8px 0; letter-spacing: -0.5px; }
+.page-heading { margin-bottom: 16px; }
+.workspace-section { padding-top: 16px; margin-bottom: 16px; }
+.workspace-section > h2, .result-heading h2 { font-size: 20px; }
+.section-description { margin-bottom: 12px; }
+.notice, .result-summary, .detail, .workspace-selection { border-radius: var(--radius-card); }
+.notice { margin-bottom: 12px; padding: 10px 12px; }
+button, input, select { font: inherit; }
+button, summary, a { touch-action: manipulation; }
+button { min-height: 36px; }
+.search-bar input, .search-bar select, .search-bar button { min-height: 44px; border-radius: var(--radius-control); }
+.search-bar button:not(.button-secondary) { color: var(--button-primary-text); }
+.search-bar select { min-width: 0; max-width: 100%; }
+.search-bar button.button-secondary { background: var(--surface); }
+.mode-switch { margin-bottom: 16px; }
+.mode-switch button { border-radius: var(--radius-card); }
+.mode-switch button[aria-pressed='true'] strong::before { content: '✓ '; }
+.select-button, .copy-button { padding: 6px 10px; border-radius: var(--radius-control); font-size: 14px; }
+:where(button, a, input, select, summary, [tabindex]):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.result-list, .graph, .table-scroll, .detail, .search-actions { min-width: 0; max-width: 100%; }
+.table-scroll { overscroll-behavior-x: contain; }
+.path-list, .pattern-list { margin: 0; padding-left: 22px; }
+.path-list > .notice, .pattern-list > .notice { padding: 12px; background: var(--bg); }
+.path-list .path-selected, .pattern-list .pattern-selected { background: var(--accent-bg); }
+.card-window { font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.card-metrics { font-weight: 600; color: var(--text-h); margin: 6px 0; }
+.card-connection { font-size: 14px; margin: 6px 0; }
+.result-list details { margin-top: 4px; }
+.result-list summary, .dataset-details summary { padding: 6px 0; }
+.result-list .notice-warning { margin-top: 6px; }
+.technical-details p, .full-value, .workspace-selection, .detail dd, .result-summary { overflow-wrap: anywhere; }
+.detail dd { flex-wrap: wrap; }
+.detail dd .full-value { flex: 1 1 180px; }
+.result-summary { background: var(--surface); }
+.result-summary p + p { margin-top: 4px; }
+.workspace-selection { background: var(--surface); }
+@media (max-width: 600px) {
+  .app { padding: 12px; }
+  .mode-switch button { flex-basis: 100%; padding: 10px; }
+  .select-button, .copy-button, summary, .workspace-selection a { min-height: 44px; }
+  .analysis-workspace { gap: 12px; }
+  .analysis-workspace .graph-canvas { height: 360px; }
+  .path-list, .pattern-list { padding-left: 18px; }
+  .result-heading .search-bar, .result-heading .search-bar button { width: 100%; }
+  .search-actions { flex-wrap: wrap; }
+}
+@media (pointer: coarse) { .select-button, .copy-button { min-height: 44px; } }

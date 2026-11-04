@@ -1,3 +1,4 @@
+import { shortenHex } from '../format'
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import PathResults from './PathResults'
@@ -20,7 +21,7 @@ describe('Path result list', () => {
     expect(html.indexOf(normal.data.paths[0].id)).toBeLessThan(html.indexOf(normal.data.paths[1].id))
     expect(html).toContain('경로 1 · 3단계')
     expect(html).toContain('경로 2 · 3단계')
-    expect(html).toContain([normal.data.transfers[0].from, normal.data.transfers[0].to, normal.data.transfers[2].to, normal.data.transfers[4].to].join(' → '))
+    expect(html).toContain([normal.data.transfers[0].from, normal.data.transfers[0].to, normal.data.transfers[2].to, normal.data.transfers[4].to].map(shortenHex).join(' → '))
     for (const transfer of normal.data.transfers) expect(html).toContain(transfer.id)
     expect(html).toContain('동일 자금의 이동이나 소유 관계를 확정하지 않습니다')
     expect(html).toContain('찾은 경로 2개 중 2개 표시')
@@ -33,7 +34,7 @@ describe('Path result list', () => {
     Object.assign(value.meta.conditions, { direction: 'incoming', address: normal.meta.conditions.targetAddress, targetAddress: normal.meta.conditions.address })
     const html = render(value)
     expect(html).toContain('대상 주소에서 검색 시작 주소로 이어지는 실제 송금 순서')
-    expect(html).toContain([normal.data.transfers[0].from, normal.data.transfers[0].to, normal.data.transfers[2].to, normal.data.transfers[4].to].join(' → '))
+    expect(html).toContain([normal.data.transfers[0].from, normal.data.transfers[0].to, normal.data.transfers[2].to, normal.data.transfers[4].to].map(shortenHex).join(' → '))
   })
   it.each([[limited, '찾은 경로 2개 중 1개 표시'], [timed, '찾은 경로 1개 이상 중 1개 표시']] as const)('shows exact/lower-bound partial path counts', (sample, message) => {
     const html = render(result(sample))

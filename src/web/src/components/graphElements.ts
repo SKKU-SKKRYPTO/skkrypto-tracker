@@ -2,7 +2,7 @@ import type { ElementDefinition } from 'cytoscape'
 import { formatAmount, shortenHex } from '../format'
 import type { Node, Transfer } from '../api/v1Types'
 
-export type TransferGraphData = { nodes: Node[]; transfers: Transfer[]; conditions: { address: string }; layoutRoot?: string }
+export type TransferGraphData = { nodes: Node[]; transfers: Transfer[]; conditions: { address: string }; layoutRoot?: string; startLabel?: '시작' | '기준' }
 
 // 추적 결과를 Cytoscape 그래프 요소로 바꾼다. 주소 = 점, 송금 = 화살표.
 // 간선 id는 transfers[].id 그대로라서 표·상세와 같은 키를 쓴다.
@@ -23,7 +23,7 @@ export function buildElements(result: TransferGraphData): ElementDefinition[] {
       group: 'nodes',
       data: {
         id: address,
-        label: `${isStart ? '시작\n' : ''}${result.nodes.find(node => node.id === address)?.label ? `${result.nodes.find(node => node.id === address)?.label}\n` : ''}${shortenHex(address)}`,
+        label: `${isStart ? (result.startLabel ?? '시작') + '\n' : ''}${result.nodes.find(node => node.id === address)?.label ? `${result.nodes.find(node => node.id === address)?.label}\n` : ''}${shortenHex(address)}`,
       },
       classes: isStart ? 'start' : undefined,
     }
