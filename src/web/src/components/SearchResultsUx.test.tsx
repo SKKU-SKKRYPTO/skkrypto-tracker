@@ -36,7 +36,7 @@ describe('readable addresses and technical disclosures', () => {
     expect(technical).toHaveLength(2)
     sample.data.patterns.forEach((p, i) => { expect(technical[i]).toContain(p.patternId); expect(technical[i]).toContain(p.groupId); expect(technical[i]).toContain(p.ruleVersion) })
     const outside = html.replace(/<details class="technical-details">[\s\S]*?<\/details>/g, '')
-    expect(outside).toContain('incomplete: 예'); expect(outside).toContain('고유 상대 주소 3개')
+    expect(outside).toContain('관측 범위 불완전'); expect(outside).toContain('고유 상대 주소 3개')
     expect(html).toContain('패턴 ID 복사'); expect(html).toContain('groupId 복사')
   })
   it('groups each label with its control in both multi-address and Pattern forms', () => {

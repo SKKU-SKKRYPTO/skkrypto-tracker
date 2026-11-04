@@ -54,10 +54,10 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
         if (evidence.length === 0 || evidence.some(transfer => !transfer)) return <li key={path.id}><p className="notice notice-error">경로 {index + 1}의 근거 송금 정보를 확인할 수 없습니다.</p></li>
         return <li key={path.id} className={`notice${selection.path === path ? ' path-selected' : ''}`}>
           <h2>경로 {index + 1} · {path.hops}단계</h2>
+          <p className="card-connection mono full-value">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map(shortenHex).join(' → ')}</p>
+          <p className="card-metrics">근거 송금 {path.transferIds.length}건</p>
           {onSelectPath && <button type="button" className="select-button" aria-pressed={selection.path === path}
             aria-label={`경로 ${index + 1} 선택`} onClick={() => onSelectPath(path.id)}>{selection.path === path ? '✓ 경로 선택됨' : '경로 선택'}</button>}
-          <p className="mono full-value">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map(shortenHex).join(' → ')}</p>
-          <p>근거 송금 {path.transferIds.length}건</p>
           <details className="technical-details"><summary>기술 상세 · 경로 {index + 1}</summary>
             <p className="mono full-value">경로 ID: {path.id} <CopyButton value={path.id} label="경로 ID" /></p>
             <p>전체 주소 연결</p><ol>{[evidence[0]!.from, ...evidence.map(t => t!.to)].map((address, i) => <li key={i}><AddressValue value={address} label={'경로 ' + (index + 1) + ' 주소 ' + (i + 1)} /></li>)}</ol>

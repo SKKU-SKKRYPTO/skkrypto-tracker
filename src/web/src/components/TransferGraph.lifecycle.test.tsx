@@ -30,6 +30,10 @@ describe('graph mount, resize and selection callback', () => {
     const options = vi.mocked(cytoscape).mock.calls.at(-1)![0] as unknown as CytoscapeOptions
     expect(options.layout).toMatchObject({ name: 'concentric', avoidOverlap: true })
     expect(options.elements).toHaveLength(10)
+    const edgeStyle = (options.style as { selector: string; style: Record<string, unknown> }[]).find(rule => rule.selector === 'edge')!.style
+    expect(edgeStyle['text-rotation']).toBe('none')
+    expect(edgeStyle['curve-style']).toBe('bezier')
+    expect(edgeStyle['control-point-step-size']).toBe(64)
     const refresh = vi.mocked(watchGraphSize).mock.calls.at(-1)![1]
     refresh(); expect(resize).toHaveBeenCalledTimes(1); expect(layout).toHaveBeenCalledWith(options.layout); expect(run).toHaveBeenCalledTimes(1)
     const tap = on.mock.calls.find(call => call[0] === 'tap')![2]

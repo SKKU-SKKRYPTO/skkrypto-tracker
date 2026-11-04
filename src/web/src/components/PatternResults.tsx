@@ -3,7 +3,7 @@ import AddressValue from './AddressValue'
 import CopyButton from './CopyButton'
 import { useMemo } from 'react'
 import type { PatternEnvelope, PatternRequest } from '../api/patterns'
-import { formatAmount, formatTimestamp } from '../format'
+import { formatAmount, formatTimestamp, formatPatternWindow } from '../format'
 import { formatLimitReason } from '../limitReasons'
 import { PATTERN_DIRECTION_LABELS } from '../patternConditions'
 import { resolvePatternSelection } from '../patternSelection'
@@ -45,15 +45,20 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
       <div className="result-list" role="region" aria-label="패턴 선택 목록">
     {patterns.length === 0
       ? <p className="notice" role="status">{limits.truncated || limits.foundIsLowerBound ? '분석한 범위에서 패턴이 관측되지 않았습니다. 전체 범위에 패턴이 없다고 단정할 수 없습니다.' : '선택한 조건과 수집 범위에서 패턴이 관측되지 않았습니다.'}</p>
-      : <ol className="pattern-list">{patterns.map((pattern, index) => <li key={pattern.patternId} className={`notice${selection.pattern === pattern ? ' pattern-selected' : ''}`}>
+      : <ol className="pattern-list">{patterns.map((pattern, index) => {
+        const windowLabel = formatPatternWindow(pattern.windowStart, pattern.windowEnd)
+        return <li key={pattern.patternId} className={`notice${selection.pattern === pattern ? ' pattern-selected' : ''}`}>
         <h2>패턴 {index + 1} · {PATTERN_DIRECTION_LABELS[pattern.direction]}</h2>
+        <p className="card-window">탐지 시간: <time dateTime={pattern.windowStart} title={formatTimestamp(pattern.windowStart)}>{windowLabel.start}</time> ~ <time dateTime={pattern.windowEnd} title={formatTimestamp(pattern.windowEnd)}>{windowLabel.end}</time> · {pattern.windowSeconds}초 창</p>
+        <p className="card-metrics">고유 상대 주소 {pattern.uniqueCounterparties}개 · 근거 송금 {pattern.evidenceIds.length}건</p>
         {onSelectPattern && <button type="button" className="select-button" aria-label={`패턴 ${index + 1} 선택`} aria-pressed={selection.pattern === pattern}
           disabled={!resolvePatternSelection(patterns, graph.transfers, pattern.patternId).pattern} onClick={() => onSelectPattern(pattern.patternId)}>{selection.pattern === pattern ? '✓ 패턴 선택됨' : '패턴 선택'}</button>}
+        {pattern.incomplete
+          ? <p className="notice notice-warning">관측 범위 불완전 · 관측 범위가 불완전하여 이 창의 전후 거래를 모두 확인할 수 없습니다. 분석 제한(truncated)과는 별개입니다.</p>
+          : <p>관측 범위 내 분석 창</p>}
+        <details><summary>기준·상대 주소 {pattern.counterparties.length}개</summary>
         <div>기준 주소: <AddressValue value={pattern.address} label="기준 주소" /></div>
-        <p>탐지 시간 구간: <time dateTime={pattern.windowStart}>{formatTimestamp(pattern.windowStart)}</time> 이상 ~ <time dateTime={pattern.windowEnd}>{formatTimestamp(pattern.windowEnd)}</time> 미만</p>
-        <p>분석 창: {pattern.windowSeconds}초 · 시작 포함, 종료 제외</p>
-        <p>고유 상대 주소 {pattern.uniqueCounterparties}개 · 판정 기준 {pattern.threshold}개 이상 · 근거 송금 {pattern.evidenceIds.length}건</p>
-        <details><summary>상대 주소 {pattern.counterparties.length}개</summary>
+
           <ul>{pattern.counterparties.map(address => <li key={address}><AddressValue value={address} label="상대 주소" /></li>)}</ul>
         </details>
         <details><summary>근거 송금 {new Set(pattern.evidenceIds).size}건</summary>
@@ -73,11 +78,9 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
           <p className="mono full-value">패턴 ID: {pattern.patternId} <CopyButton value={pattern.patternId} label="패턴 ID" /></p>
           <p className="mono full-value">groupId: {pattern.groupId} <CopyButton value={pattern.groupId} label="groupId" /></p>
           <p>규칙: {pattern.ruleId} / {pattern.ruleVersion}</p>
+          <p>분석 창: {pattern.windowSeconds}초 · 시작 포함, 종료 제외 · 판정 기준: 고유 상대 {pattern.threshold}개 이상</p>
         </details>
-        {pattern.incomplete
-          ? <p className="notice notice-warning">incomplete: 예 · 관측 범위가 불완전하여 이 창의 전후 거래를 모두 확인할 수 없습니다. 분석 제한(truncated)과는 별개입니다.</p>
-          : <p>incomplete: 아니요 · 관측 범위 안의 분석 창입니다.</p>}
-      </li>)}</ol>}
+      </li>})}</ol>}
       </div>
     {graph.transfers.length > 0 && <>
       <TransferGraph result={graph} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} evidenceKind="pattern" onSelect={onSelectTransfer} />
