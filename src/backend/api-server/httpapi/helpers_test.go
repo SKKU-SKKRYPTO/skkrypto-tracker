@@ -47,6 +47,8 @@ func testConfig(t testing.TB, setup string) Config {
 		cfg.Repo = downRepo{}
 	case "labeled":
 		cfg.Repo = labeledRepo{loadRepo(t)}
+	case "practice":
+		cfg.PracticeDatasets = []string{"flow-demo"}
 	default:
 		t.Fatalf("모르는 setup: %s", setup)
 	}

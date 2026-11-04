@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ type analysisRequest struct {
 	analyzer.Request
 }
 
-// analyze는 분석 API 하나를 만든다. 순서: 입력 확인(400) → 데이터셋 상태(404·409)
+// analyze는 분석 API 하나를 만든다. 순서: 입력 확인(400) → 데이터셋 상태(404·409) → 실습 데이터셋 경로 찾기(403)
 // → 자산·범위(422) → 저장소에서 후보 읽기 → 엔진 → 데이터셋 재확인 → 응답(기획안 담당 3 처리 순서).
 func (s *server) analyze(kind string) handlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
@@ -55,6 +56,10 @@ func (s *server) analyze(kind string) handlerFunc {
 		ds, err := s.dataset(r.Context(), req.DatasetID, req.DatasetVersion, true)
 		if err != nil {
 			return err
+		}
+		if kind == analyzer.KindPaths && slices.Contains(s.practice, ds.ID) {
+			return fail(http.StatusForbidden, "PATHS_DISABLED",
+				"실습 데이터셋에서는 경로 찾기를 쓸 수 없습니다. 추적과 패턴으로 직접 찾아 보세요.")
 		}
 		if req.Asset != nil && !req.Asset.Same(ds.Asset) {
 			return fail(http.StatusUnprocessableEntity, "UNSUPPORTED_ASSET", fmt.Sprintf(

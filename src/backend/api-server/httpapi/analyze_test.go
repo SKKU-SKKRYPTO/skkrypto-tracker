@@ -105,6 +105,21 @@ func TestTraceRejectsTargetAddress(t *testing.T) {
 	expectError(t, do(newServer(t, ""), http.MethodPost, "/api/trace", []byte(pathsBody(""))), http.StatusBadRequest, "INVALID_INPUT")
 }
 
+// 실습 데이터셋은 경로 찾기만 403이고, 추적·패턴과 다른 데이터셋의 경로 찾기는 그대로다.
+func TestPracticeDatasetDisablesOnlyPaths(t *testing.T) {
+	h := newServer(t, "practice") // flow-demo가 실습 데이터셋
+	expectError(t, do(h, http.MethodPost, "/api/paths", []byte(pathsBody(""))), http.StatusForbidden, "PATHS_DISABLED")
+	for path, body := range map[string]string{
+		"/api/trace":    traceBody(""),
+		"/api/patterns": `{"datasetId":"flow-demo","datasetVersion":"v1","address":"` + addrS + `"}`,
+		"/api/paths":    `{"datasetId":"patterns-demo","datasetVersion":"v1","address":"` + addrS + `","targetAddress":"` + addrT + `"}`,
+	} {
+		if rec := do(h, http.MethodPost, path, []byte(body)); rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d, want 200\n%s", path, rec.Code, rec.Body.String())
+		}
+	}
+}
+
 // invalidating은 분석하는 동안 데이터셋이 무효화되는 상황을 만든다.
 type invalidating struct {
 	analyzer.Engine

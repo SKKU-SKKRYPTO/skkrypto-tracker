@@ -99,7 +99,7 @@ func badInput(message string) *failure {
 }
 
 // writeError는 오류를 HTTP 상태로 바꿔 쓴다.
-//   - 400 입력 오류, 404 없음, 409 데이터셋 상태, 422 지원 범위 밖, 429 요청 제한
+//   - 400 입력 오류, 403 실습 데이터셋 경로 찾기, 404 없음, 409 데이터셋 상태, 422 지원 범위 밖, 429 요청 제한
 //   - 그 밖의 오류(저장소 장애·시간 초과)는 503이고 retryable이 true다. 원인은 서버 로그에만 남긴다.
 func writeError(w http.ResponseWriter, err error) {
 	var f *failure

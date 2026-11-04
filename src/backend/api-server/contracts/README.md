@@ -12,7 +12,7 @@
 |---|---|
 | `openapi.json` | API 7개의 요청·응답 규격(OpenAPI 3.1) |
 | `sample-requests.json` | 샘플마다 "어떤 요청을 보내면 이 응답이 오는지" |
-| `samples/*.json` | 응답 샘플 22개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
+| `samples/*.json` | 응답 샘플 23개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
 
 샘플 데이터는 모두 합성 Fixture(`fx:` ID)이고 실제 체인 데이터가 아닙니다.
 
@@ -25,10 +25,10 @@
 | `GET /api/transfers` | 전송 목록(주소·방향·범위 필터, 위치 기반 커서) | `transfers-page.json` |
 | `GET /api/transactions/{txHash}` | 한 거래 안의 전송 | `transaction-multiple.json`, `large-amount.json`, `transaction-labels.json` |
 | `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 | `trace-success.json`, `trace-ready-empty.json`, `trace-candidate-limit.json`, `trace-amount-sum.json` |
-| `POST /api/paths` | 두 주소 사이 시간순 후보 경로 | `paths-success.json`, `paths-path-limit.json`, `paths-time-budget.json` |
+| `POST /api/paths` | 두 주소 사이 시간순 후보 경로. 실습 데이터셋에서는 403 | `paths-success.json`, `paths-path-limit.json`, `paths-time-budget.json`, `error-paths-disabled.json` |
 | `POST /api/patterns` | 분산(FAN_OUT)·합류(FAN_IN) 패턴 | `patterns-success.json` |
 
-오류 샘플: `error-bad-input`(400) · `error-not-found`(404) · `error-not-ready`·`error-invalidated`(409) · `error-out-of-range`·`error-unsupported-asset`(422) · `error-rate-limited`(429) · `error-unavailable`(503)
+오류 샘플: `error-bad-input`(400) · `error-paths-disabled`(403) · `error-not-found`(404) · `error-not-ready`·`error-invalidated`(409) · `error-out-of-range`·`error-unsupported-asset`(422) · `error-rate-limited`(429) · `error-unavailable`(503)
 
 ## 공통 규칙
 
@@ -47,6 +47,7 @@
 |---|---|---|---|
 | 200 | | 정상·0건·부분 결과 | |
 | 400 | `INVALID_INPUT`, `INVALID_CURSOR` | 입력 형식 오류, 다른 조건의 커서 | 아니요 |
+| 403 | `PATHS_DISABLED` | 실습 데이터셋의 경로 찾기(`POST /api/paths`). 추적·패턴은 그대로 | 아니요 |
 | 404 | `DATASET_NOT_FOUND`, `TRANSACTION_NOT_FOUND`, `NOT_FOUND` | 없는 데이터셋·거래·경로 | 아니요 |
 | 409 | `DATASET_NOT_READY`, `DATASET_INVALIDATED`, `VERSION_MISMATCH` | 수집 중·실패, 무효화된 버전, 다른 버전에서 받은 커서 | 아니요(다른 버전 선택·첫 쪽부터) |
 | 422 | `OUT_OF_RANGE`, `UNSUPPORTED_ASSET` | 수집 범위 밖, 다른 자산 | 아니요 |
