@@ -403,6 +403,7 @@ func TestCommitChunkStoresAllRecordsAtomically(t *testing.T) {
 			affected(1), affected(1), // blocks
 			affected(1), // transaction
 			affected(1), // transfer
+			affected(1), // dataset addresses
 			affected(1), // dataset transfer
 			affected(1), // ingestion chunk
 		},
@@ -436,11 +437,15 @@ func TestCommitChunkStoresAllRecordsAtomically(t *testing.T) {
 	if !db.committed {
 		t.Fatal("chunk transaction was not committed")
 	}
-	if len(db.execSQL) != 6 || !strings.Contains(db.execSQL[5], "INSERT INTO ingestion_chunks") {
+	if len(db.execSQL) != 7 || !strings.Contains(db.execSQL[6], "INSERT INTO ingestion_chunks") {
 		t.Fatalf("exec SQL = %v", db.execSQL)
 	}
 	if !strings.Contains(db.execSQL[3], "'SNAPSHOT'") || strings.Contains(db.execSQL[3], "fixture_namespace") {
 		t.Fatalf("transfer insert is not Snapshot-only: %s", db.execSQL[3])
+	}
+	if !strings.Contains(db.execSQL[4], "INSERT INTO dataset_addresses") ||
+		!strings.Contains(db.execSQL[4], "ON CONFLICT DO NOTHING") {
+		t.Fatalf("address insert SQL = %s", db.execSQL[4])
 	}
 }
 

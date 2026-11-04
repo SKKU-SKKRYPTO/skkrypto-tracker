@@ -37,6 +37,7 @@ flowchart LR
 | `Position` | `blockNumber + transactionIndex + logIndex`로 나타낸 체인 안의 위치 |
 | `IngestionChunk` | Dataset 범위의 일부를 성공적으로 원자 커밋한 기록 |
 | `BoundaryHash` | Snapshot 재개 시 사용하는 청크 마지막 블록의 번호와 hash |
+| `AddressMetadata` | Dataset 버전 안에서 주소에 붙이는 선택적인 label과 note |
 
 `Collection`은 과정이고 `CollectionSpec`은 그 과정의 입력이므로 Entity로 취급하지 않습니다.
 
@@ -111,6 +112,7 @@ classDiagram
     Dataset "1" --> "1" Asset
     Dataset "1" --> "1" Coverage
     Dataset "1" --> "*" IngestionChunk
+    Dataset "1" --> "*" AddressMetadata
     Dataset "*" --> "*" Transfer : includes
     IngestionChunk "1" --> "1" BlockRange
     IngestionChunk "1" --> "0..1" BoundaryHash
@@ -120,6 +122,7 @@ classDiagram
 ```
 
 - 블록과 거래의 물리적 저장 구조는 ERD에서 결정합니다.
+- 주소 표시 정보는 Dataset 버전에 종속되며 수집 정합성 판단에는 사용하지 않습니다.
 
 ## 핵심 불변식
 

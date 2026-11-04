@@ -61,6 +61,25 @@ CREATE TABLE datasets (
     )
 );
 
+CREATE TABLE dataset_addresses (
+    dataset_id TEXT NOT NULL,
+    dataset_version TEXT NOT NULL,
+    address TEXT NOT NULL,
+    label TEXT,
+    note TEXT,
+    CONSTRAINT dataset_addresses_pkey
+        PRIMARY KEY (dataset_id, dataset_version, address),
+    CONSTRAINT dataset_addresses_dataset_fkey
+        FOREIGN KEY (dataset_id, dataset_version)
+        REFERENCES datasets (dataset_id, dataset_version),
+    CONSTRAINT dataset_addresses_address_format
+        CHECK (address ~ '^0x[0-9a-f]{40}$'),
+    CONSTRAINT dataset_addresses_label_not_empty
+        CHECK (label IS NULL OR btrim(label) <> ''),
+    CONSTRAINT dataset_addresses_note_not_empty
+        CHECK (note IS NULL OR btrim(note) <> '')
+);
+
 CREATE TABLE blocks (
     dataset_id TEXT NOT NULL,
     dataset_version TEXT NOT NULL,

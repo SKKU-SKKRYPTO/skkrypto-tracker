@@ -335,4 +335,47 @@ VALUES
     ('patterns-demo', 'v1', 'fx:patterns-demo-v1:p10')
 ON CONFLICT (dataset_id, dataset_version, transfer_id) DO NOTHING;
 
+WITH address_labels (dataset_id, dataset_version, address, label) AS (
+    VALUES
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000001', 'S'),
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000002', 'A'),
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000003', 'B'),
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000004', 'C'),
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000005', 'D'),
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000006', 'E'),
+        ('flow-demo', 'v1', '0x0000000000000000000000000000000000000007', 'T'),
+        ('patterns-demo', 'v1', '0x0000000000000000000000000000000000000065', 'X'),
+        ('patterns-demo', 'v1', '0x0000000000000000000000000000000000000066', 'Y'),
+        ('patterns-demo', 'v1', '0x0000000000000000000000000000000000000067', 'Z'),
+        ('patterns-demo', 'v1', '0x0000000000000000000000000000000000000068', 'W'),
+        ('patterns-demo', 'v1', '0x0000000000000000000000000000000000000069', 'H')
+), fixture_addresses AS (
+    SELECT
+        dataset_transfer.dataset_id,
+        dataset_transfer.dataset_version,
+        address.value AS address
+    FROM dataset_transfers dataset_transfer
+    JOIN transfers transfer ON transfer.transfer_id = dataset_transfer.transfer_id
+    CROSS JOIN LATERAL (
+        VALUES (transfer.from_address), (transfer.to_address)
+    ) AS address(value)
+    WHERE (dataset_transfer.dataset_id, dataset_transfer.dataset_version) IN (
+        ('flow-demo', 'v1'),
+        ('patterns-demo', 'v1')
+    )
+)
+INSERT INTO dataset_addresses (dataset_id, dataset_version, address, label, note)
+SELECT DISTINCT
+    fixture_address.dataset_id,
+    fixture_address.dataset_version,
+    fixture_address.address,
+    address_label.label,
+    NULL
+FROM fixture_addresses fixture_address
+LEFT JOIN address_labels address_label
+  ON address_label.dataset_id = fixture_address.dataset_id
+ AND address_label.dataset_version = fixture_address.dataset_version
+ AND address_label.address = fixture_address.address
+ON CONFLICT (dataset_id, dataset_version, address) DO NOTHING;
+
 COMMIT;
