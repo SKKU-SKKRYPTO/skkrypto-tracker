@@ -19,7 +19,10 @@ function contrast(a: string, b: string): number {
 describe('theme text contrast guard', () => {
   it.each([['light', light], ['dark', dark]])('%s body, heading and primary button tokens meet 4.5:1', (_name, theme) => {
     expect(contrast(color(theme, 'text'), color(theme, 'bg'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(color(theme, 'text'), color(theme, 'page-bg'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(color(theme, 'text'), color(theme, 'surface'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(color(theme, 'text-h'), color(theme, 'bg'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(color(theme, 'button-primary-text'), color(theme, 'accent'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(color(theme, 'accent'), color(theme, 'bg'))).toBeGreaterThanOrEqual(4.5)
   })
 })

@@ -429,13 +429,18 @@
 
 .analysis-workspace.workspace-empty { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'list'; }
 
-/* Shared visual rhythm; preserve the existing light/dark system preference. */
+/* Trackoon foundation: shared surfaces and controls, preserving result layouts. */
 *, *::before, *::after { box-sizing: border-box; }
-.app { padding: 16px; min-width: 0; }
-.app h1 { font-size: 28px; line-height: 1.25; margin: 8px 0; letter-spacing: -0.5px; }
-.page-heading { margin-bottom: 16px; }
-.workspace-section { padding-top: 16px; margin-bottom: 16px; }
-.workspace-section > h2, .result-heading h2 { font-size: 20px; }
+.app { padding: 0 var(--space-5) var(--space-6); min-width: 0; }
+.app h1 { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 0; letter-spacing: -0.5px; }
+.page-heading { display: flex; align-items: center; min-height: var(--header-height); padding: var(--space-3) var(--space-5); margin: 0 calc(-1 * var(--space-5)); background: var(--bg); border-bottom: 1px solid var(--border); }
+.brand-lockup { display: flex; align-items: center; gap: var(--space-3); }
+/* Frame the supplied portrait without changing the original image asset. */
+.brand-logo { display: flex; align-items: center; justify-content: center; flex: 0 0 40px; width: 40px; height: 40px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-control); }
+.brand-logo img { display: block; flex-shrink: 0; width: 140%; height: 140%; max-width: none; object-fit: cover; }
+.page-intro { margin: var(--space-4) 0; font-size: 14px; }
+.workspace-section { padding: var(--space-5); margin-bottom: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg); }
+.workspace-section > h2, .result-heading h2 { font-size: 18px; font-weight: 600; }
 .section-description { margin-bottom: 12px; }
 .notice, .result-summary, .detail, .workspace-selection { border-radius: var(--radius-card); }
 .notice { margin-bottom: 12px; padding: 10px 12px; }
@@ -446,11 +451,22 @@ button { min-height: 36px; }
 .search-bar button:not(.button-secondary) { color: var(--button-primary-text); }
 .search-bar select { min-width: 0; max-width: 100%; }
 .search-bar button.button-secondary { background: var(--surface); }
-.mode-switch { margin-bottom: 16px; }
-.mode-switch button { border-radius: var(--radius-card); }
+.mode-switch { width: fit-content; max-width: 100%; gap: 4px; padding: 4px; margin-bottom: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.mode-switch button { display: flex; align-items: center; justify-content: center; gap: var(--space-2); flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 8px 16px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; font-size: 14px; }
+.mode-switch button .mode-label { display: inline; margin: 0; color: inherit; font-size: 13px; }
+.mode-switch button[aria-pressed='true'] { border: 1px solid var(--accent); background: var(--bg); color: var(--accent); }
 .mode-switch button[aria-pressed='true'] strong::before { content: '✓ '; }
+.mode-description { margin-bottom: var(--space-4); font-size: 14px; }
+.visually-hidden, .mode-switch button .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.dataset-panel > .search-bar { margin-bottom: var(--space-3); }
+.dataset-summary { margin-bottom: 0; background: var(--surface); }
+.dataset-identity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.status-badge, .source-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text-h); background: var(--bg); }
+.status-badge[data-status='READY'] { border-color: var(--accent-border); background: var(--accent-bg); color: var(--accent); }
+.dataset-summary > p + p { margin-top: 6px; }
+.dataset-notes, .dataset-limitations { padding-left: var(--space-5); font-size: 14px; }
 .select-button, .copy-button { padding: 6px 10px; border-radius: var(--radius-control); font-size: 14px; }
-:where(button, a, input, select, summary, [tabindex]):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+:where(button, a, input, select, summary, [tabindex]):focus-visible { outline: var(--focus-width) solid var(--accent); outline-offset: 3px; }
 .result-list, .graph, .table-scroll, .detail, .search-actions { min-width: 0; max-width: 100%; }
 .table-scroll { overscroll-behavior-x: contain; }
 .path-list, .pattern-list { margin: 0; padding-left: 22px; }
@@ -469,8 +485,12 @@ button { min-height: 36px; }
 .result-summary p + p { margin-top: 4px; }
 .workspace-selection { background: var(--surface); }
 @media (max-width: 600px) {
-  .app { padding: 12px; }
-  .mode-switch button { flex-basis: 100%; padding: 10px; }
+  .app { padding: 0 var(--space-3) var(--space-4); }
+  .page-heading { margin-inline: calc(-1 * var(--space-3)); padding-inline: var(--space-3); }
+  .workspace-section { padding: var(--space-3); }
+  .mode-switch { width: 100%; flex-wrap: nowrap; }
+  .mode-switch button { flex: 1 1 0; flex-direction: column; gap: 2px; padding: 8px 4px; }
+  .mode-switch button .mode-label { font-size: 12px; }
   .select-button, .copy-button, summary, .workspace-selection a { min-height: 44px; }
   .analysis-workspace { gap: 12px; }
   .analysis-workspace .graph-canvas { height: 360px; }

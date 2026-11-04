@@ -14,6 +14,12 @@ import PathResults from './components/PathResults'
 import type { AnalysisMode } from './state/datasetSession'
 import './App.css'
 
+const ANALYSIS_MODES = [
+  ['trace', 'Trace', '송금 추적', '한 주소에서 시간순 송금 흐름을 추적합니다.'],
+  ['paths', 'Path', '경로 탐색', '두 주소 사이의 후보 연결을 확인합니다.'],
+  ['patterns', 'Pattern', '패턴 탐지', '분산·합류 형태와 그 근거를 확인합니다.'],
+] as const
+
 export default function LiveApp({ session: provided }: { session?: DatasetSession } = {}) {
   const [session] = useState(() => provided ?? createDatasetSession())
   const [traceAddress, setTraceAddress] = useState('')
@@ -24,9 +30,12 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
   }, [session])
   return <main className="app">
     <header className="page-heading">
-      <h1>SKKRYPTO Tracker</h1>
-      <p>온체인 송금 흐름을 분석하고 근거를 확인하는 도구</p>
+      <div className="brand-lockup">
+        <span className="brand-logo" aria-hidden="true"><img src="/trackoon-logo.png" alt="" width="896" height="1200" /></span>
+        <h1>Trackoon</h1>
+      </div>
     </header>
+    <p className="page-intro">온체인 송금 흐름을 분석하고 근거를 확인하는 도구</p>
     <section className="workspace-section" aria-labelledby="dataset-heading">
     <h2 id="dataset-heading">데이터셋 설정</h2>
     <p className="section-description">분석할 데이터셋과 버전, 준비 상태를 확인해 주세요.</p>
@@ -37,15 +46,13 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     <h2 id="analysis-heading">분석 설정</h2>
     <p className="section-description">분석 종류를 선택하고 주소와 검색 조건을 입력해 주세요.</p>
     <div className="mode-switch" role="group" aria-label="분석 종류">
-      {([
-        ['trace', '송금 추적(Trace)', '한 주소에서 시간순 송금 흐름을 추적합니다.'],
-        ['paths', '경로 탐색(Path)', '두 주소 사이의 후보 연결을 확인합니다.'],
-        ['patterns', '패턴 탐지(Pattern)', '분산·합류 형태와 그 근거를 확인합니다.'],
-      ] as const).map(([mode, label, description]) => <button key={mode} id={'analysis-mode-' + mode} type="button"
-        aria-label={label} aria-pressed={state.mode === mode} aria-describedby={'mode-description-' + mode} onClick={() => session.setMode(mode as AnalysisMode)}>
-        <strong>{label}</strong><span id={'mode-description-' + mode}>{description}</span>
+      {ANALYSIS_MODES.map(([mode, name, label, description]) => <button key={mode} id={'analysis-mode-' + mode} type="button"
+        aria-label={`${label}(${name})`} aria-pressed={state.mode === mode} aria-describedby={'mode-description-' + mode} onClick={() => session.setMode(mode as AnalysisMode)}>
+        <strong>{name}</strong><span className="mode-label">{label}</span>
+        <span className="visually-hidden" id={'mode-description-' + mode}>{description}</span>
       </button>)}
     </div>
+    <p className="mode-description">{ANALYSIS_MODES.find(([mode]) => mode === state.mode)![3]}</p>
     {state.mode === 'trace' ? <SearchBar isSearching={state.isSearching} disabled={!canSearch(state)} conditions={state.conditions} address={traceAddress}
       onAddressChange={address => { setTraceAddress(address); session.onTraceAddressChange() }} onConditionsChange={session.setConditions} onSearch={address => { void session.search(address) }} />
       : state.mode === 'paths' ? <PathSearchBar conditions={state.pathConditions} disabled={!canSearch(state)} isSearching={state.isSearching}

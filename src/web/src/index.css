@@ -1,12 +1,13 @@
 :root {
   --text: #475569;
-  --text-h: #172033;
+  --text-h: #12243b;
   --bg: #fff;
-  --border: #cbd5e1;
+  --page-bg: #f2f5f9;
+  --border: #d5dee8;
   --code-bg: #f1f5f9;
-  --accent: #7c3aed;
-  --accent-bg: rgba(124, 58, 237, 0.07);
-  --accent-border: rgba(124, 58, 237, 0.45);
+  --accent: #0e7490;
+  --accent-bg: rgba(14, 116, 144, 0.08);
+  --accent-border: rgba(14, 116, 144, 0.45);
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
@@ -15,9 +16,17 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  --radius-control: 6px;
-  --radius-card: 8px;
+  --radius-control: 8px;
+  --radius-card: 12px;
   --space-unit: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --content-width: 1440px;
+  --header-height: 72px;
+  --focus-width: 3px;
   --surface: #f8fafc;
   --button-primary-text: #fff;
 
@@ -25,7 +34,7 @@
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
-  background: var(--bg);
+  background: var(--page-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -38,16 +47,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #1c1f29;
-    --button-primary-text: #16171d;
+    --surface: #18283a;
+    --page-bg: #0b1220;
+    --button-primary-text: #102338;
     --text: #b6bfcc;
     --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
+    --bg: #111d2d;
+    --border: #344559;
+    --code-bg: #18283a;
+    --accent: #67e8f9;
+    --accent-bg: rgba(103, 232, 249, 0.1);
+    --accent-border: rgba(103, 232, 249, 0.5);
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
@@ -59,11 +69,10 @@
 }
 
 #root {
-  width: 1440px;
+  width: var(--content-width);
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;

@@ -89,6 +89,7 @@ describe('dataset information priority', () => {
     expect(summary).toContain('검색할 수 없습니다'); expect(summary).toContain('수집 범위 무효화')
     const details = html.slice(html.indexOf('<details'), html.indexOf('</details>'))
     expect(details).toContain('데이터셋 상세 정보'); expect(details).toContain(data.asset.tokenAddress); expect(details).toContain(data.startBlock)
+    for (const text of [...data.notes, ...detail.meta.limitations]) expect(details).toContain(text)
     expect(details).not.toMatch(/<details[^>]*\sopen/)
   })
 })
