@@ -1,9 +1,20 @@
+import { Fragment } from 'react'
 import { formatTimestamp, formatAmount } from '../format'
 import type { Transfer } from '../types'
 import CopyButton from './CopyButton'
 
 type Props = {
   transfer: Transfer | null
+}
+
+// 이름표·메모는 API가 값이 있을 때만 보낸다. 없는 칸은 줄째 숨긴다.
+function annotations(transfer: Transfer): [string, string][] {
+  const rows: [string, string | undefined][] = [
+    ['송금 이름표', transfer.label], ['송금 메모', transfer.note],
+    ['거래 이름표', transfer.txLabel], ['거래 메모', transfer.txNote],
+    ['블록 이름표', transfer.blockLabel], ['블록 메모', transfer.blockNote],
+  ]
+  return rows.filter((row): row is [string, string] => Boolean(row[1]))
 }
 
 // FIXTURE 데이터의 주소·거래 번호는 가짜라서 Explorer 링크를 만들지 않는다.
@@ -16,6 +27,12 @@ function TransferDetail({ transfer }: Props) {
         <p className="detail-empty">표나 그래프에서 송금을 선택하면 상세 정보가 여기에 나옵니다.</p>
       ) : (
         <dl>
+          {annotations(transfer).map(([name, value]) => (
+            <Fragment key={name}>
+              <dt>{name}</dt>
+              <dd className="full-value">{value}</dd>
+            </Fragment>
+          ))}
           <dt>보낸 주소</dt>
           <dd>
             <span className="mono full-value">{transfer.from}</span>
