@@ -113,6 +113,7 @@ func (s *server) analyze(kind string) handlerFunc {
 		engineTime := time.Since(engineStart)
 		for i := range result.Nodes {
 			result.Nodes[i].Label = ds.Labels[result.Nodes[i].ID]
+			result.Nodes[i].Note = ds.AddressNotes[result.Nodes[i].ID]
 		}
 		if err := s.stillReady(r.Context(), ds); err != nil {
 			return err

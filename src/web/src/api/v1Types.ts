@@ -30,7 +30,7 @@ export type AnalysisRequest = { datasetId: string; datasetVersion: string; asset
 
 export type PathsRequest = (AnalysisRequest) & ({ targetAddress: Address })
 
-export type Node = { id: Address; label?: string }
+export type Node = { id: Address; label?: string; note?: string }
 
 export type Path = { id: string; transferIds: Array<string>; hops: number }
 

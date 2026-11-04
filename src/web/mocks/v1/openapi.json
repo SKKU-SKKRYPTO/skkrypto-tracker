@@ -1090,6 +1090,10 @@
           "label": {
             "type": "string",
             "description": "데이터셋 labels에 있는 이름. 없으면 생략"
+          },
+          "note": {
+            "type": "string",
+            "description": "주소 메모(DB dataset_addresses). 없으면 생략. 사람이 적은 글이라 화면에 글자 그대로 보여 준다"
           }
         }
       },

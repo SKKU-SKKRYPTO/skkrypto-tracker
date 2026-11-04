@@ -61,6 +61,27 @@ func TestNodesGetDatasetLabels(t *testing.T) {
 	}
 }
 
+// 주소 메모는 그 주소 노드의 note로 실리고, 메모가 없는 노드에는 note 칸이 없다.
+func TestNodesGetAddressNotes(t *testing.T) {
+	body := `{"datasetId":"patterns-demo","datasetVersion":"v1","address":"` + labeledAddress + `","maxDepth":1}`
+	rec := do(newServer(t, "labeled"), http.MethodPost, "/api/trace", []byte(body))
+	var result struct {
+		Nodes []map[string]any `json:"nodes"`
+	}
+	if err := json.Unmarshal(decode(t, rec).Data, &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Nodes) < 2 {
+		t.Fatalf("nodes = %+v", result.Nodes)
+	}
+	for _, n := range result.Nodes {
+		note, ok := n["note"]
+		if n["id"] == labeledAddress && note != "주소 메모 예시" || n["id"] != labeledAddress && ok {
+			t.Fatalf("nodes = %+v", result.Nodes)
+		}
+	}
+}
+
 // 저장소의 전송·거래·블록 이름표와 메모는 분석 결과의 근거 전송에도 그대로 실린다.
 func TestTransferLabelsAndNotesReachAnalysisResults(t *testing.T) {
 	body := `{"datasetId":"patterns-demo","datasetVersion":"v1","address":"0x0000000000000000000000000000000000000065","maxDepth":1}`
