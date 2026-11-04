@@ -56,6 +56,7 @@ go -C src/backend run ./indexer/cmd/indexer manifest \
 호스트에 Go 없이 Compose 네트워크 안에서 한 번 수집하고 멈추는 배치로 실행할 수 있습니다. 기본 `docker compose up -d`에서는 뜨지 않고 `collect` profile에서만 실행됩니다.
 
 ```sh
+cp src/database/.env.example src/database/.env   # 처음 한 번: DB 계정(이미 했으면 생략). indexer DATABASE_URL도 같은 계정으로
 cp src/backend/indexer/.env.example src/backend/indexer/.env   # RPC_URL·DATABASE_URL·INDEXER_* 채우기
 docker compose --profile collect up --build -d
 docker compose logs -f indexer
