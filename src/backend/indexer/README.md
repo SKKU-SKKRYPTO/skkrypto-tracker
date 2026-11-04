@@ -51,6 +51,20 @@ go -C src/backend run ./indexer/cmd/indexer manifest \
   --dataset-version v1
 ```
 
+## Docker Compose로 수집
+
+호스트에 Go 없이 Compose 네트워크 안에서 한 번 수집하고 멈추는 배치로 실행할 수 있습니다. 기본 `docker compose up -d`에서는 뜨지 않고 `collect` profile에서만 실행됩니다.
+
+```sh
+cp src/backend/indexer/.env.example src/backend/indexer/.env   # RPC_URL·DATABASE_URL·INDEXER_* 채우기
+docker compose --profile collect up --build -d
+docker compose logs -f indexer
+```
+
+- `INDEXER_*` 값은 Compose가 위 `collect` 인자로 옮기고, 토큰 목록은 이미지에 들어 있는 `tokens.json`을 씁니다.
+- `DATABASE_URL`의 호스트는 `postgres:5432`입니다. RPC URL·DB 비밀번호는 이미지에 넣지 않고 실행할 때만 `.env`에서 받습니다.
+- READY Manifest는 RPC 없이 다시 출력합니다: `docker compose run --rm -T --entrypoint indexer indexer manifest --dataset-id <ID> --dataset-version <VERSION>`
+
 ## 검증
 
 자동 검증은 외부 서비스가 필요 없는 Go 단위 테스트입니다.
