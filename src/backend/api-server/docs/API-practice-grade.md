@@ -46,4 +46,4 @@ curl -s -X POST localhost:8080/api/practice/grade \
 
 | 날짜 | PR | 내용 |
 |---|---|---|
-| 2026-11-05 | (이 PR) | 추가 |
+| 2026-11-05 | #56 | 추가 |
