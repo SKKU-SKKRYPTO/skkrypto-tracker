@@ -184,6 +184,8 @@ func TestLoadPracticeAnswersRejectsBadFiles(t *testing.T) {
 		"배점 없음":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","paths":[["a"]]}]}`,
 		"경로 없음":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[]}]}`,
 		"같은 경로 두 번":    `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"],["A"]]}]}`,
+		"정답 목록 없음":     `{"version":2,"answers":[]}`,
+		"경로가 4 hop":    `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a","b","c","d"]]}]}`,
 		"패턴 항목":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]],"patterns":[]}]}`,
 		"정답 경로가 너무 많음": `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"],["b"],["c"],["d"],["e"],["f"],["g"],["h"],["i"],["j"],["k"]]}]}`,
 		"빈 송금 ID":      `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[[" "]]}]}`,
