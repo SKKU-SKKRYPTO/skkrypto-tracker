@@ -4,15 +4,16 @@ import { describe, expect, it } from 'vitest'
 import spec from '../../mocks/v1/openapi.json'
 import manifest from '../../mocks/v1/sample-requests.json'
 import { matchesResponse, matchesV1 } from './validateV1'
+import { adaptPathsResponse } from '../adapters/pathsAdapter'
 import { adaptTraceResponse } from '../adapters/traceAdapter'
 const samples = new URL('../../mocks/v1/samples/', import.meta.url)
 const official = new URL('../../../backend/api-server/contracts/', import.meta.url)
 describe('official v1 contract and samples', () => {
-  it('copies exactly 22 samples and the contract unchanged', () => {
+  it('copies exactly 23 samples and the contract unchanged', () => {
     expect(JSON.parse(readFileSync(new URL('openapi.json', official), 'utf8'))).toEqual(spec)
     expect(JSON.parse(readFileSync(new URL('sample-requests.json', official), 'utf8'))).toEqual(manifest)
     const files = readdirSync(samples).filter(name => name.endsWith('.json')).sort()
-    expect(files).toHaveLength(22)
+    expect(files).toHaveLength(23)
     expect(files).toEqual(manifest.map(entry => entry.sample).sort())
     for (const file of files) expect(readFileSync(new URL(file, samples), 'utf8')).toBe(readFileSync(new URL(`samples/${file}`, official), 'utf8'))
   })
@@ -20,7 +21,13 @@ describe('official v1 contract and samples', () => {
     const body = JSON.parse(readFileSync(new URL(entry.sample, samples), 'utf8'))
     const path = entry.path.split('?')[0].replace(/\/api\/datasets\/[^/]+$/, '/api/datasets/{id}').replace(/\/api\/transactions\/[^/]+$/, '/api/transactions/{txHash}')
     expect(matchesResponse(body, entry.method, path, entry.status)).toBe(true)
-    if (entry.status !== 200) expect(adaptTraceResponse(body, null, entry.status)).toMatchObject({ kind: 'api', status: entry.status, error: body.error })
+    if (entry.status !== 200) {
+      // Paths-only errors such as 403 (practice dataset) go through the paths adapter.
+      const adapted = path === '/api/paths'
+        ? adaptPathsResponse(body, null, { datasetId: '', datasetVersion: '' }, entry.status)
+        : adaptTraceResponse(body, null, entry.status)
+      expect(adapted).toMatchObject({ kind: 'api', status: entry.status, error: body.error })
+    }
   })
   it('keeps separate IDs for logs in the same transaction', () => {
     const body = JSON.parse(readFileSync(new URL('transaction-multiple.json', samples), 'utf8'))

@@ -168,6 +168,20 @@
     "description": "주소 형식 오류."
   },
   {
+    "sample": "error-paths-disabled.json",
+    "method": "POST",
+    "path": "/api/paths",
+    "body": {
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "address": "0x0000000000000000000000000000000000000001",
+      "targetAddress": "0x0000000000000000000000000000000000000007"
+    },
+    "setup": "practice",
+    "status": 403,
+    "description": "실습 데이터셋의 경로 찾기(예시로 flow-demo를 실습 데이터셋으로 둠). 추적·패턴은 그대로 쓴다."
+  },
+  {
     "sample": "error-not-found.json",
     "method": "GET",
     "path": "/api/datasets/unknown-demo?datasetVersion=v1",

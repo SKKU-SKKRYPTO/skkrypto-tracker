@@ -23,24 +23,27 @@ type Config struct {
 	RateLimitPerMinute int           // 클라이언트 IP마다 1분에 받는 요청 수. 0이면 제한하지 않는다
 	RequestTimeout     time.Duration // 0이면 3초. 분석 시간 예산(최대 2초)보다 조금 길게 둔다
 	AllowedOrigins     []string      // 브라우저에서 이 API를 부를 수 있는 웹 주소(CORS)
+	PracticeDatasets   []string      // 실습 데이터셋 ID. 정답 경로가 바로 나오지 않게 경로 찾기(POST /api/paths)를 막는다
 }
 
 type server struct {
-	repo    repository.Repository
-	engine  analyzer.Engine
-	limiter *rateLimiter
-	timeout time.Duration
-	origins []string
+	repo     repository.Repository
+	engine   analyzer.Engine
+	limiter  *rateLimiter
+	timeout  time.Duration
+	origins  []string
+	practice []string
 }
 
 // New는 API 라우터를 만든다. 서버 실행(포트·종료)은 호출한 쪽(cmd/api-server)이 맡는다.
 func New(cfg Config) http.Handler {
 	s := &server{
-		repo:    cfg.Repo,
-		engine:  cfg.Engine,
-		limiter: newRateLimiter(cfg.RateLimitPerMinute, time.Now),
-		timeout: cfg.RequestTimeout,
-		origins: cfg.AllowedOrigins,
+		repo:     cfg.Repo,
+		engine:   cfg.Engine,
+		limiter:  newRateLimiter(cfg.RateLimitPerMinute, time.Now),
+		timeout:  cfg.RequestTimeout,
+		origins:  cfg.AllowedOrigins,
+		practice: cfg.PracticeDatasets,
 	}
 	if s.timeout == 0 {
 		s.timeout = 3 * time.Second

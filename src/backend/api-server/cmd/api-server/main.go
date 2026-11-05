@@ -30,12 +30,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("RATE_LIMIT_PER_MINUTE는 정수여야 합니다: %v", err)
 	}
-	var origins []string
-	for _, origin := range strings.Split(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8081"), ",") {
-		if origin = strings.TrimSpace(origin); origin != "" {
-			origins = append(origins, origin)
-		}
-	}
+	origins := list(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8081"))
+	practice := list(os.Getenv("PRACTICE_DATASETS"))
 
 	repo, source, closeRepo, err := openRepository(os.Getenv("DATABASE_URL"), fixtureDir)
 	if err != nil {
@@ -49,6 +45,7 @@ func main() {
 			Engine:             analyzer.New(),
 			RateLimitPerMinute: perMinute,
 			AllowedOrigins:     origins,
+			PracticeDatasets:   practice,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -108,4 +105,15 @@ func env(name, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// list는 쉼표로 나눈 값을 앞뒤 공백을 지우고 빈 칸 없이 돌려준다.
+func list(value string) []string {
+	var items []string
+	for _, item := range strings.Split(value, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			items = append(items, item)
+		}
+	}
+	return items
 }

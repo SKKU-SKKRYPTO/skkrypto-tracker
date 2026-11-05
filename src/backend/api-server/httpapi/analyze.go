@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,8 +30,9 @@ type analysisRequest struct {
 	analyzer.Request
 }
 
-// analyze는 분석 API 하나를 만든다. 순서: 입력 확인(400) → 데이터셋 상태(404·409)
-// → 자산·범위(422) → 저장소에서 후보 읽기 → 엔진 → 데이터셋 재확인 → 응답(기획안 담당 3 처리 순서).
+// analyze는 분석 API 하나를 만든다. 순서: 입력 확인(400) → 데이터셋 상태(404·409) → 자산·범위(422)
+// → 시작 전송 ID 형식(400) → 실습 데이터셋 경로 찾기(403) → 저장소에서 후보 읽기 → 엔진 → 데이터셋 재확인 → 응답
+// (기획안 담당 3 처리 순서). 실습 차단은 요청 형식 검사를 모두 마친 뒤에 둬서, 형식이 틀린 요청은 실습 데이터셋에서도 400이다.
 func (s *server) analyze(kind string) handlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := onlyParams(r); err != nil {
@@ -67,6 +69,10 @@ func (s *server) analyze(kind string) handlerFunc {
 		if req.StartTransferID != "" && !domain.ValidTransferID(ds.SourceMode, ds.SourceNamespace, req.StartTransferID) {
 			return badInput("선택한 전송 ID(startTransferId)가 이 데이터셋의 ID 형식과 다릅니다. " +
 				"FIXTURE는 fx:{namespace}:{recordId}, SNAPSHOT은 {chainId}:{txHash}:{logIndex}입니다.")
+		}
+		if kind == analyzer.KindPaths && slices.Contains(s.practice, ds.ID) {
+			return fail(http.StatusForbidden, "PATHS_DISABLED",
+				"실습 데이터셋에서는 경로 찾기를 쓸 수 없습니다. 추적과 패턴으로 직접 찾아 보세요.")
 		}
 
 		// 패턴과 1 hop은 시작 주소의 전송만 쓰므로 주소 조건을 넘겨 후보를 줄인다. 그래야 후보 상한에
