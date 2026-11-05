@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { PracticeGradeOutcome } from '../practice/practiceGrade'
 import { practicePerfect } from '../practice/practiceGrade'
 import type { PracticeProblem } from '../practice/practiceProblems'
+import { createLatestOnly } from '../practice/latestOnly'
 
 type Props = {
   problem: PracticeProblem
@@ -14,22 +15,26 @@ export default function PracticeAnswer({ problem, disabled = false, onGrade }: P
   const [text, setText] = useState('')
   const [outcome, setOutcome] = useState<PracticeGradeOutcome | null>(null)
   const [grading, setGrading] = useState(false)
+  // 채점 중에 답안을 고치면 그 전 답안의 결과가 늦게 도착해도 보여 주지 않는다.
+  const [latest] = useState(createLatestOnly)
   const id = 'practice-answer-' + problem.id
   async function grade() {
+    const ticket = latest.start()
     setGrading(true)
     setOutcome(null)
+    let result: PracticeGradeOutcome
     try {
-      setOutcome(await onGrade(problem, text))
+      result = await onGrade(problem, text)
     } catch {
-      setOutcome({ status: 'failed', message: '채점하지 못했습니다. 잠시 뒤 다시 눌러 주세요.' })
-    } finally {
-      setGrading(false)
+      result = { status: 'failed', message: '채점하지 못했습니다. 잠시 뒤 다시 눌러 주세요.' }
     }
+    if (latest.isCurrent(ticket)) setOutcome(result)
+    setGrading(false)
   }
   return <div className="practice-answer">
     <label htmlFor={id}>답안 · 경로마다 한 줄, 지갑 이름 순서</label>
     <textarea id={id} rows={3} value={text} placeholder="예: B → A → C → H" spellCheck={false} autoComplete="off"
-      onChange={event => { setText(event.target.value); setOutcome(null) }} />
+      onChange={event => { setText(event.target.value); setOutcome(null); latest.invalidate() }} />
     <button type="button" disabled={disabled || grading || !text.trim()} onClick={() => { void grade() }}>{grading ? '채점 중…' : '채점하기'}</button>
     <PracticeVerdict outcome={outcome} />
   </div>

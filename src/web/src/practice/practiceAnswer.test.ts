@@ -83,6 +83,16 @@ describe('grading an answer', () => {
     expect(calls[1]).toBe('/api/transfers?datasetId=flow-demo&datasetVersion=v1&limit=1000&cursor=c2')
     expect(calls[2]).toBe('/api/practice/grade')
   })
+  it('keeps paging past 20 pages and stops on a repeated cursor', async () => {
+    const paged = (pages: number, repeat = false): HttpClient => async path => {
+      if (!path.startsWith('/api/transfers')) return { ok: true, status: 200, body: { data: { challenge: problem.id, datasetMatches: true, passed: true }, meta: {}, error: null }, retryAfter: null }
+      const page = Number(new URLSearchParams(path.split('?')[1]).get('cursor') ?? '0')
+      const next = repeat ? '1' : page + 1 < pages ? String(page + 1) : null
+      return { ok: true, status: 200, body: { data: page === pages - 1 || repeat ? transfers : [], meta: { page: { limit: 1000, nextCursor: next } } }, retryAfter: null }
+    }
+    expect(await gradePracticeAnswer(problem, 'S → A → T', labels, paged(25))).toMatchObject({ status: 'graded' })
+    expect(await gradePracticeAnswer(problem, 'S → A → T', labels, paged(3, true))).toMatchObject({ status: 'failed', message: expect.stringContaining('송금 목록') })
+  })
   it('reports when the transfer list cannot be loaded', async () => {
     const { http } = fakeHttp({ status: 503, body: { data: null } })
     expect(await gradePracticeAnswer(problem, 'S → A → T', labels, http)).toMatchObject({ status: 'failed', message: expect.stringContaining('송금 목록') })

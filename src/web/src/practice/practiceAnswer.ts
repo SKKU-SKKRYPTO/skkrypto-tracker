@@ -57,14 +57,15 @@ export function answerToTransferIds(paths: string[][], transfers: readonly Trans
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const isTransfer = (value: unknown): value is Transfer => record(value) && typeof value.id === 'string' && typeof value.from === 'string' && typeof value.to === 'string'
 
-const MAX_TRANSFER_PAGES = 20
 const loadFailed = { status: 'failed', message: '송금 목록을 불러오지 못했습니다. 잠시 뒤 다시 채점해 주세요.' } as const
 
-// 데이터셋의 송금을 모두 받는다. 한 쪽은 최대 1000건이라 meta.page.nextCursor가 있으면 다음 쪽을 이어 받는다.
+// 데이터셋의 송금을 모두 받는다. 한 쪽은 최대 1000건이라 meta.page.nextCursor가 없을 때까지 다음 쪽을 이어 받는다.
+// 같은 커서가 다시 오면 끝나지 않으므로 실패로 본다.
 async function loadAllTransfers(problem: PracticeProblem, http: HttpClient): Promise<Transfer[] | null> {
   const rows: Transfer[] = []
+  const seen = new Set<string>()
   let cursor: string | null = null
-  for (let page = 0; page < MAX_TRANSFER_PAGES; page++) {
+  for (;;) {
     const query = new URLSearchParams({ datasetId: problem.datasetId, datasetVersion: problem.datasetVersion, limit: '1000' })
     if (cursor) query.set('cursor', cursor)
     const reply = await http('/api/transfers?' + query.toString())
@@ -73,9 +74,10 @@ async function loadAllTransfers(problem: PracticeProblem, http: HttpClient): Pro
     rows.push(...body.data)
     const next = record(body.meta) && record(body.meta.page) ? body.meta.page.nextCursor : null
     if (typeof next !== 'string' || next === '') return rows
+    if (seen.has(next)) return null
+    seen.add(next)
     cursor = next
   }
-  return null
 }
 
 // 답안을 채점한다: 데이터셋의 송금 목록을 받아 이름 경로를 송금 ID 경로로 바꾸고 POST /api/practice/grade로 보낸다.
