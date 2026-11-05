@@ -50,7 +50,7 @@ func gradeOK(t *testing.T, h http.Handler, body string) (practiceGradeResult, st
 	if err := json.Unmarshal(r.Data, &result); err != nil {
 		t.Fatal(err)
 	}
-	return result, rec.Body.String()
+	return result, string(r.Data)
 }
 
 func TestPracticeGradePassesOnlyExactAnswer(t *testing.T) {
@@ -79,17 +79,40 @@ func TestPracticeGradePassesOnlyExactAnswer(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, raw := gradeOK(t, h, tc.body)
+			got, data := gradeOK(t, h, tc.body)
 			if got.Challenge != "P1" || got.DatasetMatches != tc.matches || got.Passed != tc.passed {
 				t.Fatalf("got %+v", got)
 			}
-			// 통과 여부만 돌려준다. 점수·개수·정답 송금 ID는 응답에 싣지 않는다.
+			// 통과 여부만 돌려준다. 점수·개수·정답 송금 ID는 응답 data에 싣지 않는다(meta는 데이터셋 정보).
 			for _, leak := range []string{"score", "hit", "wrong", "answerCount", "total", "e5", "fx:"} {
-				if strings.Contains(raw, leak) {
-					t.Fatalf("응답에 %q가 들어 있다: %s", leak, raw)
+				if strings.Contains(data, leak) {
+					t.Fatalf("응답 data에 %q가 들어 있다: %s", leak, data)
 				}
 			}
 		})
+	}
+}
+
+// 채점도 분석 API처럼 데이터셋이 있고 READY일 때만 하고, 응답 meta에 데이터셋 버전·범위를 싣는다.
+func TestPracticeGradeChecksDataset(t *testing.T) {
+	h := practiceServer(t)
+	for _, tc := range []struct {
+		dataset string
+		status  int
+		code    string
+	}{
+		{"collecting-demo", http.StatusConflict, "DATASET_NOT_READY"},
+		{"invalidated-demo", http.StatusConflict, "DATASET_INVALIDATED"},
+		{"missing-demo", http.StatusNotFound, "DATASET_NOT_FOUND"},
+	} {
+		t.Run(tc.dataset, func(t *testing.T) {
+			body := `{"challenge":"P1","datasetId":"` + tc.dataset + `","datasetVersion":"v1","paths":[]}`
+			expectError(t, do(h, http.MethodPost, "/api/practice/grade", []byte(body)), tc.status, tc.code)
+		})
+	}
+	rec := do(h, http.MethodPost, "/api/practice/grade", []byte(`{"challenge":"P1","datasetId":"flow-demo","datasetVersion":"v1","paths":[]}`))
+	if m := decode(t, rec).Meta; m.DatasetID != "flow-demo" || m.DatasetVersion != "v1" || m.Coverage == nil {
+		t.Fatalf("meta = %+v", m)
 	}
 }
 
@@ -154,14 +177,18 @@ func TestPracticeBlocksPathsOnPracticeDatasets(t *testing.T) {
 
 func TestLoadPracticeAnswersRejectsBadFiles(t *testing.T) {
 	for name, body := range map[string]string{
-		"JSON 아님":   `{`,
-		"모르는 항목":    `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]],"rubric":{}}]}`,
-		"모르는 버전":    `{"version":4,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]]}]}`,
-		"중복 문제":     `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]]},{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]]}]}`,
-		"배점 없음":     `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","paths":[["a"]]}]}`,
-		"경로 없음":     `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[]}]}`,
-		"같은 경로 두 번": `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"],["A"]]}]}`,
-		"패턴 항목":     `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]],"patterns":[]}]}`,
+		"JSON 아님":      `{`,
+		"모르는 항목":       `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]],"rubric":{}}]}`,
+		"모르는 버전":       `{"version":4,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]]}]}`,
+		"중복 문제":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]]},{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]]}]}`,
+		"배점 없음":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","paths":[["a"]]}]}`,
+		"경로 없음":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[]}]}`,
+		"같은 경로 두 번":    `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"],["A"]]}]}`,
+		"패턴 항목":        `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"]],"patterns":[]}]}`,
+		"정답 경로가 너무 많음": `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["a"],["b"],["c"],["d"],["e"],["f"],["g"],["h"],["i"],["j"],["k"]]}]}`,
+		"빈 송금 ID":      `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[[" "]]}]}`,
+		"너무 긴 송금 ID":   `{"version":2,"answers":[{"challenge":"P1","datasetId":"d","datasetVersion":"v1","points":1,"paths":[["` + strings.Repeat("a", maxPracticeIDLength+1) + `"]]}]}`,
+		"공백 데이터셋":      `{"version":2,"answers":[{"challenge":"P1","datasetId":" ","datasetVersion":"v1","points":1,"paths":[["a"]]}]}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := LoadPracticeAnswers(writePracticeFile(t, body)); err == nil {

@@ -8,6 +8,8 @@
 
 정답은 이 public 저장소에 없다. 서버 환경 변수 `PRACTICE_ANSWERS_JSON`(값) 또는 `PRACTICE_ANSWERS_FILE`(파일 경로)로만 받고, 없으면 채점은 꺼져 있다(404). 정답이 있는 데이터셋은 `PRACTICE_DATASETS`에 없어도 `POST /api/paths`가 403 `PATHS_DISABLED`다.
 
+분석 API처럼 채점 전과 응답 전에 데이터셋이 있고 READY인지 확인한다. 성공 응답 `meta`에는 데이터셋 ID·버전·출처·범위가 있다.
+
 ## 요청
 
 본문(JSON). `paths`는 경로마다 송금 ID(`transfers[].id`)를 출발부터 도착까지 순서대로 담는다. 경로끼리의 순서는 상관없고, 경로 안의 송금 순서는 정확해야 한다. 경로는 최대 10개, 경로 하나는 송금 1~3개. 경로가 없다고 답할 때는 빈 배열로 보내거나 뺀다.
@@ -32,7 +34,8 @@ curl -s -X POST localhost:8080/api/practice/grade \
 |---|---|
 | 200 | 채점함. 통과하지 못해도 200(`passed: false`) |
 | 400 | 입력 오류(INVALID_INPUT): 모르는 문제, 데이터셋 빠짐, 경로 수·길이·송금 ID 길이 초과, 쿼리 문자열 |
-| 404 | 채점이 꺼져 있음(NOT_FOUND) |
+| 404 | 채점이 꺼져 있음(NOT_FOUND), 없는 데이터셋(DATASET_NOT_FOUND) |
+| 409 | 수집 중·무효화(DATASET_NOT_READY, DATASET_INVALIDATED) |
 | 429 | 요청 제한(RATE_LIMITED). Retry-After 초 뒤 다시 |
 | 503 | 일시 장애·시간 초과(UNAVAILABLE, REQUEST_TIMEOUT) |
 
@@ -41,6 +44,7 @@ curl -s -X POST localhost:8080/api/practice/grade \
 - 송금 ID는 대소문자를 가리지 않고, 같은 경로를 두 번 내도 한 번으로 센다.
 - 정답 경로를 하나라도 빠뜨리거나, 정답이 아닌 경로를 하나라도 더하거나, 경로 안의 송금 순서가 다르면 통과하지 못한다.
 - 답안의 데이터셋이 문제의 데이터셋과 다르면 `datasetMatches: false`이고 통과하지 못한다.
+- 정답 파일도 같은 상한(경로 10개, 송금 ID 1~256자)으로 확인하고, 데이터셋 이름의 앞뒤 공백은 지운다. 어긋나면 서버가 뜨지 않는다.
 
 ## 변경 이력
 

@@ -635,7 +635,7 @@
         ],
         "operationId": "practiceGrade",
         "summary": "실습 채점(PASS/FAIL)",
-        "description": "실습 답안을 서버의 정답과 비교해 통과 여부만 돌려준다. 정답은 서버 설정(PRACTICE_ANSWERS_JSON 또는 PRACTICE_ANSWERS_FILE)에만 있고, 설정이 없으면 404(실습 채점이 꺼져 있음)다. 다시 내는 횟수는 막지 않는다. 정답이 있는 데이터셋은 POST /api/paths가 403 PATHS_DISABLED다.\n\n샘플: samples/practice-grade-passed.json, samples/practice-grade-off.json",
+        "description": "실습 답안을 서버의 정답과 비교해 통과 여부만 돌려준다. 정답은 서버 설정(PRACTICE_ANSWERS_JSON 또는 PRACTICE_ANSWERS_FILE)에만 있고, 설정이 없으면 404(실습 채점이 꺼져 있음)다. 분석 API처럼 채점 전과 응답 전에 데이터셋을 확인한다(없으면 404 DATASET_NOT_FOUND, 수집 중·무효화면 409). 성공 응답 meta에는 데이터셋 ID·버전·범위가 있다. 다시 내는 횟수는 막지 않는다. 정답이 있는 데이터셋은 POST /api/paths가 403 PATHS_DISABLED다.\n\n샘플: samples/practice-grade-passed.json, samples/practice-grade-off.json",
         "requestBody": {
           "required": true,
           "content": {
@@ -678,6 +678,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"

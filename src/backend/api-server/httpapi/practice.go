@@ -93,14 +93,16 @@ func ParsePracticeAnswers(body []byte) (*PracticeAnswers, error) {
 		if _, dup := answers.byChallenge[a.Challenge]; dup {
 			return nil, fmt.Errorf("실습 정답에 %s가 두 번 있습니다", a.Challenge)
 		}
+		a.DatasetID, a.DatasetVersion = strings.TrimSpace(a.DatasetID), strings.TrimSpace(a.DatasetVersion)
 		if a.DatasetID == "" || a.DatasetVersion == "" {
 			return nil, fmt.Errorf("실습 정답 %s에 datasetId·datasetVersion이 없습니다", a.Challenge)
 		}
 		if a.Points <= 0 {
 			return nil, fmt.Errorf("실습 정답 %s의 배점은 0보다 커야 합니다", a.Challenge)
 		}
-		if len(a.Paths) == 0 {
-			return nil, fmt.Errorf("실습 정답 %s에 경로가 없습니다", a.Challenge)
+		// 제출 쪽과 같은 상한을 둔다. 정답 경로가 더 많으면 아무도 전부 낼 수 없다.
+		if len(a.Paths) == 0 || len(a.Paths) > maxPracticePaths {
+			return nil, fmt.Errorf("실습 정답 %s의 경로는 1~%d개여야 합니다", a.Challenge, maxPracticePaths)
 		}
 		seen := map[string]bool{}
 		for j, path := range a.Paths {
@@ -108,6 +110,9 @@ func ParsePracticeAnswers(body []byte) (*PracticeAnswers, error) {
 				return nil, fmt.Errorf("실습 정답 %s의 %d번째 경로는 송금 1~%d개여야 합니다", a.Challenge, j+1, maxPracticeHops)
 			}
 			for k, id := range path {
+				if id = strings.TrimSpace(id); id == "" || len(id) > maxPracticeIDLength {
+					return nil, fmt.Errorf("실습 정답 %s의 %d번째 경로에 올바르지 않은 송금 ID가 있습니다", a.Challenge, j+1)
+				}
 				a.Paths[j][k] = practiceID(id, a.DatasetID, a.DatasetVersion)
 			}
 			key := pathKey(a.Paths[j])
@@ -158,7 +163,16 @@ func (s *server) gradePractice(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	writeData(w, gradePracticeAnswer(answer, datasetID, version, paths), baseMeta())
+	// 분석 API처럼 채점 전과 응답 전에 데이터셋이 있고 READY인지 본다(없으면 404, 수집 중·무효화면 409).
+	ds, err := s.readyDataset(r.Context(), datasetID, version)
+	if err != nil {
+		return err
+	}
+	result := gradePracticeAnswer(answer, datasetID, version, paths)
+	if err := s.stillReady(r.Context(), ds); err != nil {
+		return err
+	}
+	writeData(w, result, datasetMeta(ds))
 	return nil
 }
 
