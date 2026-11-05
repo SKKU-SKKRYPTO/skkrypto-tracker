@@ -51,6 +51,8 @@ curl -s -X POST localhost:8080/api/paths \
 cp src/database/.env.example src/database/.env   # 처음 한 번: DB 계정
 docker compose up --build -d                       # API(8080)·Swagger UI(8081)·PostgreSQL(내부 전용)
 docker compose --profile debug up -d               # 위에 더해 pgweb(8082): 브라우저에서 DB 보기
+cp src/backend/indexer/.env.example src/backend/indexer/.env   # 수집 전 처음 한 번: RPC_URL·DATABASE_URL·INDEXER_* 채우기
+docker compose --profile collect up --build -d     # 위에 더해 indexer: Base Sepolia 범위를 한 번 수집하고 멈춤
 make help                                          # 명령 목록
 ```
 

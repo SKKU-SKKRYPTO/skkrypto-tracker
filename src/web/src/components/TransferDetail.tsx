@@ -21,7 +21,7 @@ function annotations(transfer: Transfer): [string, string][] {
 function TransferDetail({ transfer }: Props) {
   return (
     <aside className="detail" aria-labelledby="detail-title">
-      <h2 id="detail-title">송금 상세</h2>
+      <h2 id="detail-title" tabIndex={-1}>송금 상세</h2>
 
       {transfer === null ? (
         <p className="detail-empty">표나 그래프에서 송금을 선택하면 상세 정보가 여기에 나옵니다.</p>
@@ -84,7 +84,7 @@ function TransferDetail({ transfer }: Props) {
           <dd>{transfer.logIndex}</dd>
 
           <dt>송금 id</dt>
-          <dd className="mono">{transfer.id}</dd>
+          <dd className="mono full-value">{transfer.id}</dd>
         </dl>
       )}
     </aside>

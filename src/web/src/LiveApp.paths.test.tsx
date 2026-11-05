@@ -40,10 +40,9 @@ async function setup() {
   await session.loadDatasets()
   function render() {
     const tree = LiveApp({ session }), nodes = elements(tree)
-    const mode = nodes.find(node => node.props.id === 'analysis-mode')!
     const input = nodes.find(node => node.type === PathSearchBar || node.type === SearchBar)!
     return { html: renderToStaticMarkup(tree), input: input.props,
-      changeMode(value: string) { (mode.props.onChange as (event: { target: { value: string } }) => void)({ target: { value } }) } }
+      changeMode(value: string) { (nodes.find(node => node.props.id === 'analysis-mode-' + value)!.props.onClick as () => void)() } }
   }
   return { session, paths, trace, render }
 }
@@ -53,8 +52,8 @@ describe('live Trace and Path UI integration', () => {
   it('defaults to the existing Trace form alongside Path and Pattern modes', async () => {
     const { render } = await setup(), ui = render()
     expect(ui.html).toContain('추적(Trace)')
-    expect(ui.html).toContain('경로(Path)')
-    expect(ui.html).toContain('패턴(Pattern)')
+    expect(ui.html).toContain('경로 탐색(Path)')
+    expect(ui.html).toContain('패턴 탐지(Pattern)')
     expect(ui.html).not.toContain('대상 주소')
     expect(ui.html).toContain('송금 목록')
   })
@@ -145,5 +144,26 @@ describe('common result export action wiring', () => {
     const actions = elements(LiveApp({ session })).filter(node => node.type === JsonDownloadButton)
     expect(actions).toHaveLength(1); expect(actions[0].props.session).toBe(session)
     expect(render().html.match(/검색 결과 JSON 다운로드/g)).toHaveLength(1)
+  })
+})
+
+describe('UX foundation layout and previous-result notice', () => {
+  it('labels the product and three sections without changing search mode controls', async () => {
+    const { render } = await setup(), html = render().html
+    for (const text of ['SKKRYPTO Tracker', '온체인 송금 흐름을 분석하고 근거를 확인하는 도구', '데이터셋 설정', '분석 설정', '분석 결과']) expect(html).toContain(text)
+    expect(html).toContain('aria-labelledby="dataset-heading"'); expect(html).toContain('aria-labelledby="results-heading"')
+    expect(html).toContain('데이터셋 상세 정보')
+  })
+  it('shows the exact edited-input notice only while an old Trace result remains', async () => {
+    const { session, render } = await setup()
+    const message = '검색 조건이 변경되었습니다. 현재 표시된 내용은 이전 검색 결과입니다. 새 조건을 적용하려면 다시 검색해 주세요.'
+    expect(render().html).not.toContain(message)
+    await session.search(traceJson.meta.conditions.address)
+    ;(render().input.onAddressChange as (value: string) => void)('edited')
+    expect(render().html).toContain(message); expect(session.getDownloadEnvelope()).toBeNull()
+    expect(render().html).toContain(traceJson.meta.conditions.address)
+    await session.search(traceJson.meta.conditions.address)
+    expect(render().html).not.toContain(message); expect(session.getDownloadEnvelope()).not.toBeNull()
+    render().changeMode('paths'); expect(render().html).not.toContain(message)
   })
 })

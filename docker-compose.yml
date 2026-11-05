@@ -2,6 +2,8 @@
 #   docker compose up --build -d           API(8080)·Swagger UI(8081)·PostgreSQL(포트 공개 없음)
 #   docker compose up -d postgres          PostgreSQL만
 #   docker compose --profile debug up -d   위에 더해 pgweb(8082): 브라우저에서 DB 내용 보기
+#   docker compose --profile collect up --build -d   위에 더해 indexer: src/backend/indexer/.env의 범위를 한 번 수집하고 멈춤
+#   docker compose logs -f indexer         수집 로그와 Manifest 보기
 #   docker compose down                    끄기(DB 데이터는 볼륨에 남는다)
 #   docker compose down -v                 DB 데이터까지 지우기
 # 브라우저에서는 http://localhost:8081(Swagger UI)처럼 localhost로 연다. API의 CORS 기본값이 localhost 주소를 허용한다.
@@ -14,6 +16,10 @@
 # API는 기본으로 Fixture를 읽는다. DB를 읽게 하려면 src/backend/api-server/.env에
 #   DATABASE_URL=postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@postgres:5432/<POSTGRES_DB>?sslmode=disable
 # 를 넣고 api를 다시 띄운다(값은 src/database/.env와 같게). 웹(담당 4)은 준비되면 서비스를 추가한다.
+# indexer는 src/backend/indexer/.env(cp .env.example .env)에서 RPC_URL·DATABASE_URL·INDEXER_*를 읽는다.
+#   DATABASE_URL은 위 API와 같은 postgres:5432 주소를 쓴다. 이미 READY인 버전은 다시 수집하지 않으니 버전을 바꿔서 돌린다.
+#   READY Manifest 다시 출력(RPC 없이):
+#   docker compose run --rm -T --entrypoint indexer indexer manifest --dataset-id <ID> --dataset-version <VERSION>
 
 services:
   api:
@@ -79,6 +85,33 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  indexer:
+    # 일회성 수집 배치. collect profile에서만 뜨고, 수집이 끝나면 멈춘다(포트 없음, 재시작 없음).
+    build:
+      context: src/backend
+      dockerfile: indexer/Dockerfile
+    profiles: [collect]
+    env_file:
+      - path: src/backend/indexer/.env
+        required: false
+    # INDEXER_* 값을 기존 collect 인자로 옮긴다. $$는 compose가 아니라 컨테이너 셸이 값을 채우게 한다.
+    # RPC_URL·DATABASE_URL은 인자로 넘기지 않고 indexer가 환경 변수에서 직접 읽는다.
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        exec indexer collect
+        --dataset-id "$${INDEXER_DATASET_ID}"
+        --dataset-version "$${INDEXER_DATASET_VERSION}"
+        --namespace "$${INDEXER_NAMESPACE}"
+        --token "$${INDEXER_TOKEN}"
+        --start-block "$${INDEXER_START_BLOCK}"
+        --end-block "$${INDEXER_END_BLOCK}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   pgdata:

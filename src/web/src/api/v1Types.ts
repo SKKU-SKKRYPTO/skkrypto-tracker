@@ -52,7 +52,7 @@ export type Page = { limit: number; nextCursor: string | null }
 
 export type Meta = { contractVersion: "v1"; ruleVersion: string; datasetId?: string; datasetVersion?: string; sourceMode?: "FIXTURE" | "SNAPSHOT"; coverage?: Coverage; conditions?: (AnalysisRequest) | (TransferConditions) | ({ txHash: Hash }); limits?: LimitStatus; page?: Page; limitations: Array<string> }
 
-export type V1Error = { code: "INVALID_INPUT" | "INVALID_CURSOR" | "NOT_FOUND" | "DATASET_NOT_FOUND" | "TRANSACTION_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "DATASET_NOT_READY" | "DATASET_INVALIDATED" | "VERSION_MISMATCH" | "OUT_OF_RANGE" | "UNSUPPORTED_ASSET" | "RATE_LIMITED" | "UNAVAILABLE" | "INVALID_DATA" | "REQUEST_TIMEOUT"; message: string; retryable: boolean }
+export type V1Error = { code: "INVALID_INPUT" | "INVALID_CURSOR" | "PATHS_DISABLED" | "NOT_FOUND" | "DATASET_NOT_FOUND" | "TRANSACTION_NOT_FOUND" | "METHOD_NOT_ALLOWED" | "DATASET_NOT_READY" | "DATASET_INVALIDATED" | "VERSION_MISMATCH" | "OUT_OF_RANGE" | "UNSUPPORTED_ASSET" | "RATE_LIMITED" | "UNAVAILABLE" | "INVALID_DATA" | "REQUEST_TIMEOUT"; message: string; retryable: boolean }
 
 export type ErrorEnvelope = { data: null; meta: Meta; error: V1Error }
 

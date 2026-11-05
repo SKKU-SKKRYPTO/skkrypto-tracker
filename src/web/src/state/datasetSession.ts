@@ -32,6 +32,7 @@ export type DatasetSessionState = {
   patternConditions: PatternConditions; patternResponse: PatternSearchResponse | null; patternValidationError: string | null
   // UI results may remain visible after edits, but cannot then be exported.
   downloadReady: boolean
+  traceResultOutdated: boolean
   selectedPatternId: string | null
   selectedPathId: string | null
 }
@@ -74,7 +75,7 @@ export function createDatasetSession(dependencies: {
     conditions: { ...DEFAULT_SEARCH_CONDITIONS }, response: null, isSearching: false, selectedTransferId: null,
     mode: 'trace', pathConditions: { ...DEFAULT_PATH_CONDITIONS }, pathResponse: null, pathValidationError: null,
     patternConditions: { ...DEFAULT_PATTERN_CONDITIONS }, patternResponse: null, patternValidationError: null,
-    downloadReady: false, selectedPatternId: null, selectedPathId: null,
+    traceResultOutdated: false, downloadReady: false, selectedPatternId: null, selectedPathId: null,
   }
   let listId = 0, detailId = 0, traceId = 0
   let listController: AbortController | undefined, detailController: AbortController | undefined, traceController: AbortController | undefined
@@ -84,7 +85,7 @@ export function createDatasetSession(dependencies: {
     traceController?.abort()
     traceController = undefined
     // One request generation covers all modes, so stale catch/finally cannot cross modes.
-    update({ downloadReady: false, selectedPatternId: null, patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
+    update({ traceResultOutdated: clearResult ? false : state.traceResultOutdated, downloadReady: false, selectedPatternId: null, patternResponse: null, patternValidationError: null, isSearching: false, selectedTransferId: null, selectedPathId: null, pathResponse: null, pathValidationError: null, ...(clearResult ? { response: null } : {}) })
   }
   function cancelPending() {
     ++listId; ++detailId
@@ -216,9 +217,15 @@ export function createDatasetSession(dependencies: {
     cancelSearch() { invalidateTrace(true) },
     onTraceAddressChange() {
       // SearchBar owns the draft. Every edit invalidates export and any in-flight request.
-      if (state.mode === 'trace') invalidateTrace()
+      if (state.mode === 'trace') {
+        const outdated = state.response?.ok === true
+        invalidateTrace(); update({ traceResultOutdated: outdated })
+      }
     },
-    setConditions(conditions: SearchConditions) { invalidateTrace(); update({ conditions: { ...conditions } }) },
+    setConditions(conditions: SearchConditions) {
+      const outdated = state.mode === 'trace' && state.response?.ok === true
+      invalidateTrace(); update({ conditions: { ...conditions }, traceResultOutdated: outdated })
+    },
     selectPath(id: string | null) {
       if (state.mode !== 'paths' || state.isSearching || !state.pathResponse?.ok) return
       if (id === null) { update({ selectedPathId: null }); return }

@@ -12,7 +12,7 @@ type Props = {
 function TransferTable({ transfers, selectedTransferId, onSelect, highlightedTransferIds, evidenceKind = 'path' }: Props) {
   const evidenceLabel = evidenceKind === 'pattern' ? '패턴' : '경로'
   return (
-    <div className="table-scroll">
+    <div className="table-scroll" role="region" aria-label="송금 목록 표" tabIndex={0}>
       <table className={onSelect ? 'transfers' : 'transfers transfers-readonly'}>
         <thead>
           <tr>

@@ -1,3 +1,4 @@
+import WorkspaceSelection from './WorkspaceSelection'
 import TransferTable from './TransferTable'
 import TransferGraph from './TransferGraph'
 import TransferDetail from './TransferDetail'
@@ -17,12 +18,13 @@ export default function TraceView({ result, selectedTransferId, onSelect }: Trac
           {limits.analyzedUntil && <> · 블록 {limits.analyzedUntil.blockNumber}까지만 분석 ({formatTimestamp(limits.analyzedUntil.timestamp)})</>}
         </p>
       )}
+      <WorkspaceSelection transfer={selectedTransfer} />
       {transfers.length === 0 ? (
         <p className="notice" role="status">선택한 수집 범위에서 관측되지 않음 (블록 {coverage.startBlock}~{coverage.endBlock})</p>
       ) : (
-        <div className="layout">
-          <TransferTable transfers={transfers} selectedTransferId={selectedTransferId} onSelect={onSelect} />
+        <div className="analysis-workspace trace-workspace">
           <TransferGraph result={result} selectedTransferId={selectedTransferId} onSelect={onSelect} />
+          <TransferTable transfers={transfers} selectedTransferId={selectedTransferId} onSelect={onSelect} />
           <TransferDetail transfer={selectedTransfer} />
         </div>
       )}

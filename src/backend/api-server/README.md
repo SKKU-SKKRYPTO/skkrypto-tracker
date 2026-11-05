@@ -20,6 +20,7 @@ PostgreSQL에서 읽으려면 아래 [DB로 실행하기](#db로-실행하기)�
 | `FIXTURE_DIR` | `api-server/testdata/fixtures` | `DATABASE_URL`이 없을 때 메모리에 올릴 Fixture 폴더(Go 모듈 루트 `src/backend` 기준) |
 | `RATE_LIMIT_PER_MINUTE` | `120` | 클라이언트 IP마다 1분에 받는 요청 수(0이면 제한 없음) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:8081` | 브라우저에서 API를 부를 수 있는 웹 주소 |
+| `PRACTICE_DATASETS` | 없음 | 실습 데이터셋 ID(쉼표로 여러 개). 이 데이터셋에서는 경로 찾기(`POST /api/paths`)가 403 `PATHS_DISABLED`라 정답 경로가 바로 보이지 않는다. 추적·패턴은 그대로 |
 
 예시는 `.env.example`에 있습니다. `docker compose`는 같은 폴더의 `.env`를 읽고, `make run-api`는 `.env`를 읽지 않으므로 `API_ADDR=:9090 make run-api`처럼 앞에 붙입니다. 비밀값은 `.env`에만 두고 커밋하지 않습니다.
 
@@ -92,6 +93,7 @@ DATABASE_URL='postgres://계정:비밀번호@127.0.0.1:5432/DB이름?sslmode=dis
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}`: 같은 프로젝트 PostgreSQL의 내부 주소를 참조(값을 직접 적지 않음) |
 | `RATE_LIMIT_PER_MINUTE` | `1200`: Railway 프록시 뒤라 모든 사용자가 같은 IP로 보임 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:8081`. 웹을 배포하면 그 주소를 추가 |
+| `PRACTICE_DATASETS` | 실습 데이터셋 ID. 값(데이터셋 이름)은 비공개 정답 저장소에 있고, 실습 데이터를 수집하기 전에 넣는다 |
 
 자동 배포는 아직 없고, main에 병합된 뒤 담당 3이 배포합니다. 진행 상황은 #27에 있습니다.
 

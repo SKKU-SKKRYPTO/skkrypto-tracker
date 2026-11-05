@@ -480,7 +480,7 @@
         ],
         "operationId": "paths",
         "summary": "두 주소 사이 시간순 후보 경로",
-        "description": "시작 주소에서 대상 주소까지 maxDepth hop 안의 경로. hop이 적은 순, 같으면 전송 위치가 이른 순이다. maxPaths를 넘으면 정렬 순서의 앞 maxPaths개만 돌려주고(PATH_LIMIT) found에는 전체 개수를 준다.\n\n샘플: samples/paths-success.json, samples/paths-path-limit.json, samples/paths-time-budget.json",
+        "description": "시작 주소에서 대상 주소까지 maxDepth hop 안의 경로. hop이 적은 순, 같으면 전송 위치가 이른 순이다. maxPaths를 넘으면 정렬 순서의 앞 maxPaths개만 돌려주고(PATH_LIMIT) found에는 전체 개수를 준다. 실습 데이터셋(서버 설정 PRACTICE_DATASETS)에서는 정답 경로가 바로 보이지 않게 403 PATHS_DISABLED를 돌려준다.\n\n샘플: samples/paths-success.json, samples/paths-path-limit.json, samples/paths-time-budget.json, samples/error-paths-disabled.json",
         "requestBody": {
           "required": true,
           "content": {
@@ -528,6 +528,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -1513,6 +1516,7 @@
             "enum": [
               "INVALID_INPUT",
               "INVALID_CURSOR",
+              "PATHS_DISABLED",
               "NOT_FOUND",
               "DATASET_NOT_FOUND",
               "TRANSACTION_NOT_FOUND",
@@ -1561,6 +1565,16 @@
     "responses": {
       "BadRequest": {
         "description": "입력 오류: INVALID_INPUT, INVALID_CURSOR",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "실습 데이터셋: PATHS_DISABLED(실습 데이터셋에서는 경로 찾기를 막는다). 추적·패턴으로 직접 찾는다.",
         "content": {
           "application/json": {
             "schema": {
