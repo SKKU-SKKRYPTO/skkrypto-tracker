@@ -502,12 +502,12 @@ button { min-height: 36px; }
 
 /* Trace only: graph above a 60:40 transfer list and detail workspace. */
 .analysis-workspace.trace-workspace { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-4); }
-.trace-workspace > .trace-transfer-panel { grid-area: table; }
+.analysis-workspace > .trace-transfer-panel { grid-area: table; }
 .trace-graph, .trace-transfer-panel, .trace-detail { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg); }
 .panel-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
 .panel-heading h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-h); }
 .panel-heading > span { font-size: 13px; font-variant-numeric: tabular-nums; }
-.trace-workspace .trace-graph .graph-canvas { height: clamp(360px, 29vw, 420px); overflow: hidden; background: var(--surface); }
+.analysis-workspace .trace-graph .graph-canvas { height: clamp(360px, 29vw, 420px); overflow: hidden; background: var(--surface); }
 .trace-graph .graph-caption { line-height: 1.6; }
 .trace-graph .graph-caption p { margin-top: 4px; }
 .graph-controls { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -543,7 +543,7 @@ button { min-height: 36px; }
 }
 @media (max-width: 600px) {
   .trace-graph, .trace-transfer-panel, .trace-detail { padding: var(--space-3); }
-  .trace-workspace .trace-graph .graph-canvas { height: 400px; }
+  .analysis-workspace .trace-graph .graph-canvas { height: 400px; }
   .trace-transfers { min-width: 560px; }
 }
 
@@ -588,4 +588,20 @@ button { min-height: 36px; }
   .analysis-toolbar { gap: 6px; }
   .analysis-toolbar .mode-switch button { flex-direction: row; min-height: 44px; }
   .trace-coverage summary, .graph-selection a { min-height: 44px; }
+}
+
+/* Shared boundaries at 32% and 60% allow different upper/lower panel ratios. */
+.analysis-workspace.evidence-workspace { grid-template-columns: minmax(0, 32fr) minmax(0, 28fr) minmax(0, 40fr); grid-template-areas: 'list graph graph' 'table table detail'; gap: var(--space-4); }
+.evidence-workspace > .result-list { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg); }
+.evidence-workspace .path-list, .evidence-workspace .pattern-list { list-style: none; padding: 0; }
+.evidence-workspace .result-list h4 { font-size: 15px; line-height: 1.4; font-weight: 600; color: var(--text-h); margin: 0 0 6px; }
+.evidence-workspace .result-list .card-window, .evidence-workspace .result-list .card-connection { font-size: 12px; line-height: 1.6; }
+.evidence-workspace .result-list .card-metrics { font-size: 13px; }
+.evidence-workspace .result-list .technical-details { margin-block: 4px; }
+.evidence-workspace .graph-selection { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.evidence-workspace .graph-heading { flex: 1 1 260px; min-width: 0; }
+.evidence-workspace .trace-transfers .path-membership { margin: 0; font-size: 11px; }
+.evidence-result-summary > p:not(.trace-summary-line) { flex-basis: 100%; }
+@media (max-width: 960px) {
+  .analysis-workspace.evidence-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'list' 'graph' 'table' 'detail'; }
 }

@@ -8,29 +8,32 @@ type Props = {
   onSelect?: (transferId: string) => void
   highlightedTransferIds?: ReadonlySet<string>
   evidenceKind?: 'path' | 'pattern'
-  variant?: 'default' | 'trace'
+  variant?: 'default' | 'trace' | 'analysis'
 }
 
 function TransferTable({ transfers, selectedTransferId, onSelect, highlightedTransferIds, evidenceKind = 'path', variant = 'default' }: Props) {
   const evidenceLabel = evidenceKind === 'pattern' ? '패턴' : '경로'
-  if (variant === 'trace') return <section className="trace-transfer-panel" aria-labelledby="trace-transfers-title">
+  if (variant !== 'default') return <section className="trace-transfer-panel" aria-labelledby="trace-transfers-title">
     <div className="panel-heading"><h3 id="trace-transfers-title">송금 목록</h3><span>{transfers.length}건</span></div>
     <div className="table-scroll" role="region" aria-label="송금 목록 표" tabIndex={0}>
-      <table className="transfers trace-transfers">
+      <table className={`transfers trace-transfers${onSelect ? '' : ' transfers-readonly'}`}>
         <thead><tr><th>송금 시간</th><th>보낸 주소</th><th>받는 주소</th><th className="num">금액 및 자산</th></tr></thead>
         <tbody>{transfers.map(transfer => {
           const selected = transfer.id === selectedTransferId
+          const evidence = highlightedTransferIds?.has(transfer.id) === true
           const clock = formatTransferTime(transfer.timestamp)
           const time = <time id={`transfer-time-${transfer.id}`} dateTime={transfer.timestamp} title={formatTimestamp(transfer.timestamp)}>
             <span>{clock.date}</span><span>{clock.time}</span>
           </time>
-          return <tr key={transfer.id} data-transfer-id={transfer.id} className={selected ? 'selected' : undefined}
+          return <tr key={transfer.id} data-transfer-id={transfer.id} data-path-highlighted={evidence ? 'true' : undefined}
+            className={[selected ? 'selected' : '', evidence ? 'path-highlighted' : ''].filter(Boolean).join(' ') || undefined}
             onClick={onSelect ? () => onSelect(transfer.id) : undefined}>
             <td className="transfer-time">
               {onSelect ? <button type="button" className="transfer-time-button" aria-pressed={selected} aria-label={`송금 ${transfer.id} 상세 보기`}
                 aria-describedby={`transfer-time-${transfer.id}`} onClick={event => { event.stopPropagation(); onSelect(transfer.id) }}>
                 {time}{selected && <span className="transfer-check" aria-hidden="true">✓</span>}
               </button> : time}
+              {evidence && <span className="path-membership">{evidenceLabel} 포함</span>}
             </td>
             <td onClick={event => { if ((event.target as HTMLElement).closest('button, details')) event.stopPropagation() }}><AddressValue value={transfer.from} label="보낸 주소" /></td>
             <td onClick={event => { if ((event.target as HTMLElement).closest('button, details')) event.stopPropagation() }}><AddressValue value={transfer.to} label="받는 주소" /></td>

@@ -5,7 +5,7 @@ import CopyButton from './CopyButton'
 
 type Props = {
   transfer: Transfer | null
-  variant?: 'default' | 'trace'
+  variant?: 'default' | 'trace' | 'analysis'
 }
 
 // 이름표·메모는 API가 값이 있을 때만 보낸다. 없는 칸은 줄째 숨긴다.
@@ -23,7 +23,7 @@ function TransferDetail({ transfer, variant = 'default' }: Props) {
   const annotationRows = transfer && annotations(transfer).map(([name, value]) => <Fragment key={name}>
     <dt>{name}</dt><dd className="full-value">{value}</dd>
   </Fragment>)
-  if (variant === 'trace') return <aside className="detail trace-detail" aria-labelledby="detail-title">
+  if (variant !== 'default') return <aside className="detail trace-detail" aria-labelledby="detail-title">
     <h2 id="detail-title" tabIndex={-1}>송금 상세</h2>
     {transfer === null ? <p className="detail-empty">표나 그래프에서 송금을 선택하면 상세 정보가 여기에 나옵니다.</p> : <>
       <p className="detail-amount"><span>송금 금액</span><strong>{formatAmount(transfer)}</strong></p>

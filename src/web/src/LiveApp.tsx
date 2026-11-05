@@ -24,6 +24,8 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
   const [session] = useState(() => provided ?? createDatasetSession())
   const [traceAddress, setTraceAddress] = useState('')
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot)
+  const response = state.mode === 'trace' ? state.response : state.mode === 'paths' ? state.pathResponse : state.patternResponse
+  const resultTitle = response?.ok ? { trace: '송금 추적 결과', paths: '경로 탐색 결과', patterns: '패턴 탐지 결과' }[state.mode] : '분석 결과'
   useEffect(() => {
     void session.loadDatasets()
     return session.cancelPending
@@ -61,7 +63,7 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
         onChange={session.setPatternConditions} onSearch={() => { void session.searchPatterns() }} onCancel={session.cancelSearch} />}
     </section>
     <section className="workspace-section" aria-labelledby="results-heading">
-    <div className="result-heading"><h2 id="results-heading">{state.mode === 'trace' && state.response?.ok ? '송금 추적 결과' : '분석 결과'}</h2><JsonDownloadButton session={session} /></div>
+    <div className="result-heading"><h2 id="results-heading">{resultTitle}</h2><JsonDownloadButton session={session} /></div>
     {state.traceResultOutdated && state.mode === 'trace' && state.response?.ok && <p className="notice notice-warning" role="status">검색 조건이 변경되었습니다. 현재 표시된 내용은 이전 검색 결과입니다. 새 조건을 적용하려면 다시 검색해 주세요.</p>}
     <AnalysisResultHeader state={state} />
     {state.isSearching && <p className="notice" role="status">검색 중…</p>}

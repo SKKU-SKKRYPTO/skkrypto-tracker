@@ -30,11 +30,11 @@ describe('shared Path selection rendering', () => {
     const button = nodes.find(node => node.props['aria-label'] === '경로 1 선택')!
     expect(button.props['aria-pressed']).toBe(true)
     ;(button.props.onClick as () => void)()
-    const clear = nodes.find(node => node.type === 'button' && node.props.children === '경로 선택 해제')!
-    ;(clear.props.onClick as () => void)()
+    const graph = nodes.find(node => node.type === TransferGraph)!
+    ;(graph.props.onClearSelection as () => void)()
     expect(onSelectPath.mock.calls).toEqual([[path.id], [null]])
     const html = renderToStaticMarkup(tree)
-    expect(html).toContain('근거 송금 3건을 그래프와 표에 강조')
+    expect(html).toContain('근거 송금 3건')
     expect(html).not.toContain('상세 보기')
   })
   it.each([0, 1])('passes the identical evidence set and deduplicated transfer objects to both views for path %s', index => {

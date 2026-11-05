@@ -46,7 +46,16 @@ describe('Trace transfer table', () => {
     expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('✓')
   })
-  it('retains the six-column evidence table for Path and Pattern by default', () => {
+  it.each(['path', 'pattern'] as const)('keeps %s evidence and single-transfer selection distinct in the shared four-column table', evidenceKind => {
+    const ids = new Set(transfers.slice(0, 3).map(t => t.id))
+    const html = renderToStaticMarkup(<TransferTable variant="analysis" transfers={transfers} selectedTransferId={transfers[1].id} highlightedTransferIds={ids} evidenceKind={evidenceKind} onSelect={() => {}} />)
+    expect(html.match(/<th[ >]/g)).toHaveLength(4)
+    expect(html.match(/data-path-highlighted="true"/g)).toHaveLength(3)
+    expect(html).toContain('class="selected path-highlighted"')
+    expect(html).toContain(evidenceKind === 'path' ? '경로 포함' : '패턴 포함')
+    expect([...html.matchAll(/data-transfer-id="([^"]+)"/g)].map(match => match[1])).toEqual(transfers.map(t => t.id))
+  })
+  it('retains the legacy table when compact presentation is not requested', () => {
     const html = renderToStaticMarkup(<TransferTable transfers={transfers} selectedTransferId={null} highlightedTransferIds={new Set([transfers[0].id])} evidenceKind="pattern" />)
     expect(html.match(/<th[ >]/g)).toHaveLength(6)
     expect(html).toContain('패턴 포함')

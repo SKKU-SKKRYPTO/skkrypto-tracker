@@ -57,8 +57,7 @@ describe('Pattern highlighting and transfer details', () => {
   it('selects stable window IDs, supports clear and keeps shared group windows separate', () => {
     const f = setup(), button = f.nodes.find(n => n.props['aria-label'] === '패턴 2 선택')!
     ;(button.props.onClick as () => void)()
-    const clear = f.nodes.find(n => n.type === 'button' && n.props.children === '패턴 선택 해제')!
-    ;(clear.props.onClick as () => void)()
+    ;(f.graph.props.onClearSelection as () => void)()
     expect(f.onSelectPattern.mock.calls).toEqual([[sample.data.patterns[1].patternId], [null]])
     expect(f.nodes.find(n => n.props['aria-label'] === '패턴 1 선택')!.props['aria-pressed']).toBe(true)
     const second = setup(undefined, 1)
@@ -71,12 +70,14 @@ describe('Pattern highlighting and transfer details', () => {
     ;(f.graph.props.onSelect as (id: string) => void)(t.id)
     const table = TransferTable(f.table.props as Parameters<typeof TransferTable>[0])
     const button = elements(table).find(n => n.props['aria-label'] === `송금 ${t.id} 상세 보기`)!
-    ;(button.props.onClick as () => void)()
+    const click = { stopPropagation: vi.fn() }
+    ;(button.props.onClick as (event: typeof click) => void)(click)
+    expect(click.stopPropagation).toHaveBeenCalledOnce()
     const evidence = f.nodes.find(n => n.props['aria-label'] === `패턴 1 근거 송금 ${t.id} 상세 보기`)!
     ;(evidence.props.onClick as () => void)()
     expect(evidence.props['aria-pressed']).toBe(true)
     expect(f.onSelectTransfer.mock.calls).toEqual([[t.id], [t.id], [t.id]])
-    const html = renderToStaticMarkup(<TransferDetail transfer={t as never} />)
+    const html = renderToStaticMarkup(<TransferDetail {...f.detail.props as Parameters<typeof TransferDetail>[0]} />)
     for (const v of [t.id, t.txHash, t.blockHash, t.asset.tokenAddress]) expect(html).toContain(v)
   })
   it.each(['missing', 'empty'] as const)('handles %s evidence safely without inventing transfers', mode => {
