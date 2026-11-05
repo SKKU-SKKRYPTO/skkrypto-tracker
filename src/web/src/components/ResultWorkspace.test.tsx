@@ -51,7 +51,7 @@ describe('result workspace structure and navigation', () => {
     const nodes = elements(PatternResults({ envelope: patterns as PatternEnvelope }))
     const data = nodes.find(n => n.type === TransferGraph)!.props.result as Parameters<typeof buildElements>[0]
     const built = buildElements(data), center = built.find(e => e.data.id === patterns.meta.conditions.address)!
-    expect(center.data.label).toContain('기준\n')
+    expect(center.data.label).toContain('기준 · H\n')
     const parallel = built.filter(e => e.group === 'edges' && e.data.source === patterns.data.transfers[1].from)
     expect(parallel).toHaveLength(2)
     expect(new Set(parallel.map(e => e.data.id)).size).toBe(2)

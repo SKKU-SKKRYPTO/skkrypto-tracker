@@ -18,12 +18,13 @@ describe('readable addresses and technical disclosures', () => {
     expect(html).toContain('0x0000…0001')
     expect(html).toContain('기준 주소 전체 주소 보기'); expect(html).toContain('기준 주소 복사')
     expect(html).toContain(address); expect(html).not.toMatch(/<details[^>]*\sopen/)
+    expect(html).toContain('<span aria-hidden="true">보기</span>')
   })
   it('keeps Path identifiers inside technical details with a separate concise connection', () => {
     const response = adaptPathsResponse(paths, detail, { datasetId: 'flow-demo', datasetVersion: 'v1' })
     if (!response.ok) throw Error('sample')
     const html = renderToStaticMarkup(<PathResults result={response.result} />)
-    expect(html).toContain('0x0000…0001 → 0x0000…0002 → 0x0000…0005 → 0x0000…0007')
+    expect(html.match(/<p class="card-connection[^>]*>[\s\S]*?<\/p>/)![0].replace(/<[^>]+>/g, '')).toBe('0x0000…0001→0x0000…0002→0x0000…0005→0x0000…0007')
     expect(html.indexOf('기술 상세 · 경로 1')).toBeLessThan(html.indexOf(paths.data.paths[0].id))
     expect(html).toContain('경로 ID 복사'); expect(html).toContain('근거 송금 3건')
     expect(html).not.toMatch(/<details[^>]*\sopen/)
@@ -37,6 +38,12 @@ describe('readable addresses and technical disclosures', () => {
     sample.data.patterns.forEach((p, i) => { expect(technical[i]).toContain(p.patternId); expect(technical[i]).toContain(p.groupId); expect(technical[i]).toContain(p.ruleVersion) })
     const outside = html.replace(/<details class="technical-details">[\s\S]*?<\/details>/g, '')
     expect(outside).toContain('관측 범위 불완전'); expect(outside).toContain('고유 상대 주소 3개')
+    for (const p of sample.data.patterns) {
+      expect(html).toContain(`dateTime="${p.windowStart}"`)
+      expect(html).toContain(`dateTime="${p.windowEnd}"`)
+    }
+    expect(technical[0]).toContain('탐지 시간(현지)')
+    expect(technical[0]).toContain('시작 포함, 종료 제외')
     expect(html).toContain('패턴 ID 복사'); expect(html).toContain('groupId 복사')
   })
   it('groups each label with its control in both multi-address and Pattern forms', () => {

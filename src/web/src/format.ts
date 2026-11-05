@@ -39,7 +39,7 @@ export function formatAmount(transfer: { amountRaw: string; asset: { decimals: n
 // Compact display only: retain the API timestamps on <time dateTime> and in exports.
 export function formatPatternWindow(start: string, end: string, timeZone?: string): { start: string; end: string } {
   const date = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone })
-  const clock = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short', timeZone })
+  const clock = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone })
   const from = new Date(start), to = new Date(end)
   const day = (value: Date) => {
     const parts = date.formatToParts(value)
@@ -47,8 +47,9 @@ export function formatPatternWindow(start: string, end: string, timeZone?: strin
   }
   const time = (value: Date) => {
     const parts = clock.formatToParts(value)
-    return ['hour', 'minute', 'second'].map(type => parts.find(part => part.type === type)!.value.padStart(2, '0')).join(':') + ' ' + parts.find(part => part.type === 'timeZoneName')!.value
+    return ['hour', 'minute', 'second'].map(type => parts.find(part => part.type === type)!.value.padStart(2, '0')).join(':')
   }
   const firstDay = day(from), lastDay = day(to)
-  return { start: firstDay + ' ' + time(from), end: (firstDay === lastDay ? '' : lastDay + ' ') + time(to) }
+  // Exact dates, timezone and [start, end) boundaries remain in technical details.
+  return { start: firstDay.slice(5) + ' ' + time(from), end: (firstDay === lastDay ? '' : lastDay.slice(5) + ' ') + time(to) }
 }

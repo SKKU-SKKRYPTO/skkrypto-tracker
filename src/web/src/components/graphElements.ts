@@ -19,11 +19,13 @@ export function buildElements(result: TransferGraphData): ElementDefinition[] {
 
   const nodes: ElementDefinition[] = [...addresses].map((address) => {
     const isStart = address === startAddress
+    const name = result.nodes.find(node => node.id.toLowerCase() === address)?.label
+    const heading = [isStart ? (result.startLabel ?? '시작') : '', name].filter(Boolean).join(' · ')
     return {
       group: 'nodes',
       data: {
         id: address,
-        label: `${isStart ? (result.startLabel ?? '시작') + '\n' : ''}${result.nodes.find(node => node.id === address)?.label ? `${result.nodes.find(node => node.id === address)?.label}\n` : ''}${shortenHex(address)}`,
+        label: `${heading ? heading + '\n' : ''}${shortenHex(address)}`,
       },
       classes: isStart ? 'start' : undefined,
     }

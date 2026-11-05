@@ -10,6 +10,7 @@ import { uniqueTransfers } from '../pathSelection'
 import TransferGraph from './TransferGraph'
 import TransferTable from './TransferTable'
 import TransferDetail from './TransferDetail'
+import { revealResultCard } from './resultCardScroll'
 
 type Props = {
   showContext?: boolean
@@ -44,9 +45,9 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
         const windowLabel = formatPatternWindow(pattern.windowStart, pattern.windowEnd)
         return <li key={pattern.patternId} className={`notice${selection.pattern === pattern ? ' pattern-selected' : ''}`}>
         <h4>패턴 {index + 1} · {PATTERN_DIRECTION_LABELS[pattern.direction]}</h4>
-        <p className="card-window">탐지 시간: <time dateTime={pattern.windowStart} title={formatTimestamp(pattern.windowStart)}>{windowLabel.start}</time> ~ <time dateTime={pattern.windowEnd} title={formatTimestamp(pattern.windowEnd)}>{windowLabel.end}</time> · {pattern.windowSeconds}초 창</p>
+        <p className="card-window"><span>탐지 시간: <time dateTime={pattern.windowStart} title={formatTimestamp(pattern.windowStart)}>{windowLabel.start}</time> ~ <time dateTime={pattern.windowEnd} title={formatTimestamp(pattern.windowEnd)}>{windowLabel.end}</time></span><span className="window-duration">{pattern.windowSeconds}초 창</span></p>
         <p className="card-metrics">고유 상대 주소 {pattern.uniqueCounterparties}개 · 근거 송금 {pattern.evidenceIds.length}건</p>
-        {onSelectPattern && <button type="button" className="select-button" aria-label={`패턴 ${index + 1} 선택`} aria-pressed={selection.pattern === pattern}
+        {onSelectPattern && <button type="button" className="select-button" aria-label={`패턴 ${index + 1} 선택`} aria-pressed={selection.pattern === pattern} onFocus={event => revealResultCard(event.currentTarget)}
           disabled={!resolvePatternSelection(patterns, graph.transfers, pattern.patternId).pattern} onClick={() => onSelectPattern(pattern.patternId)}>{selection.pattern === pattern ? '✓ 패턴 선택됨' : '패턴 선택'}</button>}
         {pattern.incomplete
           ? <p className="notice notice-warning">관측 범위 불완전 · 관측 범위가 불완전하여 이 창의 전후 거래를 모두 확인할 수 없습니다. 분석 제한(truncated)과는 별개입니다.</p>
@@ -74,6 +75,7 @@ export default function PatternResults({ envelope, selectedPatternId = null, onS
           <p className="mono full-value">groupId: {pattern.groupId} <CopyButton value={pattern.groupId} label="groupId" /></p>
           <p>규칙: {pattern.ruleId} / {pattern.ruleVersion}</p>
           <p className="mono full-value">시간(원본): {pattern.windowStart} ~ {pattern.windowEnd}</p>
+          <p>탐지 시간(현지): {formatTimestamp(pattern.windowStart)} ~ {formatTimestamp(pattern.windowEnd)}</p>
           {!pattern.incomplete && <p>관측 범위 내 분석 창</p>}
           <p>분석 창: {pattern.windowSeconds}초 · 시작 포함, 종료 제외 · 판정 기준: 고유 상대 {pattern.threshold}개 이상</p>
         </details>

@@ -23,6 +23,9 @@ describe('dataset selection UI', () => {
     for (const text of ['flow-demo', 'v1', 'READY', 'SKK', '84532', '18204211', '18206309', '해당 없음', '미확인']) expect(html).toContain(text)
     expect(html).not.toContain('Invalid Date')
     expect(html).not.toContain('undefined')
+    const option = html.match(/<option[^>]*>[\s\S]*?<\/option>/)![0]
+    expect(option).not.toContain('READY')
+    expect(html).toContain('data-status="READY">READY')
   })
   it.each(['COLLECTING', 'FAILED', 'INVALIDATED'] as const)('shows information and the search restriction for %s', status => {
     const data = { ...detail.data, status }

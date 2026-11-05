@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { buildElements } from './graphElements'
 import type { TransferGraphData } from './graphElements'
 import { applyTransferHighlights } from './graphHighlights'
-import { shortenHex } from '../format'
+import { formatAmount } from '../format'
 
 const NO_PATH_HIGHLIGHTS: ReadonlySet<string> = new Set()
 const READABLE_ZOOM = 1
@@ -106,7 +106,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
         <div className="graph-selection" role="status">
           {selectionLabel !== undefined && <span><span className="visually-hidden">선택한 분석 결과: </span><strong>{selectionLabel ?? `${evidenceLabel} 선택 없음`}</strong>{selectionLabel && <> · 근거 송금 {highlightedTransferIds.size}건</>}</span>}
           <span>{isPathView && <><span className="visually-hidden">선택한 개별 송금: </span>송금 </>}{selectedTransfer ? <>
-            {!isPathView && '선택 송금 '}<span className="mono" title={selectedTransfer.id}>{shortenHex(selectedTransfer.id)}</span>
+            {!isPathView && '선택 송금 '}<strong>{formatAmount(selectedTransfer)}</strong>
             {onSelect && <> · <a href="#detail-title" aria-label="선택한 송금 상세로 이동">상세로 이동</a></>}
           </> : isPathView ? '없음' : '선택한 송금 없음'}</span>
         </div>
@@ -152,11 +152,16 @@ function buildStyle(container: HTMLElement, trace = false): StylesheetJson {
       selector: 'node',
       style: {
         shape: 'round-rectangle',
-        width: 'label',
-        height: 'label',
-        padding: trace ? '10px' : '8px',
+        // Numeric dimensions replace deprecated width/height: 'label'. Keep every
+        // label (including long names) wrapped inside the node, without truncating.
+        width: trace ? 108 : 96,
+        height: node => String(node.data('label')).split('\n').reduce((lines, line) => lines + Math.max(1, Math.ceil([...line].reduce((size, char) => size + (char.charCodeAt(0) > 255 ? 2 : 1), 0) / 12)), 0) * (trace ? 19 : 17),
+        padding: '8px',
         label: 'data(label)',
         'text-wrap': 'wrap',
+        'text-max-width': trace ? '108px' : '96px',
+        'text-overflow-wrap': 'anywhere',
+        'line-height': 1.3,
         'text-valign': 'center',
         'text-halign': 'center',
         'font-family': mono,
