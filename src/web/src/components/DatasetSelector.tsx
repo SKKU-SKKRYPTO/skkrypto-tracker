@@ -7,6 +7,7 @@ import RequestNotice from './RequestNotice'
 type Props = { state: DatasetSessionState; onSelect: (key: DatasetKey) => void; onReload: () => void; onRetryDetail: () => void }
 export default function DatasetSelector({ state, onSelect, onReload, onRetryDetail }: Props) {
   const dataset = state.detail?.data
+  const limitations = state.detail?.meta.limitations ?? []
   return <section className="dataset-panel" aria-label="데이터셋 선택 및 정보">
     <div className="search-bar">
       <label htmlFor="dataset-select">데이터셋</label>
@@ -17,7 +18,7 @@ export default function DatasetSelector({ state, onSelect, onReload, onRetryDeta
           if (selected) onSelect({ datasetId: selected.datasetId, datasetVersion: selected.datasetVersion })
         }}>
         {state.datasets.length === 0 && <option value="">선택 가능한 데이터셋 없음</option>}
-        {state.datasets.map(row => <option key={datasetKeyValue(row)} value={datasetKeyValue(row)}>{row.datasetId} / {row.datasetVersion} · {row.status}</option>)}
+        {state.datasets.map(row => <option key={datasetKeyValue(row)} value={datasetKeyValue(row)}>{row.datasetId} / {row.datasetVersion}{state.detailStatus === 'ready' && dataset && datasetKeyValue(row) === datasetKeyValue(dataset) ? '' : ` · ${row.status}`}</option>)}
       </select>
       <button className="button-secondary" type="button" disabled={state.listStatus === 'loading'} onClick={onReload}>목록 다시 조회</button>
     </div>
@@ -29,17 +30,22 @@ export default function DatasetSelector({ state, onSelect, onReload, onRetryDeta
     {state.selection && (state.detailStatus === 'error' || state.detailStatus === 'idle') && <div className="notice">
       데이터셋 정보를 다시 조회해 주세요. <button type="button" onClick={onRetryDetail}>상세 다시 조회</button>
     </div>}
-    {dataset && <div className="notice">
-      <p><strong>{dataset.datasetId} / {dataset.datasetVersion}</strong> · {dataset.status} · {dataset.sourceMode}</p>
-      <p>분석 자산: {dataset.asset.symbol} · {dataset.sourceMode === 'FIXTURE' ? '합성 데이터(FIXTURE)' : '수집 데이터(SNAPSHOT)'}</p>
+    {dataset && <div className="notice dataset-summary">
+      <p className="dataset-identity">
+        <span className="status-badge" data-status={dataset.status}>{dataset.status}</span>
+        <span className="source-badge">{dataset.sourceMode === 'FIXTURE' ? '합성 데이터(FIXTURE)' : '수집 데이터(SNAPSHOT)'}</span></p>
+      <p className="dataset-asset">분석 자산: {dataset.asset.symbol}</p>
       {dataset.invalidationReason && <p className="notice notice-warning">{dataset.invalidationReason}</p>}
       {dataset.status !== 'READY' && <p role="status">현재 상태가 {dataset.status}이므로 검색할 수 없습니다.</p>}
       <details className="dataset-details"><summary>데이터셋 상세 정보</summary>
+      <p><strong>{dataset.datasetId} / {dataset.datasetVersion}</strong></p>
       <p>소수 자릿수 {dataset.asset.decimals} · Chain ID {dataset.asset.chainId}</p>
       <p className="mono full-value">토큰 주소: {dataset.asset.tokenAddress}</p>
       <p>수집 블록: {dataset.startBlock}~{dataset.endBlock}</p>
       <p>수집 시간: {formatTimestamp(dataset.startTime)} ~ {formatTimestamp(dataset.endTime)}</p>
       <p>확정 블록: {dataset.finalizedBlock ?? '해당 없음'} · 수집 완료: {dataset.collectedAt === null ? '미확인' : formatTimestamp(dataset.collectedAt)}</p>
+      {dataset.notes.length > 0 && <ul className="dataset-notes">{dataset.notes.map((note, index) => <li key={index}>{note}</li>)}</ul>}
+      {limitations.length > 0 && <ul className="dataset-limitations">{limitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul>}
       </details>
     </div>}
   </section>

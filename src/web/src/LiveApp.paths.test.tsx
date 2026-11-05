@@ -150,7 +150,7 @@ describe('common result export action wiring', () => {
 describe('UX foundation layout and previous-result notice', () => {
   it('labels the product and three sections without changing search mode controls', async () => {
     const { render } = await setup(), html = render().html
-    for (const text of ['SKKRYPTO Tracker', '온체인 송금 흐름을 분석하고 근거를 확인하는 도구', '데이터셋 설정', '분석 설정', '분석 결과']) expect(html).toContain(text)
+    for (const text of ['Trackoon', '온체인 송금 흐름을 분석하고 근거를 확인하는 도구', '데이터셋 설정', '분석 설정', '분석 결과']) expect(html).toContain(text)
     expect(html).toContain('aria-labelledby="dataset-heading"'); expect(html).toContain('aria-labelledby="results-heading"')
     expect(html).toContain('데이터셋 상세 정보')
   })

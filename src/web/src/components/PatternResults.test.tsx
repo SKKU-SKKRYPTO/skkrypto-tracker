@@ -8,7 +8,7 @@ const render = (envelope: PatternEnvelope) => renderToStaticMarkup(<PatternResul
 describe('Pattern results', () => {
   it('keeps official overlapping windows, shared group and repeated counterparties', () => {
     const envelope = fresh(), before = structuredClone(envelope), html = render(envelope)
-    expect(html.match(/<h2>/g)).toHaveLength(2)
+    expect(html.match(/<h4>/g)).toHaveLength(2)
     for (const p of envelope.data.patterns) {
       for (const text of [p.patternId, p.groupId, p.address, p.windowStart, p.windowEnd, ...p.counterparties]) expect(html).toContain(text)
     }

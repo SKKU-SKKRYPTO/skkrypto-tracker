@@ -42,7 +42,9 @@ describe('Path transfer detail component integration', () => {
     ;(f.graph.props.onSelect as (id: string) => void)(transfer.id)
     const table = TransferTable(f.table.props as Parameters<typeof TransferTable>[0])
     const tableButton = elements(table).find(node => node.props['aria-label'] === `송금 ${transfer.id} 상세 보기`)!
-    ;(tableButton.props.onClick as () => void)()
+    const click = { stopPropagation: vi.fn() }
+    ;(tableButton.props.onClick as (event: typeof click) => void)(click)
+    expect(click.stopPropagation).toHaveBeenCalledOnce()
     const evidenceButton = f.nodes.find(node => node.props['aria-label'] === `경로 1 근거 송금 ${transfer.id} 상세 보기`)!
     ;(evidenceButton.props.onClick as () => void)()
     expect(f.onSelectTransfer.mock.calls).toEqual([[transfer.id], [transfer.id], [transfer.id]])
@@ -51,7 +53,7 @@ describe('Path transfer detail component integration', () => {
   })
   it('renders original block/asset evidence and passes complete values to unchanged copy controls', () => {
     const f = setup(), transfer = f.detail.props.transfer as Transfer
-    const detailTree = TransferDetail({ transfer })
+    const detailTree = TransferDetail(f.detail.props as Parameters<typeof TransferDetail>[0])
     const html = renderToStaticMarkup(detailTree)
     for (const value of [transfer.id, transfer.txHash, transfer.blockHash, transfer.asset.tokenAddress, String(transfer.asset.chainId), transfer.blockNumber]) expect(html).toContain(value)
     const buttons = elements(detailTree).filter(node => node.type === CopyButton)

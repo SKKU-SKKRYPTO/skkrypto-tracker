@@ -23,6 +23,9 @@ describe('dataset selection UI', () => {
     for (const text of ['flow-demo', 'v1', 'READY', 'SKK', '84532', '18204211', '18206309', '해당 없음', '미확인']) expect(html).toContain(text)
     expect(html).not.toContain('Invalid Date')
     expect(html).not.toContain('undefined')
+    const option = html.match(/<option[^>]*>[\s\S]*?<\/option>/)![0]
+    expect(option).not.toContain('READY')
+    expect(html).toContain('data-status="READY">READY')
   })
   it.each(['COLLECTING', 'FAILED', 'INVALIDATED'] as const)('shows information and the search restriction for %s', status => {
     const data = { ...detail.data, status }
@@ -83,12 +86,13 @@ describe('live request error notices', () => {
 describe('dataset information priority', () => {
   it('keeps summary and blocking warnings outside the collapsed details', () => {
     const data = { ...detail.data, status: 'INVALIDATED' as const, invalidationReason: '수집 범위 무효화' }
-    const html = render(state({ detail: { ...detail, data }, detailStatus: 'ready' }))
+    const html = render(state({ datasets: [data], detail: { ...detail, data }, detailStatus: 'ready' }))
     const summary = html.slice(0, html.indexOf('<details'))
     expect(summary).toContain('flow-demo'); expect(summary).toContain('분석 자산: SKK'); expect(summary).toContain('합성 데이터(FIXTURE)')
     expect(summary).toContain('검색할 수 없습니다'); expect(summary).toContain('수집 범위 무효화')
     const details = html.slice(html.indexOf('<details'), html.indexOf('</details>'))
     expect(details).toContain('데이터셋 상세 정보'); expect(details).toContain(data.asset.tokenAddress); expect(details).toContain(data.startBlock)
+    for (const text of [...data.notes, ...detail.meta.limitations]) expect(details).toContain(text)
     expect(details).not.toMatch(/<details[^>]*\sopen/)
   })
 })

@@ -1,4 +1,3 @@
-import WorkspaceSelection from './WorkspaceSelection'
 import AddressValue from './AddressValue'
 import CopyButton from './CopyButton'
 import { shortenHex } from '../format'
@@ -11,6 +10,7 @@ import { resolvePathSelection, uniqueTransfers } from '../pathSelection'
 import TransferGraph from './TransferGraph'
 import TransferTable from './TransferTable'
 import TransferDetail from './TransferDetail'
+import { revealResultCard } from './resultCardScroll'
 
 type Props = {
   showContext?: boolean
@@ -35,17 +35,13 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
     {showContext && <p className="notice mono full-value">검색 시작 주소: {meta.conditions.address} · 대상 주소: {meta.conditions.targetAddress}</p>}
     {meta.conditions.direction === 'incoming' && <p className="notice">받은 쪽 탐색: 아래 연결은 대상 주소에서 검색 시작 주소로 이어지는 실제 송금 순서입니다.</p>}
     {showContext && <p className="notice" role="status">찾은 경로 {limits.found}개{limits.foundIsLowerBound ? ' 이상' : ''} 중 {paths.length}개 표시</p>}
-    {onSelectPath && paths.length > 0 && <p className="notice" role="status">
-      {selection.path ? `경로 ${paths.indexOf(selection.path) + 1} 선택됨 · 근거 송금 ${selection.transferIds.size}건을 그래프와 표에 강조합니다.` : '경로를 선택하면 해당 근거 송금을 그래프와 표에 함께 강조합니다.'}
-      {selection.path && <button type="button" className="select-button" onClick={() => onSelectPath(null)}>경로 선택 해제</button>}
-    </p>}
     {limits.truncated && <p className="notice notice-warning" role="status">
       제한으로 일부 경로만 반환되었으며, 전체 결과가 아닐 수 있습니다. {limits.truncated.reasons.map(formatLimitReason).join(' ')} · 대표 사유: {formatLimitReason(limits.truncated.reason)}
       {limits.analyzedUntil && <> · 블록 {limits.analyzedUntil.blockNumber}까지만 분석 ({formatTimestamp(limits.analyzedUntil.timestamp)})</>}
     </p>}
-    <WorkspaceSelection group={selection.path ? "경로 " + (paths.indexOf(selection.path) + 1) : null} transfer={selectedTransfer} />
-    <div className={graph.transfers.length > 0 ? 'analysis-workspace' : 'analysis-workspace workspace-empty'}>
-      <div className="result-list" role="region" aria-label="경로 선택 목록">
+    <div className={graph.transfers.length > 0 ? 'analysis-workspace evidence-workspace' : 'analysis-workspace workspace-empty'}>
+      <div className="result-list" role="region" aria-label="경로 선택 목록" tabIndex={0}>
+        <div className="panel-heading"><h3>후보 경로</h3><span>{paths.length}개</span></div>
     {paths.length === 0
       ? <p className="notice" role="status">{limits.truncated ? '분석한 범위에서 표시할 경로를 찾지 못했습니다. 제한 때문에 전체 범위에 경로가 없다고 단정할 수 없습니다.' : '선택한 조건과 수집 범위에서 후보 경로가 관측되지 않았습니다.'}</p>
       : <ol className="path-list">{paths.map((path, index) => {
@@ -53,13 +49,14 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
         // The Adapter checks references. Keep a defensive fallback for independently supplied UI data.
         if (evidence.length === 0 || evidence.some(transfer => !transfer)) return <li key={path.id}><p className="notice notice-error">경로 {index + 1}의 근거 송금 정보를 확인할 수 없습니다.</p></li>
         return <li key={path.id} className={`notice${selection.path === path ? ' path-selected' : ''}`}>
-          <h2>경로 {index + 1} · {path.hops}단계</h2>
-          <p className="card-connection mono full-value">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map(shortenHex).join(' → ')}</p>
+          <h4>경로 {index + 1} · {path.hops}단계</h4>
+          <p className="card-connection mono" aria-label="주소 연결">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map((address, step) => <span className="connection-hop" key={step}><span className="connection-address" title={address}>{shortenHex(address)}</span>{step < evidence.length && <span aria-hidden="true">→</span>}</span>)}</p>
           <p className="card-metrics">근거 송금 {path.transferIds.length}건</p>
           {onSelectPath && <button type="button" className="select-button" aria-pressed={selection.path === path}
-            aria-label={`경로 ${index + 1} 선택`} onClick={() => onSelectPath(path.id)}>{selection.path === path ? '✓ 경로 선택됨' : '경로 선택'}</button>}
+            aria-label={`경로 ${index + 1} 선택`} onFocus={event => revealResultCard(event.currentTarget)} onClick={() => onSelectPath(path.id)}>{selection.path === path ? '✓ 경로 선택됨' : '경로 선택'}</button>}
           <details className="technical-details"><summary>기술 상세 · 경로 {index + 1}</summary>
             <p className="mono full-value">경로 ID: {path.id} <CopyButton value={path.id} label="경로 ID" /></p>
+            <p className="mono full-value">근거 송금 ID (순서): {path.transferIds.join(' → ')} <CopyButton value={path.transferIds.join('\n')} label="근거 송금 ID 목록" /></p>
             <p>전체 주소 연결</p><ol>{[evidence[0]!.from, ...evidence.map(t => t!.to)].map((address, i) => <li key={i}><AddressValue value={address} label={'경로 ' + (index + 1) + ' 주소 ' + (i + 1)} /></li>)}</ol>
           </details>
           <details><summary>근거 송금 {path.transferIds.length}건</summary>
@@ -77,9 +74,10 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
       })}</ol>}
       </div>
     {graph.transfers.length > 0 && <>
-      <TransferGraph result={graph} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} />
-      <TransferTable transfers={graph.transfers} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} />
-      {onSelectTransfer && <TransferDetail transfer={selectedTransfer} />}
+      <TransferGraph result={graph} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} controls
+        selectionLabel={selection.path ? `경로 ${paths.indexOf(selection.path) + 1}` : null} onClearSelection={onSelectPath ? () => onSelectPath(null) : undefined} />
+      <TransferTable transfers={graph.transfers} selectedTransferId={resolvedTransferId} highlightedTransferIds={selection.transferIds} onSelect={onSelectTransfer} variant="analysis" />
+      {onSelectTransfer && <TransferDetail transfer={selectedTransfer} variant="analysis" />}
     </>}
     </div>
     <ul className="notice">{meta.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>

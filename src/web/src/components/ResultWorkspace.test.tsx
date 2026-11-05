@@ -28,10 +28,12 @@ describe('result workspace structure and navigation', () => {
     const p = adaptPathsResponse(paths, detail, { datasetId: 'flow-demo', datasetVersion: 'v1' })
     if (!p.ok) throw Error('sample')
     const tree = mode === 'paths' ? PathResults({ result: p.result, selectedPathId: paths.data.paths[0].id, selectedTransferId: paths.data.transfers[0].id, onSelectTransfer: () => {} }) : PatternResults({ envelope: patterns as PatternEnvelope, selectedPatternId: patterns.data.patterns[0].patternId, selectedTransferId: patterns.data.transfers[0].id, onSelectTransfer: () => {} })
-    const nodes = elements(tree), workspace = nodes.find(n => n.props.className === 'analysis-workspace')!
+    const nodes = elements(tree), workspace = nodes.find(n => n.props.className === 'analysis-workspace evidence-workspace')!
     const children = elements(workspace.props.children as ReactNode)
     const list = children.findIndex(n => n.props.className === 'result-list'), graph = children.findIndex(n => n.type === TransferGraph), table = children.findIndex(n => n.type === TransferTable)
     expect(list).toBeGreaterThanOrEqual(0); expect(graph).toBeGreaterThan(list); expect(table).toBeGreaterThan(graph)
+    expect(children.find(n => n.type === TransferGraph)!.props.controls).toBe(true)
+    expect(children.find(n => n.type === TransferTable)!.props.variant).toBe('analysis')
     const html = renderToStaticMarkup(tree)
     expect(html).toContain('선택한 분석 결과:'); expect(html).toContain('선택한 개별 송금:')
     expect(html).toContain('href="#detail-title"'); expect(html).toContain('id="detail-title" tabindex="-1"')
@@ -49,7 +51,7 @@ describe('result workspace structure and navigation', () => {
     const nodes = elements(PatternResults({ envelope: patterns as PatternEnvelope }))
     const data = nodes.find(n => n.type === TransferGraph)!.props.result as Parameters<typeof buildElements>[0]
     const built = buildElements(data), center = built.find(e => e.data.id === patterns.meta.conditions.address)!
-    expect(center.data.label).toContain('기준\n')
+    expect(center.data.label).toContain('기준 · H\n')
     const parallel = built.filter(e => e.group === 'edges' && e.data.source === patterns.data.transfers[1].from)
     expect(parallel).toHaveLength(2)
     expect(new Set(parallel.map(e => e.data.id)).size).toBe(2)

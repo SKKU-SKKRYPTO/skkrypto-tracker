@@ -23,7 +23,7 @@ describe('v1 graph elements', () => {
     const starts = nodes.filter(n => n.classes === 'start')
     expect(starts).toHaveLength(1)
     expect(starts[0].data.id).toBe(result.conditions.address)
-    expect(starts[0].data.label).toBe('시작\nS\n0x0000…0001')
+    expect(starts[0].data.label).toBe('시작 · S\n0x0000…0001')
   })
   it('uses each transfer asset for amount labels', () => {
     expect(edges[0].data.label).toBe('1200 SKK')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPatternWindow, formatUnits, shortenHex } from './format'
+import { formatPatternWindow, formatTransferTime, formatUnits, shortenHex } from './format'
 
 describe('formatUnits', () => {
   it('정수 금액은 소수점 없이 표시한다', () => {
@@ -64,12 +64,18 @@ describe('v1 asset formatting', () => {
   })
 })
 
-it('formats same-day and cross-midnight Pattern windows compactly with a timezone', () => {
+it('formats transfer dates and clocks compactly without losing the timezone', () => {
+  expect(formatTransferTime('2026-10-26T23:58:00Z', 'UTC')).toEqual({ date: '2026-10-26', time: '23:58:00 UTC' })
+  expect(formatTransferTime('2026-10-26T23:58:00Z', 'Asia/Seoul')).toEqual({ date: '2026-10-27', time: '08:58:00 GMT+9' })
+})
+
+it('formats compact Pattern windows in the requested timezone across date boundaries', () => {
   const sameDay = formatPatternWindow('2026-10-26T14:00:00Z', '2026-10-26T14:10:00Z', 'UTC')
-  expect(sameDay.start).toBe('2026.10.26 14:00:00 UTC')
-  expect(sameDay.end).toBe('14:10:00 UTC')
+  expect(sameDay.start).toBe('10.26 14:00:00')
+  expect(sameDay.end).toBe('14:10:00')
   const midnight = formatPatternWindow('2026-10-26T23:58:00Z', '2026-10-27T00:08:00Z', 'UTC')
-  expect(midnight.end).toBe('2026.10.27 00:08:00 UTC')
+  expect(midnight.end).toBe('10.27 00:08:00')
   const korea = formatPatternWindow('2026-10-26T14:00:00Z', '2026-10-26T14:10:00Z', 'Asia/Seoul')
   expect(korea.start).toContain('23:00:00')
+  expect(formatPatternWindow('2026-12-31T23:58:00Z', '2027-01-01T00:08:00Z', 'UTC')).toEqual({ start: '12.31 23:58:00', end: '01.01 00:08:00' })
 })
