@@ -269,5 +269,43 @@
     "setup": "repo-down",
     "status": 503,
     "description": "저장소 장애. retryable이 true라 잠시 뒤 다시 시도할 수 있다."
+  },
+  {
+    "sample": "practice-grade-passed.json",
+    "method": "POST",
+    "path": "/api/practice/grade",
+    "setup": "practice-grade",
+    "body": {
+      "challenge": "P1",
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "paths": [
+        [
+          "fx:flow-demo-v1:e1",
+          "fx:flow-demo-v1:e4",
+          "fx:flow-demo-v1:e6"
+        ],
+        [
+          "fx:flow-demo-v1:e2",
+          "fx:flow-demo-v1:e5",
+          "fx:flow-demo-v1:e6"
+        ]
+      ]
+    },
+    "status": 200,
+    "description": "실습 채점 통과(예시로 flow-demo의 S→T 경로 2개를 정답으로 둠). 응답에는 통과 여부만 있다."
+  },
+  {
+    "sample": "practice-grade-off.json",
+    "method": "POST",
+    "path": "/api/practice/grade",
+    "body": {
+      "challenge": "P1",
+      "datasetId": "flow-demo",
+      "datasetVersion": "v1",
+      "paths": []
+    },
+    "status": 404,
+    "description": "서버에 실습 정답이 없으면 채점이 꺼져 있다."
   }
 ]

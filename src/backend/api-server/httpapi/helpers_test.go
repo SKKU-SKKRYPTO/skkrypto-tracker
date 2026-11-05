@@ -49,6 +49,12 @@ func testConfig(t testing.TB, setup string) Config {
 		cfg.Repo = labeledRepo{loadRepo(t)}
 	case "practice":
 		cfg.PracticeDatasets = []string{"flow-demo"}
+	case "practice-grade":
+		answers, err := ParsePracticeAnswers([]byte(practiceAnswersJSON))
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.PracticeAnswers = answers
 	default:
 		t.Fatalf("모르는 setup: %s", setup)
 	}
