@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import TransferGraph from './TransferGraph'
 import cytoscape from 'cytoscape'
 import type { CytoscapeOptions } from 'cytoscape'
-import { watchGraphSize } from './graphResize'
+import { watchGraphViewport } from './graphViewport'
 import patterns from '../../mocks/v1/samples/patterns-success.json'
 import type { TransferGraphData } from './graphElements'
 import { isValidElement } from 'react'
@@ -15,12 +15,12 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
   useEffect: (fn: () => void | (() => void)) => { const cleanup = fn(); if (cleanup) hooks.cleanups.push(cleanup) },
 }))
 vi.mock('cytoscape', () => ({ default: vi.fn() }))
-vi.mock('./graphResize', () => ({ watchGraphSize: vi.fn() }))
+vi.mock('./graphViewport', () => ({ watchGraphViewport: vi.fn() }))
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 describe('graph mount, resize and selection callback', () => {
   it.each(['trace', 'paths', 'patterns'] as const)('provides working %s zoom and fit without dropping parallel transfers or selection IDs', async mode => {
     hooks.refIndex = 0; hooks.cleanups = []
-    let level = 0.3
+    let level = 1
     const zoom = vi.fn((value?: number | { level: number }) => {
       if (value === undefined) return level
       level = typeof value === 'number' ? value : value.level
@@ -29,7 +29,7 @@ describe('graph mount, resize and selection callback', () => {
     const run = vi.fn(() => { level = 0.3 }), layout = vi.fn(() => ({ run }))
     const cy = { zoom, fit, center, resize, layout, on, width: () => 300, height: () => 400, destroy: vi.fn(), edges: () => ({ removeClass: vi.fn() }), getElementById: () => ({ filter: () => ({ addClass: vi.fn() }) }) }
     vi.mocked(cytoscape).mockReturnValue(cy as never)
-    vi.mocked(watchGraphSize).mockReturnValue(vi.fn())
+    vi.mocked(watchGraphViewport).mockReturnValue(vi.fn())
     vi.stubGlobal('window', { matchMedia: () => ({ addEventListener: vi.fn(), removeEventListener: vi.fn() }) })
     vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: (name: string) => name === '--mono' ? 'monospace' : '#111111' }))
     const onSelect = vi.fn()
@@ -53,7 +53,7 @@ describe('graph mount, resize and selection callback', () => {
     buttons['그래프 축소'](); expect(level).toBe(1)
     buttons['화면 맞춤'](); expect(fit).toHaveBeenCalledWith(undefined, 32); expect(level).toBe(0.3)
     if (mode !== 'trace') { buttons[`${kind} 선택 해제`](); expect(onClearSelection).toHaveBeenCalledOnce() }
-    vi.mocked(watchGraphSize).mock.calls.at(-1)![1](); expect(level).toBe(1)
+    expect(watchGraphViewport).toHaveBeenCalledWith(cy, hooks.container)
     const options = vi.mocked(cytoscape).mock.calls.at(-1)![0] as unknown as CytoscapeOptions
     if (mode === 'paths') expect(options.layout).toMatchObject({ name: 'breadthfirst', direction: 'rightward', avoidOverlap: true })
     if (mode === 'trace') expect(options.layout).not.toHaveProperty('direction')
@@ -81,13 +81,13 @@ describe('graph mount, resize and selection callback', () => {
     expect(onSelect).toHaveBeenCalledWith(patterns.data.transfers[4].id)
     hooks.cleanups.forEach(fn => fn())
   })
-  it('resizes and reruns layout without replacing evidence, then disconnects before destroy', () => {
+  it('delegates viewport management and disconnects it before destroying the graph', () => {
     hooks.refIndex = 0; hooks.cleanups = []
     const run = vi.fn(), resize = vi.fn(), destroy = vi.fn(), disconnect = vi.fn()
     const layout = vi.fn().mockReturnValue({ run }), on = vi.fn()
     const cy = { resize, destroy, layout, on, edges: () => ({ removeClass: vi.fn() }) }
     vi.mocked(cytoscape).mockReturnValue(cy as never)
-    vi.mocked(watchGraphSize).mockReturnValue(disconnect)
+    vi.mocked(watchGraphViewport).mockReturnValue(disconnect)
     const removeEventListener = vi.fn()
     vi.stubGlobal('window', { matchMedia: () => ({ addEventListener: vi.fn(), removeEventListener }) })
     vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: (name: string) => name === '--mono' ? 'monospace' : '#111111' }))
@@ -102,8 +102,8 @@ describe('graph mount, resize and selection callback', () => {
     expect(edgeStyle['font-size']).toBe(12)
     expect(edgeStyle['curve-style']).toBe('bezier')
     expect(edgeStyle['control-point-step-size']).toBe(64)
-    const refresh = vi.mocked(watchGraphSize).mock.calls.at(-1)![1]
-    refresh(); expect(resize).toHaveBeenCalledTimes(1); expect(layout).toHaveBeenCalledWith(options.layout); expect(run).toHaveBeenCalledTimes(1)
+    expect(watchGraphViewport).toHaveBeenCalledWith(cy, hooks.container)
+    expect(layout).not.toHaveBeenCalled()
     const tap = on.mock.calls.find(call => call[0] === 'tap')![2]
     tap({ target: { id: () => patterns.data.transfers[0].id } })
     expect(onSelect).toHaveBeenCalledWith(patterns.data.transfers[0].id)

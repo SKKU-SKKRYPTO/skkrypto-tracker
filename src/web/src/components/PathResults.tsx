@@ -50,7 +50,7 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
         if (evidence.length === 0 || evidence.some(transfer => !transfer)) return <li key={path.id}><p className="notice notice-error">경로 {index + 1}의 근거 송금 정보를 확인할 수 없습니다.</p></li>
         return <li key={path.id} className={`notice${selection.path === path ? ' path-selected' : ''}`}>
           <h4>경로 {index + 1} · {path.hops}단계</h4>
-          <p className="card-connection mono" aria-label="주소 연결">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map((address, step) => <span className="connection-hop" key={step}>{step > 0 && <span aria-hidden="true">→</span>}<span title={address}>{shortenHex(address)}</span></span>)}</p>
+          <p className="card-connection mono" aria-label="주소 연결">{[evidence[0]!.from, ...evidence.map(transfer => transfer!.to)].map((address, step) => <span className="connection-hop" key={step}><span className="connection-address" title={address}>{shortenHex(address)}</span>{step < evidence.length && <span aria-hidden="true">→</span>}</span>)}</p>
           <p className="card-metrics">근거 송금 {path.transferIds.length}건</p>
           {onSelectPath && <button type="button" className="select-button" aria-pressed={selection.path === path}
             aria-label={`경로 ${index + 1} 선택`} onFocus={event => revealResultCard(event.currentTarget)} onClick={() => onSelectPath(path.id)}>{selection.path === path ? '✓ 경로 선택됨' : '경로 선택'}</button>}

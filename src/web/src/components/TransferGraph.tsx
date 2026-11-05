@@ -1,4 +1,4 @@
-import { watchGraphSize } from './graphResize'
+import { watchGraphViewport } from './graphViewport'
 import cytoscape from 'cytoscape'
 import type { Core, StylesheetJson, LayoutOptions } from 'cytoscape'
 import { useEffect, useRef } from 'react'
@@ -8,7 +8,6 @@ import { applyTransferHighlights } from './graphHighlights'
 import { formatAmount } from '../format'
 
 const NO_PATH_HIGHLIGHTS: ReadonlySet<string> = new Set()
-const READABLE_ZOOM = 1
 const PATH_LAYOUT_WIDTH = 700
 
 type Props = {
@@ -61,12 +60,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
       autounselectify: true,
     })
     cyRef.current = cy
-    // Start at a readable scale. All elements remain available by panning or fitting.
-    const readableScale = () => {
-      if (controls && cy.zoom() < READABLE_ZOOM) { cy.zoom(READABLE_ZOOM); cy.center() }
-    }
-    readableScale()
-    const stopResize = watchGraphSize(container, () => { cy.resize(); cy.layout(layout).run(); readableScale() })
+    const stopViewport = watchGraphViewport(cy, container)
 
     cy.on('tap', 'edge', (event) => onSelectRef.current?.(event.target.id()))
     cy.on('mouseover', 'edge', () => {
@@ -83,7 +77,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
 
     return () => {
       colorScheme.removeEventListener('change', applyColors)
-      stopResize()
+      stopViewport()
       cy.destroy()
       cyRef.current = null
     }
@@ -127,7 +121,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
       {controls ? <figcaption className="graph-caption">
         <span className="graph-start-sample">{result.startLabel ?? '시작'}</span> 이중 테두리 = {result.startLabel === '기준' ? '패턴 분석 기준 주소' : '시작 주소'} · 화살표 = 실제 송금 방향 ·
         {isPathView && ` 굵은 점선 = ${evidenceLabel} 근거 ·`} 굵은 실선 = 선택한 송금
-        <p>드래그로 이동할 수 있습니다. 좁은 화면은 글자 크기를 우선하며, 화면 맞춤으로 전체 흐름을 확인할 수 있습니다.</p>
+        <p>+/−로 확대·축소하고 빈 공간을 드래그해 이동하세요. 화면 맞춤을 누르면 전체 송금이 다시 보입니다.</p>
       </figcaption> : <figcaption className="graph-caption">
         <span className="graph-start-sample">{result.startLabel ?? '시작'}</span> 이중 테두리 = {result.startLabel === '기준' ? '패턴 분석 기준 주소' : '검색한 시작 주소'} ·
         {isPathView && `굵은 점선 = ${evidenceKind === 'pattern' ? '패턴' : '후보 경로'} 근거 · 굵은 실선 = 선택한 송금 · `}

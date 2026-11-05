@@ -25,6 +25,8 @@ describe('readable addresses and technical disclosures', () => {
     if (!response.ok) throw Error('sample')
     const html = renderToStaticMarkup(<PathResults result={response.result} />)
     expect(html.match(/<p class="card-connection[^>]*>[\s\S]*?<\/p>/)![0].replace(/<[^>]+>/g, '')).toBe('0x0000…0001→0x0000…0002→0x0000…0005→0x0000…0007')
+    // A wrapping unit begins with an address; its arrow stays with that address.
+    expect(html.match(/class="connection-hop"><span class="connection-address"/g)).toHaveLength(8)
     expect(html.indexOf('기술 상세 · 경로 1')).toBeLessThan(html.indexOf(paths.data.paths[0].id))
     expect(html).toContain('경로 ID 복사'); expect(html).toContain('근거 송금 3건')
     expect(html).not.toMatch(/<details[^>]*\sopen/)

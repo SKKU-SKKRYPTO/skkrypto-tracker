@@ -612,7 +612,7 @@ button { min-height: 36px; }
 .result-list li { scroll-margin-block: 12px; }
 .result-list .card-connection { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-block: 8px; }
 .connection-hop { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-.connection-hop > span:last-child { border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; background: var(--surface); }
+.connection-address { border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; background: var(--surface); }
 .evidence-workspace .result-list .card-metrics { color: var(--text-h); font-size: 14px; font-weight: 600; margin-block: 8px; }
 .card-window { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-variant-numeric: tabular-nums; }
 .window-duration { white-space: nowrap; }
