@@ -70,7 +70,8 @@ func (s *server) analyze(kind string) handlerFunc {
 			return badInput("선택한 전송 ID(startTransferId)가 이 데이터셋의 ID 형식과 다릅니다. " +
 				"FIXTURE는 fx:{namespace}:{recordId}, SNAPSHOT은 {chainId}:{txHash}:{logIndex}입니다.")
 		}
-		if kind == analyzer.KindPaths && slices.Contains(s.practice, ds.ID) {
+		// 데이터셋 ID는 대소문자를 가리지 않고 비교한다(채점의 데이터셋 비교와 같게).
+		if kind == analyzer.KindPaths && slices.ContainsFunc(s.practice, func(id string) bool { return strings.EqualFold(id, ds.ID) }) {
 			return fail(http.StatusForbidden, "PATHS_DISABLED",
 				"실습 데이터셋에서는 경로 찾기를 쓸 수 없습니다. 추적과 패턴으로 직접 찾아 보세요.")
 		}

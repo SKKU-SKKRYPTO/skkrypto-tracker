@@ -116,6 +116,28 @@ func TestPracticeGradeChecksDataset(t *testing.T) {
 	}
 }
 
+// 송금 ID 안에 어떤 문자가 있어도 경로 하나가 다른 경로 둘과 같은 답으로 취급되지 않는다.
+func TestPracticeGradePathKeysDoNotCollide(t *testing.T) {
+	h := practiceServer(t)
+	for _, sep := range []string{`\u0000`, `\",\"`, `,`} {
+		joined := `fx:flow-demo-v1:e1` + sep + `fx:flow-demo-v1:e4` + sep + `fx:flow-demo-v1:e6`
+		body := `{"challenge":"P1","datasetId":"flow-demo","datasetVersion":"v1","paths":[["` + joined + `"],["e2","e5","e6"]]}`
+		rec := do(h, http.MethodPost, "/api/practice/grade", []byte(body))
+		if rec.Code == http.StatusOK {
+			var got practiceGradeResult
+			if err := json.Unmarshal(decode(t, rec).Data, &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.Passed {
+				t.Fatalf("구분 문자 %q로 이은 송금 ID 하나가 정답 경로로 통과했다", sep)
+			}
+		}
+	}
+	if a, b := pathKey([]string{"a", "b"}), pathKey([]string{"a\x00b"}); a == b {
+		t.Fatalf("다른 경로가 같은 키: %q", a)
+	}
+}
+
 func TestPracticeGradeIsOffWithoutAnswers(t *testing.T) {
 	rec := do(newServer(t, ""), http.MethodPost, "/api/practice/grade", []byte(`{"challenge":"P1","datasetId":"flow-demo","datasetVersion":"v1"}`))
 	expectError(t, rec, http.StatusNotFound, "NOT_FOUND")
@@ -169,6 +191,14 @@ func TestPracticeBlocksPathsOnPracticeDatasets(t *testing.T) {
 	if rec := do(h, http.MethodPost, "/api/paths", []byte(other)); rec.Code != http.StatusOK {
 		t.Fatalf("other dataset status = %d, body = %s", rec.Code, rec.Body.String())
 	}
+	// 정답 설정의 데이터셋 ID가 대문자여도 실제 데이터셋(소문자)의 경로 찾기를 막는다.
+	upperAnswers, err := ParsePracticeAnswers([]byte(strings.Replace(practiceAnswersJSON, `"flow-demo"`, `"FLOW-DEMO"`, 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	upperCfg := testConfig(t, "")
+	upperCfg.PracticeAnswers = upperAnswers
+	expectError(t, do(New(upperCfg), http.MethodPost, "/api/paths", []byte(pathsBody(""))), http.StatusForbidden, "PATHS_DISABLED")
 	// 채점이 꺼져 있으면 경로 찾기는 막지 않는다.
 	if rec := do(newServer(t, ""), http.MethodPost, "/api/paths", []byte(pathsBody(""))); rec.Code != http.StatusOK {
 		t.Fatalf("practice off status = %d", rec.Code)

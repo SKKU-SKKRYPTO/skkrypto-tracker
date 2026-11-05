@@ -227,4 +227,8 @@ func practiceID(id, datasetID, version string) string {
 }
 
 // pathKey는 경로 안의 송금 순서를 지킨 채 비교하려고 만드는 키다(경로끼리의 순서는 따지지 않는다).
-func pathKey(ids []string) string { return strings.Join(ids, "\x00") }
+// 구분 문자로 잇지 않고 JSON 배열로 만들어, ID 안에 어떤 문자가 있어도 서로 다른 경로가 같은 키가 되지 않게 한다.
+func pathKey(ids []string) string {
+	key, _ := json.Marshal(ids)
+	return string(key)
+}
