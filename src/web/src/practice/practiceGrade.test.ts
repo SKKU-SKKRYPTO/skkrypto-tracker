@@ -20,6 +20,12 @@ describe('practice grading client', () => {
     const off = vi.fn<typeof fetch>().mockResolvedValue(reply(404, { data: null, meta: {}, error: { code: 'NOT_FOUND', message: '실습 채점이 꺼져 있습니다.', retryable: false } }))
     expect((await api(off).grade(submission)).status).toBe('disabled')
   })
+  it('shows the server message when the problem dataset is missing or not ready', async () => {
+    const missing = vi.fn<typeof fetch>().mockResolvedValue(reply(404, { data: null, meta: {}, error: { code: 'DATASET_NOT_FOUND', message: '해당 데이터셋 또는 버전이 없습니다.', retryable: false } }))
+    expect(await api(missing).grade(submission)).toEqual({ status: 'failed', message: '해당 데이터셋 또는 버전이 없습니다.' })
+    const collecting = vi.fn<typeof fetch>().mockResolvedValue(reply(409, { data: null, meta: {}, error: { code: 'DATASET_NOT_READY', message: '데이터셋 수집이 끝나지 않았습니다.', retryable: false } }))
+    expect(await api(collecting).grade(submission)).toEqual({ status: 'failed', message: '데이터셋 수집이 끝나지 않았습니다.' })
+  })
   it('reports input errors, rate limits, offline and malformed replies without throwing', async () => {
     const bad = vi.fn<typeof fetch>().mockResolvedValue(reply(400, { data: null, meta: {}, error: { code: 'INVALID_INPUT', message: '모르는 실습 문제입니다: T1', retryable: false } }))
     expect(await api(bad).grade(submission)).toEqual({ status: 'failed', message: '모르는 실습 문제입니다: T1' })

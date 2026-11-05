@@ -19,6 +19,7 @@ function decodeResult(value: unknown, challenge: string): PracticeGradeResult | 
 }
 
 const errorMessage = (body: unknown) => record(body) && record(body.error) && typeof body.error.message === 'string' ? body.error.message : ''
+const errorCode = (body: unknown) => record(body) && record(body.error) && typeof body.error.code === 'string' ? body.error.code : ''
 
 export function createPracticeGradeApi(http: HttpClient = createHttpClient()) {
   return {
@@ -31,8 +32,8 @@ export function createPracticeGradeApi(http: HttpClient = createHttpClient()) {
         return { status: 'failed', message: cause instanceof SearchRequestError ? '채점 서버에 연결하지 못했습니다. 잠시 뒤 다시 눌러 주세요.' : '채점하지 못했습니다.' }
       }
       if (!reply.ok) return { status: 'failed', message: reply.error.message }
-      // 404는 서버에 정답 파일이 없거나 채점 기능이 없는 경우다(실습 당일 전).
-      if (reply.status === 404) return { status: 'disabled', message: '지금은 채점이 꺼져 있습니다. 실습이 시작되면 다시 눌러 주세요.' }
+      // 404는 서버에 정답 파일이 없거나 채점 기능이 없는 경우다(실습 당일 전). 없는 데이터셋(DATASET_NOT_FOUND)과 수집 중·무효화(409)는 서버 문구를 그대로 보여 준다.
+      if (reply.status === 404 && errorCode(reply.body) !== 'DATASET_NOT_FOUND') return { status: 'disabled', message: '지금은 채점이 꺼져 있습니다. 실습이 시작되면 다시 눌러 주세요.' }
       if (reply.status === 429) return { status: 'failed', message: '요청이 많습니다. 잠시 뒤 다시 채점해 주세요.' }
       if (reply.status !== 200) return { status: 'failed', message: errorMessage(reply.body) || '채점하지 못했습니다.' }
       const result = decodeResult(record(reply.body) ? reply.body.data : null, submission.challenge)
