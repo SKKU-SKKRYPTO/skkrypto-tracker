@@ -70,15 +70,25 @@ func (downRepo) ListTransfers(context.Context, repository.TransferQuery) (reposi
 	return repository.TransferPage{}, errDown
 }
 
-// labeledRepo는 DB에 블록·거래·전송 이름표와 메모가 들어 있을 때를 흉내 낸다.
+// labeledRepo는 DB에 블록·거래·전송 이름표와 메모, 주소 메모가 들어 있을 때를 흉내 낸다.
 // 공개 Fixture와 DB Seed에는 이 값이 없어서, 응답 모양을 보여 주는 샘플에서만 쓴다.
 // patterns-demo 블록 20005의 거래 0x…03ed(전송 p5·p6)에 값을 넣고, 전송 메모는 p5에만 넣는다.
+// 주소 메모는 patterns-demo의 X(0x…65)에만 넣는다.
 type labeledRepo struct{ *repository.Memory }
+
+func (r labeledRepo) GetDataset(ctx context.Context, id, version string) (domain.Dataset, error) {
+	ds, err := r.Memory.GetDataset(ctx, id, version)
+	if ds.ID == "patterns-demo" {
+		ds.AddressNotes = map[string]string{labeledAddress: "주소 메모 예시"}
+	}
+	return ds, err
+}
 
 const (
 	labeledBlock    = domain.BlockNumber(20005)
 	labeledTx       = "0x00000000000000000000000000000000000000000000000000000000000003ed"
 	labeledTransfer = "fx:patterns-demo-v1:p5"
+	labeledAddress  = "0x0000000000000000000000000000000000000065"
 )
 
 func (r labeledRepo) ListTransfers(ctx context.Context, q repository.TransferQuery) (repository.TransferPage, error) {

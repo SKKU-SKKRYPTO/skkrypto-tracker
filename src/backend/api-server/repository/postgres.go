@@ -108,7 +108,18 @@ SELECT
         WHERE address.dataset_id = d.dataset_id
           AND address.dataset_version = d.dataset_version
           AND address.label IS NOT NULL
-    ), '{}') AS address_labels
+    ), '{}') AS address_labels,
+    COALESCE((
+        SELECT jsonb_object_agg(
+            address.address,
+            address.note
+            ORDER BY address.address
+        )::text
+        FROM dataset_addresses address
+        WHERE address.dataset_id = d.dataset_id
+          AND address.dataset_version = d.dataset_version
+          AND address.note IS NOT NULL
+    ), '{}') AS address_notes
 FROM datasets d
 JOIN assets a
   ON a.chain_id = d.chain_id
@@ -165,6 +176,7 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 		invalidationReason *string
 		boundaryHashesJSON string
 		addressLabelsJSON  string
+		addressNotesJSON   string
 	)
 	if err := row.Scan(
 		&dataset.ID,
@@ -185,6 +197,7 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 		&invalidationReason,
 		&boundaryHashesJSON,
 		&addressLabelsJSON,
+		&addressNotesJSON,
 	); err != nil {
 		return domain.Dataset{}, err
 	}
@@ -221,7 +234,11 @@ func scanDataset(row postgresRow) (domain.Dataset, error) {
 	if err := json.Unmarshal([]byte(addressLabelsJSON), &dataset.Labels); err != nil {
 		return domain.Dataset{}, fmt.Errorf("decode address labels: %w", err)
 	}
-	// 주소 note는 현재 공개 Dataset 계약에 대응하는 필드가 없어 DB에만 보존한다.
+	// 주소 note는 Dataset 응답이 아니라 분석 결과 노드의 note로 싣는다.
+	dataset.AddressNotes = map[string]string{}
+	if err := json.Unmarshal([]byte(addressNotesJSON), &dataset.AddressNotes); err != nil {
+		return domain.Dataset{}, fmt.Errorf("decode address notes: %w", err)
+	}
 	dataset.Notes = []string{}
 	return dataset, nil
 }

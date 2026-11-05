@@ -72,7 +72,7 @@ DATABASE_URL='postgres://계정:비밀번호@127.0.0.1:5432/DB이름?sslmode=dis
 ```
 
 - DB에는 `src/database/init.d`의 스키마와 Fixture 시드가 들어 있어야 합니다. Compose의 PostgreSQL은 처음 띄울 때 자동으로 넣고, Compose의 API가 DB를 읽게 하는 방법은 `docker-compose.yml` 맨 위 주석에 있습니다.
-- DB 모드에서도 전송·분석 결과는 Fixture 모드와 같습니다(`sample-requests.json`으로 확인). 다만 데이터셋 `labels`(주소 이름표)·`notes`는 DB에 칸이 없어 비어 있고, 그래서 그래프 노드 `label`도 빠집니다.
+- DB 모드에서도 전송·분석 결과는 Fixture 모드와 같습니다(`sample-requests.json`으로 확인). 주소 이름표는 DB의 `dataset_addresses`에서 읽어 데이터셋 `labels`와 그래프 노드 `label`에, 주소 메모는 노드 `note`에 싣습니다. 데이터셋 `notes`는 DB에 칸이 없어 비어 있습니다.
 
 ### 저장소를 고치거나 새로 만들 때 지킬 약속
 

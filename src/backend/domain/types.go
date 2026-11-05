@@ -72,6 +72,7 @@ type Dataset struct {
 	BoundaryHashes     map[string]string `json:"boundaryHashes"` // 블록 번호 → 블록 해시
 	Labels             map[string]string `json:"labels"`         // 주소(소문자) → 화면 표시용 이름
 	Notes              []string          `json:"notes"`
+	AddressNotes       map[string]string `json:"-"` // 주소(소문자) → 메모. 응답에는 분석 결과 노드의 note로만 싣는다
 	InvalidationReason string            `json:"invalidationReason,omitempty"`
 }
 

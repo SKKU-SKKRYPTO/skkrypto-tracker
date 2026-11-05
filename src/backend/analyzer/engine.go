@@ -97,6 +97,7 @@ type Result struct {
 type Node struct {
 	ID    string `json:"id"`
 	Label string `json:"label,omitempty"`
+	Note  string `json:"note,omitempty"`
 }
 
 // Path는 시작 주소와 대상 주소를 잇는 전송들이다. TransferIDs는 방향과 상관없이 돈이 흐른
