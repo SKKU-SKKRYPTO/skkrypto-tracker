@@ -20,6 +20,7 @@ export type PracticeProblemsState =
   | { status: 'ready'; problems: PracticeProblem[] }
   | { status: 'unavailable' }
   | { status: 'invalid'; message: string }
+  | { status: 'failed'; message: string }
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -68,18 +69,26 @@ export function decodePracticeProblems(raw: unknown): PracticeProblem[] {
   })
 }
 
-// 파일이 없으면(404·네트워크 오류) 실습 당일 전으로 보고, 형식이 틀리면 운영진이 알 수 있게 알린다.
+// 파일이 없으면(404, 또는 정적 호스팅이 대신 돌려준 HTML 화면) 실습 당일 전으로 본다.
+// 네트워크·서버 오류는 운영 장애로, 깨진 JSON·형식 오류는 파일 문제로 따로 알린다.
 export async function loadPracticeProblems(url = practiceProblemsUrl(), fetchImpl: typeof fetch = fetch, signal?: AbortSignal): Promise<PracticeProblemsState> {
   let response: Response
   try {
     response = await fetchImpl(url, { cache: 'no-store', headers: { Accept: 'application/json' }, signal })
   } catch (cause) {
     if (signal?.aborted) throw cause
-    return { status: 'unavailable' }
+    return { status: 'failed', message: '실습 문제를 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.' }
   }
-  if (!response.ok) return { status: 'unavailable' }
+  if (response.status === 404) return { status: 'unavailable' }
+  if (!response.ok) return { status: 'failed', message: `실습 문제를 불러오지 못했습니다(HTTP ${response.status}). 잠시 뒤 새로고침해 주세요.` }
+  let text: string
+  try { text = await response.text() } catch (cause) {
+    if (signal?.aborted) throw cause
+    return { status: 'failed', message: '실습 문제를 불러오지 못했습니다. 잠시 뒤 새로고침해 주세요.' }
+  }
+  if (text.trimStart().startsWith('<')) return { status: 'unavailable' }
   let body: unknown
-  try { body = await response.json() } catch { return { status: 'unavailable' } }
+  try { body = JSON.parse(text) } catch { return { status: 'invalid', message: '실습 문제 파일 형식이 올바르지 않습니다: JSON이 아닙니다' } }
   try {
     return { status: 'ready', problems: decodePracticeProblems(body) }
   } catch (cause) {

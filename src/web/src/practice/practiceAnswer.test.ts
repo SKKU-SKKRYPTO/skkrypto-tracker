@@ -30,6 +30,19 @@ describe('practice answers written with wallet names', () => {
     expect(fail(['S', 'X', 'T'])).toContain('X → T 송금이 여러 건')
     expect(fail(['S', 'A', 'T', 'X'], 2)).toContain('최대 2단계')
   })
+  it('accepts full addresses when only some wallets have labels (start and target only)', () => {
+    const partial = { [S]: 'S', [T]: 'T' }
+    const named = answerToTransferIds(parseAnswerText('S → A → T'), transfers, partial, 3)
+    expect(named.ok ? '' : named.message).toContain('전체 주소(0x…)')
+    expect(answerToTransferIds(parseAnswerText(`S → ${A.toUpperCase().replace('0X', '0x')} → T`), transfers, partial, 3)).toEqual({ ok: true, paths: [['t1', 't2']] })
+    expect(answerToTransferIds(parseAnswerText(`${S} -> ${A} -> ${T}`), transfers, {}, 3)).toEqual({ ok: true, paths: [['t1', 't2']] })
+    const missing = answerToTransferIds(parseAnswerText(`${A} → ${S}`), transfers, {}, 3)
+    expect(missing.ok ? '' : missing.message).toBe('1번째 줄: 0x0000…0002 → 0x0000…0001 송금이 없습니다.')
+  })
+  it('refuses a name that labels more than one wallet instead of picking one', () => {
+    const result = answerToTransferIds(parseAnswerText('S → A → T'), transfers, { ...labels, [X]: 'A' }, 3)
+    expect(result.ok ? '' : result.message).toContain('A은(는) 여러 지갑에 붙은 이름')
+  })
 })
 
 describe('grading an answer', () => {
@@ -57,6 +70,18 @@ describe('grading an answer', () => {
     const wrong = fakeHttp({ status: 200, body: { data: transfers } })
     expect(await gradePracticeAnswer(problem, 'A → S', labels, wrong.http)).toEqual({ status: 'failed', message: '1번째 줄: A → S 송금이 없습니다.' })
     expect(wrong.calls.map(call => call.path)).not.toContain('/api/practice/grade')
+  })
+  it('follows the next cursor until every transfer is loaded', async () => {
+    const calls: string[] = []
+    const http: HttpClient = async path => {
+      calls.push(path)
+      if (path.startsWith('/api/transfers') && !path.includes('cursor=')) return { ok: true, status: 200, body: { data: transfers.slice(0, 1), meta: { page: { limit: 1000, nextCursor: 'c2' } } }, retryAfter: null }
+      if (path.startsWith('/api/transfers')) return { ok: true, status: 200, body: { data: transfers.slice(1), meta: { page: { limit: 1000, nextCursor: null } } }, retryAfter: null }
+      return { ok: true, status: 200, body: { data: { challenge: problem.id, datasetMatches: true, passed: true }, meta: {}, error: null }, retryAfter: null }
+    }
+    expect(await gradePracticeAnswer(problem, 'S → A → T', labels, http)).toMatchObject({ status: 'graded' })
+    expect(calls[1]).toBe('/api/transfers?datasetId=flow-demo&datasetVersion=v1&limit=1000&cursor=c2')
+    expect(calls[2]).toBe('/api/practice/grade')
   })
   it('reports when the transfer list cannot be loaded', async () => {
     const { http } = fakeHttp({ status: 503, body: { data: null } })

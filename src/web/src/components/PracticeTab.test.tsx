@@ -49,6 +49,7 @@ describe('practice tab', () => {
     expect(html({ problems: null })).toContain('불러오는 중')
     expect(html({ problems: { status: 'unavailable' } })).toContain('실습 당일 공개')
     expect(html({ problems: { status: 'invalid', message: '실습 문제 파일 형식이 올바르지 않습니다: T1 제목' } })).toContain('T1 제목')
+    expect(html({ problems: { status: 'failed', message: '실습 문제를 불러오지 못했습니다(HTTP 500).' } })).toContain('HTTP 500')
   })
   it('adds an answer box and grade button to each card only when grading is on', () => {
     expect(html()).not.toContain('채점하기')

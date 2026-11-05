@@ -19,7 +19,7 @@ type Props = {
 export default function PracticeTab({ problems, datasets, busy = false, submitUrl, onStart, onGrade }: Props) {
   if (problems === null) return <p className="notice" role="status">실습 문제를 불러오는 중…</p>
   if (problems.status === 'unavailable') return <p className="notice" role="status">실습 문제는 실습 당일 공개됩니다.</p>
-  if (problems.status === 'invalid') return <p className="notice notice-error" role="alert">{problems.message}</p>
+  if (problems.status === 'invalid' || problems.status === 'failed') return <p className="notice notice-error" role="alert">{problems.message}</p>
   return <div className="practice-tab">
     <div className="notice practice-guide">
       <p><strong>푸는 방법</strong></p>
@@ -29,7 +29,7 @@ export default function PracticeTab({ problems, datasets, busy = false, submitUr
         <li>돈이 여러 갈래로 나뉘거나 다시 모이는 흐름은 <strong>패턴 탐지</strong>로 확인할 수 있습니다.</li>
         <li>실습 데이터셋에서는 <strong>경로 탐색(Path)</strong>을 쓸 수 없습니다.</li>
       </ol>
-      <p><strong>{onGrade ? '채점' : '제출'}</strong> · 경로를 지갑 이름 순서대로 적어 주세요(예: B → A → C → H). 경로가 여러 개면 줄을 바꿔 적습니다.{onGrade && ' 문제 카드의 채점하기를 누르면 바로 PASS 또는 FAIL이 나옵니다.'}</p>
+      <p><strong>{onGrade ? '채점' : '제출'}</strong> · 경로를 지갑 이름 순서대로 적어 주세요(예: B → A → C → H). 이름표가 없는 지갑은 전체 주소(0x…)로 적고, 경로가 여러 개면 줄을 바꿔 적습니다.{onGrade && ' 문제 카드의 채점하기를 누르면 바로 PASS 또는 FAIL이 나옵니다.'}</p>
       {submitUrl && <a className="practice-submit" href={submitUrl} target="_blank" rel="noreferrer">답안 제출하기</a>}
     </div>
     <ol className="practice-list">{problems.problems.map((problem, index) => {
