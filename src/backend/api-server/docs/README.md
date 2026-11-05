@@ -21,6 +21,7 @@
   - [GET /api/datasets](API-datasets.md) · [GET /api/datasets/{id}](API-dataset.md)
   - [GET /api/transfers](API-transfers.md) · [GET /api/transactions/{txHash}](API-transaction.md)
   - [POST /api/trace](API-trace.md) · [POST /api/paths](API-paths.md) · [POST /api/patterns](API-patterns.md)
+  - [POST /api/practice/grade](API-practice-grade.md)(실습 채점, 정답이 있을 때만)
 
 ## 갱신 규칙
 

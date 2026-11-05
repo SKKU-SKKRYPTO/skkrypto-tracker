@@ -1,0 +1,26 @@
+{
+  "data": {
+    "challenge": "P1",
+    "datasetMatches": true,
+    "passed": true
+  },
+  "meta": {
+    "contractVersion": "v1",
+    "ruleVersion": "flow-v1",
+    "datasetId": "flow-demo",
+    "datasetVersion": "v1",
+    "sourceMode": "FIXTURE",
+    "coverage": {
+      "startBlock": "18204211",
+      "endBlock": "18206309",
+      "startTime": "2026-10-26T11:50:04Z",
+      "endTime": "2026-10-26T13:00:00Z"
+    },
+    "limitations": [
+      "후보 연결은 동일 자금의 귀속을 확정하지 않습니다.",
+      "패턴은 규칙 일치이며 소유자나 위법성을 판정하지 않습니다.",
+      "지정 데이터셋의 고정 범위만 분석합니다."
+    ]
+  },
+  "error": null
+}

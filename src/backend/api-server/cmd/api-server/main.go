@@ -1,4 +1,6 @@
 // api-server는 API를 띄운다. DATABASE_URL이 있으면 PostgreSQL에서, 없으면 Fixture를 메모리에 올려 읽는다.
+// PRACTICE_ANSWERS_JSON(또는 PRACTICE_ANSWERS_FILE)이 있으면 실습 채점(POST /api/practice/grade)을 켜고,
+// 정답이 있는 데이터셋은 PRACTICE_DATASETS처럼 경로 찾기(/api/paths)를 막는다.
 //
 //	go -C src/backend run ./api-server/cmd/api-server   (레포 루트에서, 또는 make run-api)
 package main
@@ -33,6 +35,15 @@ func main() {
 	origins := list(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8081"))
 	practice := list(os.Getenv("PRACTICE_DATASETS"))
 
+	// 실습 정답은 값(PRACTICE_ANSWERS_JSON, Railway 비밀 변수)이나 파일 경로로 받는다. 로그에는 문제 수만 남긴다.
+	answers, err := loadPracticeAnswers(os.Getenv("PRACTICE_ANSWERS_JSON"), os.Getenv("PRACTICE_ANSWERS_FILE"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if answers != nil {
+		log.Printf("실습 채점 켬: 문제 %d개(정답이 있는 데이터셋은 경로 찾기를 막음)", answers.Len())
+	}
+
 	repo, source, closeRepo, err := openRepository(os.Getenv("DATABASE_URL"), fixtureDir)
 	if err != nil {
 		log.Fatal(err)
@@ -46,6 +57,7 @@ func main() {
 			RateLimitPerMinute: perMinute,
 			AllowedOrigins:     origins,
 			PracticeDatasets:   practice,
+			PracticeAnswers:    answers,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -105,6 +117,17 @@ func env(name, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// loadPracticeAnswers는 정답 값이 있으면 그것을, 없으면 파일을 읽는다. 둘 다 없으면 채점을 끈다(nil).
+func loadPracticeAnswers(value, file string) (*httpapi.PracticeAnswers, error) {
+	switch {
+	case value != "":
+		return httpapi.ParsePracticeAnswers([]byte(value))
+	case file != "":
+		return httpapi.LoadPracticeAnswers(file)
+	}
+	return nil, nil
 }
 
 // list는 쉼표로 나눈 값을 앞뒤 공백을 지우고 빈 칸 없이 돌려준다.

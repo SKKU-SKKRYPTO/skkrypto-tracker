@@ -10,13 +10,13 @@
 
 | 파일 | 내용 |
 |---|---|
-| `openapi.json` | API 7개의 요청·응답 규격(OpenAPI 3.1) |
+| `openapi.json` | API 8개의 요청·응답 규격(OpenAPI 3.1) |
 | `sample-requests.json` | 샘플마다 "어떤 요청을 보내면 이 응답이 오는지" |
-| `samples/*.json` | 응답 샘플 24개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
+| `samples/*.json` | 응답 샘플 26개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
 
 샘플 데이터는 모두 합성 Fixture(`fx:` ID)이고 실제 체인 데이터가 아닙니다.
 
-## API 7개
+## API 8개
 
 | API | 하는 일 | 샘플 |
 |---|---|---|
@@ -27,6 +27,7 @@
 | `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 | `trace-success.json`, `trace-ready-empty.json`, `trace-candidate-limit.json`, `trace-amount-sum.json`, `trace-address-note.json` |
 | `POST /api/paths` | 두 주소 사이 시간순 후보 경로. 실습 데이터셋에서는 403 | `paths-success.json`, `paths-path-limit.json`, `paths-time-budget.json`, `error-paths-disabled.json` |
 | `POST /api/patterns` | 분산(FAN_OUT)·합류(FAN_IN) 패턴 | `patterns-success.json` |
+| `POST /api/practice/grade` | 실습 답안 채점(통과 여부만). 서버에 정답이 없으면 404 | `practice-grade-passed.json`, `practice-grade-off.json` |
 
 오류 샘플: `error-bad-input`(400) · `error-paths-disabled`(403) · `error-not-found`(404) · `error-not-ready`·`error-invalidated`(409) · `error-out-of-range`·`error-unsupported-asset`(422) · `error-rate-limited`(429) · `error-unavailable`(503)
 

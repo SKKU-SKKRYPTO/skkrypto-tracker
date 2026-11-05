@@ -20,10 +20,11 @@ import (
 type Config struct {
 	Repo               repository.Repository
 	Engine             analyzer.Engine
-	RateLimitPerMinute int           // 클라이언트 IP마다 1분에 받는 요청 수. 0이면 제한하지 않는다
-	RequestTimeout     time.Duration // 0이면 3초. 분석 시간 예산(최대 2초)보다 조금 길게 둔다
-	AllowedOrigins     []string      // 브라우저에서 이 API를 부를 수 있는 웹 주소(CORS)
-	PracticeDatasets   []string      // 실습 데이터셋 ID. 정답 경로가 바로 나오지 않게 경로 찾기(POST /api/paths)를 막는다
+	RateLimitPerMinute int              // 클라이언트 IP마다 1분에 받는 요청 수. 0이면 제한하지 않는다
+	RequestTimeout     time.Duration    // 0이면 3초. 분석 시간 예산(최대 2초)보다 조금 길게 둔다
+	AllowedOrigins     []string         // 브라우저에서 이 API를 부를 수 있는 웹 주소(CORS)
+	PracticeDatasets   []string         // 실습 데이터셋 ID. 정답 경로가 바로 나오지 않게 경로 찾기(POST /api/paths)를 막는다
+	PracticeAnswers    *PracticeAnswers // 실습 정답. nil이면 실습 채점(POST /api/practice/grade)이 꺼진다(404)
 }
 
 type server struct {
@@ -33,6 +34,7 @@ type server struct {
 	timeout  time.Duration
 	origins  []string
 	practice []string
+	answers  *PracticeAnswers
 }
 
 // New는 API 라우터를 만든다. 서버 실행(포트·종료)은 호출한 쪽(cmd/api-server)이 맡는다.
@@ -43,7 +45,14 @@ func New(cfg Config) http.Handler {
 		limiter:  newRateLimiter(cfg.RateLimitPerMinute, time.Now),
 		timeout:  cfg.RequestTimeout,
 		origins:  cfg.AllowedOrigins,
-		practice: cfg.PracticeDatasets,
+		practice: slices.Clone(cfg.PracticeDatasets),
+		answers:  cfg.PracticeAnswers,
+	}
+	// 정답이 있는 데이터셋은 PRACTICE_DATASETS에 빠져 있어도 경로 찾기를 막는다(경로 찾기 결과가 곧 정답이다).
+	for _, id := range cfg.PracticeAnswers.DatasetIDs() {
+		if !slices.Contains(s.practice, id) {
+			s.practice = append(s.practice, id)
+		}
 	}
 	if s.timeout == 0 {
 		s.timeout = 3 * time.Second
@@ -61,6 +70,7 @@ func New(cfg Config) http.Handler {
 		r.Post("/trace", handle(s.analyze(analyzer.KindTrace)))
 		r.Post("/paths", handle(s.analyze(analyzer.KindPaths)))
 		r.Post("/patterns", handle(s.analyze(analyzer.KindPatterns)))
+		r.Post("/practice/grade", handle(s.gradePractice))
 	})
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, fail(http.StatusNotFound, "NOT_FOUND", "API 경로가 없습니다."))

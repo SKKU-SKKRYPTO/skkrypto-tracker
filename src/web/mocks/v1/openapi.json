@@ -23,6 +23,10 @@
     {
       "name": "분석",
       "description": "시간순 연결(trace·paths)과 분산·합류 패턴(patterns)"
+    },
+    {
+      "name": "실습",
+      "description": "실습 채점(정답은 서버만 가짐)"
     }
   ],
   "paths": {
@@ -614,6 +618,69 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/api/practice/grade": {
+      "post": {
+        "tags": [
+          "실습"
+        ],
+        "operationId": "practiceGrade",
+        "summary": "실습 채점(PASS/FAIL)",
+        "description": "실습 답안을 서버의 정답과 비교해 통과 여부만 돌려준다. 정답은 서버 설정(PRACTICE_ANSWERS_JSON 또는 PRACTICE_ANSWERS_FILE)에만 있고, 설정이 없으면 404(실습 채점이 꺼져 있음)다. 분석 API처럼 채점 전과 응답 전에 데이터셋을 확인한다(없으면 404 DATASET_NOT_FOUND, 수집 중·무효화면 409). 성공 응답 meta에는 데이터셋 ID·버전·범위가 있다. 다시 내는 횟수는 막지 않는다. 정답이 있는 데이터셋은 POST /api/paths가 403 PATHS_DISABLED다.\n\n샘플: samples/practice-grade-passed.json, samples/practice-grade-off.json",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PracticeGradeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "채점 결과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta",
+                    "error"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PracticeGradeResult"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    },
+                    "error": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -1560,6 +1627,64 @@
             "$ref": "#/components/schemas/Error"
           }
         }
+      },
+      "PracticeGradeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challenge",
+          "datasetId",
+          "datasetVersion"
+        ],
+        "description": "실습 답안. 경로마다 송금 ID를 출발부터 도착까지 순서대로 담는다. 경로가 없다고 답할 때는 paths를 빈 배열로 보내거나 뺀다.",
+        "properties": {
+          "challenge": {
+            "type": "string",
+            "description": "실습 문제 ID(예: ch1-basic-path)"
+          },
+          "datasetId": {
+            "type": "string"
+          },
+          "datasetVersion": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "maxItems": 10,
+            "description": "낸 경로 묶음. 경로끼리의 순서는 상관없고, 경로 안의 송금 순서는 정확해야 한다",
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {
+                "type": "string",
+                "description": "송금 ID(transfers[].id)"
+              }
+            }
+          }
+        }
+      },
+      "PracticeGradeResult": {
+        "type": "object",
+        "required": [
+          "challenge",
+          "datasetMatches",
+          "passed"
+        ],
+        "description": "채점 결과. 점수·맞힌 개수·어느 경로가 맞았는지는 싣지 않는다(경로를 하나씩 넣어 보며 답을 맞출 수 있어서).",
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "datasetMatches": {
+            "type": "boolean",
+            "description": "답안의 데이터셋이 문제의 데이터셋과 같은지"
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "정답 경로를 모두 내고 틀린 경로가 없을 때만 true"
+          }
+        }
       }
     },
     "responses": {
@@ -1584,7 +1709,7 @@
         }
       },
       "NotFound": {
-        "description": "없음: DATASET_NOT_FOUND, TRANSACTION_NOT_FOUND, NOT_FOUND",
+        "description": "없음: DATASET_NOT_FOUND, TRANSACTION_NOT_FOUND, NOT_FOUND(없는 경로, 꺼진 실습 채점)",
         "content": {
           "application/json": {
             "schema": {

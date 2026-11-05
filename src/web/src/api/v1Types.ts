@@ -56,5 +56,9 @@ export type V1Error = { code: "INVALID_INPUT" | "INVALID_CURSOR" | "PATHS_DISABL
 
 export type ErrorEnvelope = { data: null; meta: Meta; error: V1Error }
 
+export type PracticeGradeRequest = { challenge: string; datasetId: string; datasetVersion: string; paths?: Array<Array<string>> }
+
+export type PracticeGradeResult = { challenge: string; datasetMatches: boolean; passed: boolean }
+
 export type SuccessEnvelope<T> = { data: T; meta: Meta; error: null }
 export type TraceEnvelope = SuccessEnvelope<AnalysisResult> | ErrorEnvelope

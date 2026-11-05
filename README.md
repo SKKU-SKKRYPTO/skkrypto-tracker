@@ -69,6 +69,7 @@ make help                                          # 명령 목록
 | `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 |
 | `POST /api/paths` | 두 주소 사이 시간순 후보 경로 |
 | `POST /api/patterns` | 분산(FAN_OUT)·합류(FAN_IN) 패턴 |
+| `POST /api/practice/grade` | 실습 답안 채점(통과 여부만). 서버에 정답이 있을 때만 켜짐 |
 
 규격은 [`src/backend/api-server/contracts/openapi.json`](src/backend/api-server/contracts/openapi.json)이 기준이고, 요청·응답 예시는 같은 폴더의 `samples/`에 있습니다. 사용법 설명은 [API 문서](src/backend/api-server/docs/README.md)에 있습니다.
 
