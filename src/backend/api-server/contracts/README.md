@@ -12,7 +12,7 @@
 |---|---|
 | `openapi.json` | API 7개의 요청·응답 규격(OpenAPI 3.1) |
 | `sample-requests.json` | 샘플마다 "어떤 요청을 보내면 이 응답이 오는지" |
-| `samples/*.json` | 응답 샘플 23개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
+| `samples/*.json` | 응답 샘플 24개. 서버 테스트가 실제 응답과 글자 그대로 같은지 확인합니다 |
 
 샘플 데이터는 모두 합성 Fixture(`fx:` ID)이고 실제 체인 데이터가 아닙니다.
 
@@ -24,7 +24,7 @@
 | `GET /api/datasets/{id}` | 한 버전의 상태·자산·범위·주소 이름표 | `dataset-detail.json` |
 | `GET /api/transfers` | 전송 목록(주소·방향·범위 필터, 위치 기반 커서) | `transfers-page.json` |
 | `GET /api/transactions/{txHash}` | 한 거래 안의 전송 | `transaction-multiple.json`, `large-amount.json`, `transaction-labels.json` |
-| `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 | `trace-success.json`, `trace-ready-empty.json`, `trace-candidate-limit.json`, `trace-amount-sum.json` |
+| `POST /api/trace` | 시작 주소에서 1~3 hop 시간순 추적 | `trace-success.json`, `trace-ready-empty.json`, `trace-candidate-limit.json`, `trace-amount-sum.json`, `trace-address-note.json` |
 | `POST /api/paths` | 두 주소 사이 시간순 후보 경로. 실습 데이터셋에서는 403 | `paths-success.json`, `paths-path-limit.json`, `paths-time-budget.json`, `error-paths-disabled.json` |
 | `POST /api/patterns` | 분산(FAN_OUT)·합류(FAN_IN) 패턴 | `patterns-success.json` |
 
@@ -38,7 +38,7 @@
 - **숫자:** 금액(`amountRaw`)과 블록 번호는 **십진 문자열**입니다. 자바스크립트 숫자는 2^53을 넘으면 정확하지 않기 때문입니다. 거래·로그 순서(`transactionIndex`·`logIndex`)처럼 작은 정수만 JSON 숫자입니다. 전송 금액은 uint256 이하(`Amount`)이고, 여러 전송을 더한 합계(`summary.uniqueAmountRaw`, `AmountSum`)는 이를 넘을 수 있어 상한이 없습니다.
 - **시각:** UTC ISO-8601 문자열(예: `2026-10-26T12:00:04Z`).
 - **주소:** 응답은 항상 소문자. 요청은 대소문자 모두 받습니다.
-- **이름표·메모:** 전송에는 그 전송의 `label`·`note`, 그 전송이 들어 있는 거래의 `txLabel`·`txNote`, 블록의 `blockLabel`·`blockNote`가 실립니다. DB의 `transfers`·`transactions`·`blocks` 표의 `label`·`note` 칸 값이고, 값이 없으면 그 칸이 빠집니다(빈 문자열은 보내지 않음). 사람이 적은 글이므로 화면에는 글자 그대로 보여 주고 HTML로 해석하지 않습니다. 공개 Fixture에는 전송 `label`(e1 등)만 있어서, 나머지 칸의 모양은 `transaction-labels.json`(값은 예시)으로 봅니다. 분석 결과 노드에는 주소 이름표 `label`과 주소 메모 `note`가 실립니다(DB `dataset_addresses`, 값이 없으면 빠짐).
+- **이름표·메모:** 전송에는 그 전송의 `label`·`note`, 그 전송이 들어 있는 거래의 `txLabel`·`txNote`, 블록의 `blockLabel`·`blockNote`가 실립니다. DB의 `transfers`·`transactions`·`blocks` 표의 `label`·`note` 칸 값이고, 값이 없으면 그 칸이 빠집니다(빈 문자열은 보내지 않음). 사람이 적은 글이므로 화면에는 글자 그대로 보여 주고 HTML로 해석하지 않습니다. 공개 Fixture에는 전송 `label`(e1 등)만 있어서, 나머지 칸의 모양은 `transaction-labels.json`(값은 예시)으로 봅니다. 분석 결과 노드에는 주소 이름표 `label`과 주소 메모 `note`가 실립니다(DB `dataset_addresses`, 값이 없으면 빠짐). 주소 메모의 모양은 `trace-address-note.json`(값은 예시)으로 봅니다.
 - **전송 ID:** Snapshot `{chainId}:{txHash}:{logIndex}`, Fixture `fx:{namespace}:{recordId}`. 그래프·표·상세·JSON이 모두 이 값을 씁니다.
 - **요청 본문:** 항목 이름은 대소문자까지 정확해야 하고, 모르는 항목·`null`·64KB 초과는 400입니다. `startTransferId`는 데이터셋 모드의 ID 형식이어야 합니다.
 - **HTTP 상태:**
