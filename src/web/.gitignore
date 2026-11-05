@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 CLAUDE.md
+
+# 실습 문제 파일은 실습 당일에만 배포본에 둔다(공개 저장소에 올리지 않음)
+/public/practice/

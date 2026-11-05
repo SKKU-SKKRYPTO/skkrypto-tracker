@@ -622,3 +622,42 @@ button { min-height: 36px; }
 @media (pointer: coarse), (max-width: 600px) {
   .result-list summary, .address-details > summary, .copy-button, .graph-controls button { min-height: 44px; }
 }
+/* 분석·실습 문제 탭 */
+.app-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.app-tabs button { min-height: 40px; padding: 0 18px; font: inherit; color: var(--text-h); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-control); cursor: pointer; }
+.app-tabs button[aria-pressed='true'] { border: 2px solid var(--accent); background: var(--accent-bg); font-weight: 600; }
+.app-tabs button:focus-visible, .practice-hints summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.practice-guide ol { margin: 6px 0 8px 20px; }
+.practice-guide li + li { margin-top: 4px; }
+.practice-submit { display: inline-block; margin-top: 8px; font-weight: 600; color: var(--accent); }
+.practice-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+.practice-card { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg); }
+.practice-card h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 18px; }
+.practice-card > p { margin-bottom: 6px; }
+.practice-level { padding: 2px 8px; font-size: 13px; font-weight: 500; color: var(--accent); background: var(--accent-bg); border-radius: 999px; }
+.practice-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin: 12px 0; }
+.practice-facts dt { font-weight: 600; color: var(--text-h); }
+.practice-facts dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; margin: 0; }
+.practice-wallet { padding: 0 6px; font-family: var(--mono); color: var(--accent); border: 1px solid var(--accent-border); border-radius: var(--radius-control); }
+.practice-pending { font-size: 14px; color: var(--text); }
+.practice-note { font-size: 14px; color: var(--text); }
+.practice-hints details { margin-top: 6px; }
+.practice-hints summary { cursor: pointer; color: var(--text-h); }
+.practice-hints p { margin: 4px 0 0 16px; }
+.practice-card > button { min-height: 44px; margin-top: 12px; padding: 0 16px; font: inherit; color: var(--button-primary-text); background: var(--accent); border: 1px solid var(--accent); border-radius: var(--radius-control); cursor: pointer; }
+.practice-card > button:disabled { opacity: 0.5; cursor: not-allowed; }
+.practice-answer { display: grid; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.practice-answer label { font-weight: 600; color: var(--text-h); }
+.practice-answer textarea { width: 100%; min-height: 72px; padding: 8px 10px; font-family: var(--mono); font-size: 15px; color: var(--text-h); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-control); resize: vertical; }
+.practice-answer textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.practice-answer > button { justify-self: start; min-height: 40px; padding: 0 16px; font: inherit; color: var(--text-h); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control); cursor: pointer; }
+.practice-answer > button:disabled { opacity: 0.5; cursor: not-allowed; }
+.practice-verdict { padding: 8px 12px; border-radius: var(--radius-control); border: 1px solid var(--border); }
+.practice-verdict strong { margin-right: 6px; }
+.practice-verdict-pass { color: #166534; background: #dcfce7; border-color: #86efac; }
+.practice-verdict-fail { color: #9a3412; background: #ffedd5; border-color: #fdba74; }
+.practice-verdict-info { color: var(--text); background: var(--surface); }
+@media (prefers-color-scheme: dark) {
+  .practice-verdict-pass { color: #bbf7d0; background: rgba(22, 101, 52, 0.35); border-color: #166534; }
+  .practice-verdict-fail { color: #fed7aa; background: rgba(154, 52, 18, 0.35); border-color: #9a3412; }
+}

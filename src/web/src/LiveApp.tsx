@@ -12,6 +12,12 @@ import RequestNotice from './components/RequestNotice'
 import PathSearchBar from './components/PathSearchBar'
 import PathResults from './components/PathResults'
 import type { AnalysisMode } from './state/datasetSession'
+import PracticeTab from './components/PracticeTab'
+import { loadPracticeProblems } from './practice/practiceProblems'
+import type { PracticeProblemsState } from './practice/practiceProblems'
+import { startPractice } from './practice/startPractice'
+import { gradePracticeAnswer } from './practice/practiceAnswer'
+import { createHttpClient } from './api/httpClient'
 import './App.css'
 
 const ANALYSIS_MODES = [
@@ -20,16 +26,27 @@ const ANALYSIS_MODES = [
   ['patterns', 'Pattern', '패턴 탐지', '송금의 분산·합류 패턴 탐지'],
 ] as const
 
+// 실습 채점 요청에 쓰는 API 클라이언트(분석 요청과 같은 VITE_API_BASE_URL을 쓴다).
+const practiceHttp = createHttpClient()
+
 export default function LiveApp({ session: provided }: { session?: DatasetSession } = {}) {
   const [session] = useState(() => provided ?? createDatasetSession())
   const [traceAddress, setTraceAddress] = useState('')
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot)
   const response = state.mode === 'trace' ? state.response : state.mode === 'paths' ? state.pathResponse : state.patternResponse
   const resultTitle = response?.ok ? { trace: '송금 추적 결과', paths: '경로 탐색 결과', patterns: '패턴 탐지 결과' }[state.mode] : '분석 결과'
+  const [tab, setTab] = useState<'analysis' | 'practice'>('analysis')
+  const [problems, setProblems] = useState<PracticeProblemsState | null>(null)
   useEffect(() => {
     void session.loadDatasets()
     return session.cancelPending
   }, [session])
+  // 실습 문제는 실행할 때 practice/problems.json에서 읽는다(없으면 실습 당일 전 안내).
+  useEffect(() => {
+    const controller = new AbortController()
+    loadPracticeProblems(undefined, fetch, controller.signal).then(setProblems, () => {})
+    return () => controller.abort()
+  }, [])
   return <main className="app">
     <header className="page-heading">
       <div className="brand-lockup">
@@ -38,12 +55,23 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
       </div>
     </header>
     <p className="page-intro">온체인 송금 흐름을 분석하고 근거를 확인하는 도구</p>
-    <section className="workspace-section dataset-section" aria-labelledby="dataset-heading">
+    <nav className="app-tabs" aria-label="화면 선택">
+      <button type="button" aria-pressed={tab === 'analysis'} onClick={() => setTab('analysis')}>분석</button>
+      <button type="button" aria-pressed={tab === 'practice'} onClick={() => setTab('practice')}>실습 문제</button>
+    </nav>
+    <section className="workspace-section" aria-labelledby="practice-heading" hidden={tab !== 'practice'}>
+    <h2 id="practice-heading">실습 문제</h2>
+    <p className="section-description">문제를 읽고 분석 탭의 추적·패턴으로 경로를 찾아 제출해 주세요.</p>
+    <PracticeTab problems={problems} datasets={state.datasets} busy={state.isSearching} submitUrl={import.meta.env.VITE_PRACTICE_SUBMIT_URL}
+      onStart={problem => { setTab('analysis'); void startPractice(session, problem, setTraceAddress) }}
+      onGrade={(problem, text) => gradePracticeAnswer(problem, text, state.datasets.find(row => row.datasetId === problem.datasetId && row.datasetVersion === problem.datasetVersion)?.labels ?? {}, practiceHttp)} />
+    </section>
+    <section className="workspace-section dataset-section" aria-labelledby="dataset-heading" hidden={tab !== 'analysis'}>
     <h2 id="dataset-heading" className="visually-hidden">데이터셋 설정</h2>
     <DatasetSelector state={state} onSelect={key => { void session.selectDataset(key) }} onReload={() => { void session.loadDatasets() }}
       onRetryDetail={() => { if (state.selection) void session.selectDataset(state.selection) }} />
     </section>
-    <section className="workspace-section search-section" aria-labelledby="analysis-heading">
+    <section className="workspace-section search-section" aria-labelledby="analysis-heading" hidden={tab !== 'analysis'}>
     <h2 id="analysis-heading" className="visually-hidden">분석 설정</h2>
     <div className="analysis-toolbar">
     <div className="mode-switch" role="group" aria-label="분석 종류">
@@ -62,7 +90,7 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
       : <PatternSearchBar conditions={state.patternConditions} disabled={!canSearch(state)} isSearching={state.isSearching}
         onChange={session.setPatternConditions} onSearch={() => { void session.searchPatterns() }} onCancel={session.cancelSearch} />}
     </section>
-    <section className="workspace-section" aria-labelledby="results-heading">
+    <section className="workspace-section" aria-labelledby="results-heading" hidden={tab !== 'analysis'}>
     <div className="result-heading"><h2 id="results-heading">{resultTitle}</h2><JsonDownloadButton session={session} /></div>
     {state.traceResultOutdated && state.mode === 'trace' && state.response?.ok && <p className="notice notice-warning" role="status">검색 조건이 변경되었습니다. 현재 표시된 내용은 이전 검색 결과입니다. 새 조건을 적용하려면 다시 검색해 주세요.</p>}
     <AnalysisResultHeader state={state} />
