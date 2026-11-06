@@ -26,7 +26,7 @@ export default function TraceView({ result, selectedTransferId, onSelect }: Trac
           <TransferDetail transfer={selectedTransfer} variant="trace" />
         </div>
       )}
-      <ul className="notice">{result.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>
+      {result.limitations.length > 0 && <ul className="notice analysis-limitations" aria-label="분석 한계 및 주의사항">{[...new Set(result.limitations)].map(text => <li key={text}>{text}</li>)}</ul>}
     </>
   )
 }

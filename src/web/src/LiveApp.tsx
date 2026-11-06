@@ -47,13 +47,14 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     loadPracticeProblems(undefined, fetch, controller.signal).then(setProblems, () => {})
     return () => controller.abort()
   }, [])
-  return <main className="app">
+  return <>
     <header className="page-heading">
       <div className="brand-lockup">
         <span className="brand-logo" aria-hidden="true"><img src="/trackoon-logo.png" alt="" width="896" height="1200" /></span>
         <h1>Trackoon</h1>
       </div>
     </header>
+    <main className="app">
     <p className="page-intro">온체인 송금 흐름을 분석하고 근거를 확인하는 도구</p>
     <nav className="app-tabs" aria-label="화면 선택">
       <button type="button" aria-pressed={tab === 'analysis'} onClick={() => setTab('analysis')}>분석</button>
@@ -114,4 +115,5 @@ export default function LiveApp({ session: provided }: { session?: DatasetSessio
     </>}
     </section>
   </main>
+  </>
 }

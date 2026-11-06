@@ -18,7 +18,7 @@ vi.mock('cytoscape', () => ({ default: vi.fn() }))
 vi.mock('./graphViewport', () => ({ watchGraphViewport: vi.fn() }))
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 describe('graph mount, resize and selection callback', () => {
-  it.each(['trace', 'paths', 'patterns'] as const)('provides working %s zoom and fit without dropping parallel transfers or selection IDs', async mode => {
+  it.each((['trace', 'paths', 'patterns'] as const).flatMap(mode => [false, true].map(long => ({ mode, long }))))('provides working $mode zoom and fit with long=$long without dropping parallel transfers or selection IDs', async ({ mode, long }) => {
     hooks.refIndex = 0; hooks.cleanups = []
     let level = 1
     const zoom = vi.fn((value?: number | { level: number }) => {
@@ -34,11 +34,12 @@ describe('graph mount, resize and selection callback', () => {
     vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: (name: string) => name === '--mono' ? 'monospace' : '#111111' }))
     const onSelect = vi.fn()
     const onClearSelection = vi.fn(), kind = mode === 'patterns' ? '패턴' : '경로'
-    const tree = TransferGraph({ controls: true, result: { nodes: patterns.data.nodes, transfers: patterns.data.transfers, conditions: patterns.meta.conditions, startLabel: mode === 'patterns' ? '기준' : undefined } as TransferGraphData,
+    const transfers = patterns.data.transfers.map(t => ({ ...t, ...(long ? { amountRaw: (2n ** 256n - 1n).toString() } : {}) }))
+    const tree = TransferGraph({ controls: true, result: { nodes: patterns.data.nodes, transfers, conditions: patterns.meta.conditions, startLabel: mode === 'patterns' ? '기준' : undefined } as TransferGraphData,
       selectedTransferId: patterns.data.transfers[4].id, onSelect, evidenceKind: mode === 'patterns' ? 'pattern' : 'path',
       ...(mode === 'trace' ? {} : { highlightedTransferIds: new Set(patterns.data.patterns[0].evidenceIds), selectionLabel: `${kind} 1`, onClearSelection }) })
     expect(level).toBe(1)
-    expect(renderToStaticMarkup(tree)).toContain(formatAmount(patterns.data.transfers[4]))
+    expect(renderToStaticMarkup(tree)).toContain(formatAmount(transfers[4]))
     expect(renderToStaticMarkup(tree)).not.toContain(patterns.data.transfers[4].id)
     const buttons: { [key: string]: () => void } = {}
     function visit(node: ReactNode) {
@@ -57,10 +58,14 @@ describe('graph mount, resize and selection callback', () => {
     const options = vi.mocked(cytoscape).mock.calls.at(-1)![0] as unknown as CytoscapeOptions
     if (mode === 'paths') expect(options.layout).toMatchObject({ name: 'breadthfirst', direction: 'rightward', avoidOverlap: true })
     if (mode === 'trace') expect(options.layout).not.toHaveProperty('direction')
-    if (mode === 'patterns') expect(options.layout).toMatchObject({ name: 'concentric', avoidOverlap: true })
+    if (mode === 'patterns') expect(options.layout).toMatchObject({ name: 'concentric', avoidOverlap: true, minNodeSpacing: long ? 312 : 48 })
     const traceStyle = options.style as { selector: string; style: Record<string, unknown> }[]
     expect(traceStyle.find(rule => rule.selector === 'node')!.style['font-size']).toBe(14)
     expect(traceStyle.find(rule => rule.selector === 'edge')!.style['font-size']).toBe(14)
+    expect(traceStyle.find(rule => rule.selector === 'edge')!.style).toMatchObject({
+      'text-wrap': 'wrap', 'text-max-width': '140px', 'text-overflow-wrap': 'anywhere',
+      'text-rotation': 'none', 'control-point-step-size': long ? 320 : 64,
+    })
     const nodeStyle = traceStyle.find(rule => rule.selector === 'node')!.style
     expect(nodeStyle.width).toBeTypeOf('number')
     const height = nodeStyle.height as (node: { data: () => string }) => number
@@ -75,6 +80,8 @@ describe('graph mount, resize and selection callback', () => {
     const actual = createGraph({ headless: true, styleEnabled: true, elements: options.elements, style: options.style, layout: { name: 'preset' } })
     expect(actual.nodes()[0].width()).toBe(108)
     expect(actual.edges().map(edge => edge.id())).toEqual(patterns.data.transfers.map(t => t.id))
+    expect(actual.edges().map(edge => edge.data('label'))).toEqual(transfers.map(formatAmount))
+    expect(actual.edges().map(edge => [edge.source().id(), edge.target().id()])).toEqual(transfers.map(t => [t.from, t.to]))
     expect(warn.mock.calls.flat().join(' ')).not.toMatch(/deprecated|invalid/i)
     actual.destroy()
     on.mock.calls.find(call => call[0] === 'tap')![2]({ target: { id: () => patterns.data.transfers[4].id } })

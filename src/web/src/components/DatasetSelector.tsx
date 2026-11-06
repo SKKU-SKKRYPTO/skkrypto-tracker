@@ -7,7 +7,14 @@ import RequestNotice from './RequestNotice'
 type Props = { state: DatasetSessionState; onSelect: (key: DatasetKey) => void; onReload: () => void; onRetryDetail: () => void }
 export default function DatasetSelector({ state, onSelect, onReload, onRetryDetail }: Props) {
   const dataset = state.detail?.data
-  const limitations = state.detail?.meta.limitations ?? []
+  // Only suppress exact duplicates that are currently visible in this mode's results.
+  // Keep dataset-only restrictions and restore all notices before search/on failure.
+  const resultMeta = state.mode === 'trace' ? (state.response?.ok ? state.response.envelope.meta : null)
+    : state.mode === 'paths' ? (state.pathResponse?.ok ? state.pathResponse.result.meta : null)
+    : (state.patternResponse?.ok ? state.patternResponse.envelope.meta : null)
+  const shownInResults = dataset && resultMeta?.datasetId === dataset.datasetId && resultMeta.datasetVersion === dataset.datasetVersion
+    ? resultMeta.limitations : []
+  const limitations = [...new Set(state.detail?.meta.limitations ?? [])].filter(text => !shownInResults.includes(text))
   return <section className="dataset-panel" aria-label="데이터셋 선택 및 정보">
     <div className="search-bar">
       <label htmlFor="dataset-select">데이터셋</label>
