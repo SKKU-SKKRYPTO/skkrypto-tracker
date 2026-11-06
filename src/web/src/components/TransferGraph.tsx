@@ -39,19 +39,23 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
     const container = containerRef.current
     if (container === null) return
 
+    // Wrapped amounts occupy a box, not a single short line. Reserve room on
+    // both sides of the center and between parallel edges; keep normal demos unchanged.
+    const hasLongAmounts = result.transfers.some(transfer => formatAmount(transfer).length > 20)
+
     const layout: LayoutOptions = result.startLabel === '기준' ? {
       name: 'concentric', concentric: node => node.id() === result.conditions.address.toLowerCase() ? 2 : 1,
-      levelWidth: () => 1, minNodeSpacing: 48, avoidOverlap: true, padding: 40,
+      levelWidth: () => 1, minNodeSpacing: hasLongAmounts ? 312 : 48, avoidOverlap: true, padding: 40,
     } : {
       name: 'breadthfirst', directed: true, roots: [(result.layoutRoot ?? result.conditions.address).toLowerCase()],
-      spacingFactor: controls && isPathView ? 1 : 1.35, avoidOverlap: true, padding: 40,
+      spacingFactor: hasLongAmounts ? 2.7 : controls && isPathView ? 1 : 1.35, avoidOverlap: true, padding: 40,
       // Keep path levels horizontal with room for node and amount labels.
       ...(controls && isPathView ? { direction: 'rightward', boundingBox: { x1: 0, y1: 0, w: PATH_LAYOUT_WIDTH, h: 400 } } : {}),
     }
     const cy = cytoscape({
       container,
       elements: buildElements(result),
-      style: buildStyle(container, controls),
+      style: buildStyle(container, controls, hasLongAmounts),
       layout,
       // 마우스 휠은 페이지 스크롤에 쓰도록 확대는 끈다. 끌어서 옮기기는 된다.
       userZoomingEnabled: false,
@@ -72,7 +76,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
 
     // Cytoscape는 CSS 변수를 못 읽어서, 밝은/어두운 화면이 바뀌면 색을 다시 읽어 넣는다.
     const colorScheme = window.matchMedia('(prefers-color-scheme: dark)')
-    const applyColors = () => cy.style(buildStyle(container, controls))
+    const applyColors = () => cy.style(buildStyle(container, controls, hasLongAmounts))
     colorScheme.addEventListener('change', applyColors)
 
     return () => {
@@ -131,7 +135,7 @@ function TransferGraph({ result, selectedTransferId, onSelect, highlightedTransf
   )
 }
 
-function buildStyle(container: HTMLElement, trace = false): StylesheetJson {
+function buildStyle(container: HTMLElement, trace = false, hasLongAmounts = false): StylesheetJson {
   const css = getComputedStyle(container)
   const color = (name: string) => css.getPropertyValue(name).trim()
   const text = color('--text-h')
@@ -180,13 +184,16 @@ function buildStyle(container: HTMLElement, trace = false): StylesheetJson {
       selector: 'edge',
       style: {
         'curve-style': 'bezier',
-        'control-point-step-size': 64,
+        'control-point-step-size': hasLongAmounts ? 320 : 64,
         'text-rotation': 'none',
         width: 2,
         'line-color': muted,
         'target-arrow-color': muted,
         'target-arrow-shape': 'triangle',
         label: 'data(label)',
+        'text-wrap': 'wrap',
+        'text-max-width': '140px',
+        'text-overflow-wrap': 'anywhere',
         // 금액 글자를 눌러도 화살표를 누른 것으로 친다. 가는 선만 누르기는 어렵다.
         'text-events': 'yes',
         'font-size': trace ? 14 : 12,

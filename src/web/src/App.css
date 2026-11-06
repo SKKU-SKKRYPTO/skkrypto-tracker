@@ -431,10 +431,11 @@
 
 /* Trackoon foundation: shared surfaces and controls, preserving result layouts. */
 *, *::before, *::after { box-sizing: border-box; }
-.app { padding: 0 var(--space-5) var(--space-6); min-width: 0; }
-.app h1 { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 0; letter-spacing: -0.5px; }
-.page-heading { display: flex; align-items: center; min-height: var(--header-height); padding: var(--space-3) var(--space-5); margin: 0 calc(-1 * var(--space-5)); background: var(--bg); border-bottom: 1px solid var(--border); }
-.brand-lockup { display: flex; align-items: center; gap: var(--space-3); }
+.app { width: 100%; max-width: var(--content-width); margin-inline: auto; padding: 0 var(--space-5) var(--space-6); min-width: 0; }
+.app h1, .page-heading h1 { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 0; letter-spacing: -0.5px; }
+/* Full-width header surface; keep its contents aligned with the bounded workspace. */
+.page-heading { display: flex; align-items: center; min-height: var(--header-height); padding-block: var(--space-3); margin: 0; background: var(--bg); border-bottom: 1px solid var(--border); text-align: left; }
+.brand-lockup { display: flex; align-items: center; gap: var(--space-3); width: 100%; max-width: var(--content-width); margin-inline: auto; padding-inline: var(--space-5); }
 /* Frame the supplied portrait without changing the original image asset. */
 .brand-logo { display: flex; align-items: center; justify-content: center; flex: 0 0 40px; width: 40px; height: 40px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-control); }
 .brand-logo img { display: block; flex-shrink: 0; width: 140%; height: 140%; max-width: none; object-fit: cover; }
@@ -465,6 +466,9 @@ button { min-height: 36px; }
 .status-badge[data-status='READY'] { border-color: var(--accent-border); background: var(--accent-bg); color: var(--accent); }
 .dataset-summary > p + p { margin-top: 6px; }
 .dataset-notes, .dataset-limitations { padding-left: var(--space-5); font-size: 14px; }
+.notice.analysis-limitations { padding: 12px 16px 12px 32px; margin-top: 16px; font-size: 16px; line-height: 1.65; color: var(--text-h); background: var(--surface); word-break: keep-all; overflow-wrap: anywhere; }
+.analysis-limitations li + li, .dataset-limitations li + li { margin-top: 6px; }
+.dataset-limitations { line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
 .select-button, .copy-button { padding: 6px 10px; border-radius: var(--radius-control); font-size: 14px; }
 :where(button, a, input, select, summary, [tabindex]):focus-visible { outline: var(--focus-width) solid var(--accent); outline-offset: 3px; }
 .result-list, .graph, .table-scroll, .detail, .search-actions { min-width: 0; max-width: 100%; }
@@ -486,7 +490,7 @@ button { min-height: 36px; }
 .workspace-selection { background: var(--surface); }
 @media (max-width: 600px) {
   .app { padding: 0 var(--space-3) var(--space-4); }
-  .page-heading { margin-inline: calc(-1 * var(--space-3)); padding-inline: var(--space-3); }
+  .brand-lockup { padding-inline: var(--space-3); }
   .workspace-section { padding: var(--space-3); }
   .mode-switch { width: 100%; flex-wrap: nowrap; }
   .mode-switch button { flex: 1 1 0; flex-direction: column; gap: 2px; padding: 8px 4px; }

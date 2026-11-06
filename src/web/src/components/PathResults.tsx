@@ -80,6 +80,6 @@ export default function PathResults({ result, selectedPathId = null, onSelectPat
       {onSelectTransfer && <TransferDetail transfer={selectedTransfer} variant="analysis" />}
     </>}
     </div>
-    <ul className="notice">{meta.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>
+    {meta.limitations.length > 0 && <ul className="notice analysis-limitations" aria-label="분석 한계 및 주의사항">{[...new Set(meta.limitations)].map(text => <li key={text}>{text}</li>)}</ul>}
   </section>
 }
