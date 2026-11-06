@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"reflect"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/domain"
 )
+
+const encodingProbeText = "한글·日本語·café·e\u0301·🙂 | \"쌍따옴표\" '홑따옴표' | <script>alert('x')</script> & | '; DROP TABLE transfers; -- | 줄1\n줄2\t\\끝"
 
 type scanFunc func(dest ...any) error
 
@@ -363,6 +366,72 @@ func TestPostgresListTransfersReadsLabelsAndNotes(t *testing.T) {
 			t.Errorf("query does not contain %q", part)
 		}
 	}
+}
+
+// TestPostgresPreservesUnicodeAndSpecialCharacters는 PostgreSQL 조회 결과의 다국어·제어·구문 문자가
+// Dataset과 Transfer 메타데이터에 변형 없이 매핑되는지 검증한다.
+func TestPostgresPreservesUnicodeAndSpecialCharacters(t *testing.T) {
+	t.Run("dataset address metadata", func(t *testing.T) {
+		address := "0x0000000000000000000000000000000000000001"
+		labels, err := json.Marshal(map[string]string{address: encodingProbeText})
+		if err != nil {
+			t.Fatal(err)
+		}
+		notes, err := json.Marshal(map[string]string{address: encodingProbeText})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rows := &fakeRows{rows: []postgresRow{
+			datasetRow("encoding-demo", "v1", domain.StatusReady, ptr(int64(200)), nil, nil, `{}`, string(labels), string(notes)),
+		}}
+		repository := &Postgres{db: &fakePostgresDB{queryRows: rows}}
+		datasets, err := repository.ListDatasets(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(datasets) != 1 || datasets[0].Labels[address] != encodingProbeText || datasets[0].AddressNotes[address] != encodingProbeText {
+			t.Fatalf("metadata changed during mapping: %+v", datasets)
+		}
+	})
+
+	t.Run("block transaction and transfer metadata", func(t *testing.T) {
+		from := "0x0000000000000000000000000000000000000001"
+		to := "0x0000000000000000000000000000000000000002"
+		rows := &fakeRows{rows: []postgresRow{
+			transferRowWithText("fx:encoding-demo-v1:e1", from, to, 101, 0, 0,
+				ptr(encodingProbeText), ptr(encodingProbeText), ptr(encodingProbeText),
+				ptr(encodingProbeText), ptr(encodingProbeText), ptr(encodingProbeText)),
+		}}
+		db := &fakePostgresDB{
+			rowQueue: []postgresRow{valuesRow(
+				domain.SourceFixture,
+				"encoding-demo-v1",
+				int64(domain.ChainID),
+				"0x0000000000000000000000000000000000001000",
+				int64(100),
+				int64(200),
+			)},
+			queryRows: rows,
+		}
+		repository := &Postgres{db: db}
+		page, err := repository.ListTransfers(context.Background(), TransferQuery{
+			DatasetID: "encoding-demo", DatasetVersion: "v1", Limit: 10,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Transfers) != 1 {
+			t.Fatalf("transfers = %+v", page.Transfers)
+		}
+		got := page.Transfers[0]
+		fields := []string{got.Label, got.Note, got.TxLabel, got.TxNote, got.BlockLabel, got.BlockNote}
+		for i, field := range fields {
+			if field != encodingProbeText {
+				t.Fatalf("metadata field %d changed: %q", i, field)
+			}
+		}
+	})
 }
 
 // TestPostgresListTransfersReturnsNotFoundForMissingDataset은 없는 Dataset에서 Transfer 조회를 시작하지 않는지 검증한다.

@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	fixtureDir = "../testdata/fixtures"
-	addrS      = "0x0000000000000000000000000000000000000001"
-	addrT      = "0x0000000000000000000000000000000000000007"
+	fixtureDir        = "../testdata/fixtures"
+	addrS             = "0x0000000000000000000000000000000000000001"
+	addrT             = "0x0000000000000000000000000000000000000007"
+	encodingProbeText = "한글·日本語·café·e\u0301·🙂 | \"쌍따옴표\" '홑따옴표' | <script>alert('x')</script> & | '; DROP TABLE transfers; -- | 줄1\n줄2\t\\끝"
 )
 
 // fixedNow로 엔진 시계를 멈춰 두면 durationMs가 늘 0이라 응답을 샘플과 글자 그대로 비교할 수 있다.
@@ -47,6 +48,8 @@ func testConfig(t testing.TB, setup string) Config {
 		cfg.Repo = downRepo{}
 	case "labeled":
 		cfg.Repo = labeledRepo{loadRepo(t)}
+	case "encoding":
+		cfg.Repo = encodingRepo{loadRepo(t)}
 	case "practice":
 		cfg.PracticeDatasets = []string{"flow-demo"}
 	default:
@@ -103,6 +106,37 @@ func (r labeledRepo) ListTransfers(ctx context.Context, q repository.TransferQue
 		}
 		if t.ID == labeledTransfer {
 			t.Note = "전송 메모 예시"
+		}
+	}
+	return page, err
+}
+
+// encodingRepo는 API 직렬화가 다국어·특수문자를 손상시키지 않는지 검증할 메타데이터를 주입한다.
+type encodingRepo struct{ *repository.Memory }
+
+// GetDataset은 분석 결과 노드로 전달될 특수문자 주소 메모를 넣는다.
+func (r encodingRepo) GetDataset(ctx context.Context, id, version string) (domain.Dataset, error) {
+	ds, err := r.Memory.GetDataset(ctx, id, version)
+	if ds.ID == "patterns-demo" {
+		ds.Labels = map[string]string{labeledAddress: encodingProbeText}
+		ds.AddressNotes = map[string]string{labeledAddress: encodingProbeText}
+	}
+	return ds, err
+}
+
+// ListTransfers는 분석 결과에 노출되는 블록·거래·전송 메타데이터에 같은 검사 문자열을 넣는다.
+func (r encodingRepo) ListTransfers(ctx context.Context, q repository.TransferQuery) (repository.TransferPage, error) {
+	page, err := r.Memory.ListTransfers(ctx, q)
+	for i := range page.Transfers {
+		tr := &page.Transfers[i]
+		if tr.BlockNumber == labeledBlock {
+			tr.BlockLabel, tr.BlockNote = encodingProbeText, encodingProbeText
+		}
+		if tr.TxHash == labeledTx {
+			tr.TxLabel, tr.TxNote = encodingProbeText, encodingProbeText
+		}
+		if tr.ID == labeledTransfer {
+			tr.Label, tr.Note = encodingProbeText, encodingProbeText
 		}
 	}
 	return page, err

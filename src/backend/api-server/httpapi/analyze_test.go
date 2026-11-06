@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/analyzer"
 	"github.com/SKKU-SKKRYPTO/skkrypto-tracker/src/backend/domain"
@@ -98,6 +99,42 @@ func TestTransferLabelsAndNotesReachAnalysisResults(t *testing.T) {
 	if got.Note != "전송 메모 예시" || got.TxLabel != "예시 거래" || got.TxNote != "거래 메모 예시" ||
 		got.BlockLabel != "예시 블록" || got.BlockNote != "블록 메모 예시" {
 		t.Fatalf("labels and notes = %+v", got)
+	}
+}
+
+// TestAnalysisPreservesUnicodeAndSpecialCharacters는 JSON 응답이 유효한 UTF-8이고, 위험해 보이는
+// 구문을 실행 가능한 HTML로 내보내지 않으면서 디코딩 뒤에는 원문을 그대로 복원하는지 검증한다.
+func TestAnalysisPreservesUnicodeAndSpecialCharacters(t *testing.T) {
+	body := `{"datasetId":"patterns-demo","datasetVersion":"v1","address":"0x0000000000000000000000000000000000000065","maxDepth":1}`
+	rec := do(newServer(t, "encoding"), http.MethodPost, "/api/trace", []byte(body))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !utf8.Valid(rec.Body.Bytes()) {
+		t.Fatal("response body is not valid UTF-8")
+	}
+	if strings.Contains(rec.Body.String(), "<script>") {
+		t.Fatalf("HTML-sensitive text was not escaped: %s", rec.Body.String())
+	}
+
+	var result analyzer.Result
+	if err := json.Unmarshal(decode(t, rec).Data, &result); err != nil {
+		t.Fatal(err)
+	}
+	nodeIndex := slices.IndexFunc(result.Nodes, func(node analyzer.Node) bool { return node.ID == labeledAddress })
+	if nodeIndex < 0 || result.Nodes[nodeIndex].Label != encodingProbeText || result.Nodes[nodeIndex].Note != encodingProbeText {
+		t.Fatalf("node metadata changed: %+v", result.Nodes)
+	}
+	transferIndex := slices.IndexFunc(result.Transfers, func(tr domain.Transfer) bool { return tr.ID == labeledTransfer })
+	if transferIndex < 0 {
+		t.Fatalf("evidence transfer %s is missing: %+v", labeledTransfer, result.Transfers)
+	}
+	got := result.Transfers[transferIndex]
+	fields := []string{got.Label, got.Note, got.TxLabel, got.TxNote, got.BlockLabel, got.BlockNote}
+	for i, field := range fields {
+		if field != encodingProbeText {
+			t.Fatalf("metadata field %d changed: %q", i, field)
+		}
 	}
 }
 
