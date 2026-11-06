@@ -3,6 +3,7 @@
 set -euo pipefail
 shopt -s nullglob
 up=(src/database/init.d/*.sql)
+tests=(src/database/tests/*.sql)
 if [ ${#up[@]} -eq 0 ]; then
   echo "::notice::src/database/init.d에 migration이 없어 건너뜁니다."
   exit 0
@@ -24,6 +25,7 @@ if [ "$missing" -ne 0 ]; then exit 1; fi
 
 apply() { for f in "$@"; do echo "apply $f"; psql -v ON_ERROR_STOP=1 -q -f "$f"; done; }
 apply "${up[@]}"
+apply "${tests[@]}"
 psql -At -c "select count(*) || ' tables' from information_schema.tables where table_schema='public'"
 apply "${down[@]}"
 left=$(psql -At -c "select count(*) from information_schema.tables where table_schema='public'")
