@@ -21,8 +21,8 @@ BEGIN
         LIMIT 1
     )
     RETURNING label, note INTO stored_label, stored_note;
-    IF NOT FOUND OR convert_to(stored_label, 'UTF8') <> convert_to(probe, 'UTF8')
-                 OR convert_to(stored_note, 'UTF8') <> convert_to(probe, 'UTF8') THEN
+    IF NOT FOUND OR convert_to(stored_label, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8')
+                 OR convert_to(stored_note, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8') THEN
         RAISE EXCEPTION 'dataset_addresses label/note encoding round trip failed';
     END IF;
 
@@ -35,8 +35,8 @@ BEGIN
         LIMIT 1
     )
     RETURNING label, note INTO stored_label, stored_note;
-    IF NOT FOUND OR convert_to(stored_label, 'UTF8') <> convert_to(probe, 'UTF8')
-                 OR convert_to(stored_note, 'UTF8') <> convert_to(probe, 'UTF8') THEN
+    IF NOT FOUND OR convert_to(stored_label, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8')
+                 OR convert_to(stored_note, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8') THEN
         RAISE EXCEPTION 'blocks label/note encoding round trip failed';
     END IF;
 
@@ -49,8 +49,8 @@ BEGIN
         LIMIT 1
     )
     RETURNING label, note INTO stored_label, stored_note;
-    IF NOT FOUND OR convert_to(stored_label, 'UTF8') <> convert_to(probe, 'UTF8')
-                 OR convert_to(stored_note, 'UTF8') <> convert_to(probe, 'UTF8') THEN
+    IF NOT FOUND OR convert_to(stored_label, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8')
+                 OR convert_to(stored_note, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8') THEN
         RAISE EXCEPTION 'transactions label/note encoding round trip failed';
     END IF;
 
@@ -63,8 +63,8 @@ BEGIN
         LIMIT 1
     )
     RETURNING label, note INTO stored_label, stored_note;
-    IF NOT FOUND OR convert_to(stored_label, 'UTF8') <> convert_to(probe, 'UTF8')
-                 OR convert_to(stored_note, 'UTF8') <> convert_to(probe, 'UTF8') THEN
+    IF NOT FOUND OR convert_to(stored_label, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8')
+                 OR convert_to(stored_note, 'UTF8') IS DISTINCT FROM convert_to(probe, 'UTF8') THEN
         RAISE EXCEPTION 'transfers label/note encoding round trip failed';
     END IF;
 END
